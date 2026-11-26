@@ -218,6 +218,7 @@ import { SwitchOn } from "./components/SwitchOn";
 import { Taint } from "./components/Taint";
 import { Target } from "./components/Target";
 import { Task } from "./components/Task";
+import { TestTube } from "./components/TestTube";
 import { ThemeAuto } from "./components/ThemeAuto";
 import { ThemeDark } from "./components/ThemeDark";
 import { ThemeLight } from "./components/ThemeLight";
@@ -465,6 +466,7 @@ export type IconName =
   | "Taint"
   | "Target"
   | "Task"
+  | "TestTube"
   | "ThemeAuto"
   | "ThemeDark"
   | "ThemeLight"
@@ -713,6 +715,7 @@ export const iconRegistry: Record<
   Taint: Taint,
   Target: Target,
   Task: Task,
+  TestTube: TestTube,
   ThemeAuto: ThemeAuto,
   ThemeDark: ThemeDark,
   ThemeLight: ThemeLight,

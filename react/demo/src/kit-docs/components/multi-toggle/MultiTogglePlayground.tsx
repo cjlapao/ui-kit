@@ -36,6 +36,9 @@ const OPTIONS = [
   { value: "month", label: "Month" },
 ];
 
+type SegmentFlags = { hidden: boolean; disabled: boolean };
+const NO_FLAGS: SegmentFlags = { hidden: false, disabled: false };
+
 export const MultiTogglePlayground: React.FC = () => {
   const [value, setValue] = useState("week");
   const [size, setSize] = useState<ControlSize>("md");
@@ -52,11 +55,26 @@ export const MultiTogglePlayground: React.FC = () => {
   const [gap, setGap] = useState(0);
   const [withSeparators, setWithSeparators] = useState(false);
   const [separatorPadding, setSeparatorPadding] = useState(8);
+  // Per-segment presence: `hidden` takes a segment out of the track outright
+  // (the pill *jumps* out when it is the selected one), while `disabled`
+  // keeps it in place, dimmed and inert.
+  const [segmentFlags, setSegmentFlags] = useState<
+    Record<string, SegmentFlags>
+  >({});
   const [log, pushLog] = useEventLog();
 
-  const baseOptions = withIcons
-    ? OPTIONS.map((o, i) => ({ ...o, icon: ["Calendar", "ChartLine", "Clock"][i] }))
-    : OPTIONS;
+  const setFlag = (optionValue: string, flag: keyof SegmentFlags, on: boolean) =>
+    setSegmentFlags((previous) => ({
+      ...previous,
+      [optionValue]: { ...NO_FLAGS, ...previous[optionValue], [flag]: on },
+    }));
+
+  const baseOptions = OPTIONS.map((o, i) => ({
+    ...o,
+    ...(withIcons ? { icon: ["Calendar", "ChartLine", "Clock"][i] } : undefined),
+    hidden: segmentFlags[o.value]?.hidden || undefined,
+    disabled: segmentFlags[o.value]?.disabled || undefined,
+  }));
 
   // The grouped filter-bar pattern: a rule between the segments and the
   // "All" entry, spaced only by the rule's own padding.
@@ -131,28 +149,58 @@ export const MultiTogglePlayground: React.FC = () => {
                 id: "options",
                 title: "Options",
                 controls: (
-                  <div className="grid grid-cols-2 gap-2">
-                    <ToggleRow
-                      label="Full width"
-                      checked={fullWidth}
-                      onChange={setFullWidth}
-                    />
-                    <ToggleRow
-                      label="Icons"
-                      checked={withIcons}
-                      onChange={setWithIcons}
-                    />
-                    <ToggleRow
-                      label="Disabled"
-                      checked={disabled}
-                      onChange={setDisabled}
-                    />
-                    <ChoiceControl
-                      label="Size"
-                      options={controlSizeOptions}
-                      value={size}
-                      onChange={(v) => setSize(v as ControlSize)}
-                    />
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-2">
+                      <ToggleRow
+                        label="Full width"
+                        checked={fullWidth}
+                        onChange={setFullWidth}
+                      />
+                      <ToggleRow
+                        label="Icons"
+                        checked={withIcons}
+                        onChange={setWithIcons}
+                      />
+                      <ToggleRow
+                        label="Disabled"
+                        checked={disabled}
+                        onChange={setDisabled}
+                      />
+                      <ChoiceControl
+                        label="Size"
+                        options={controlSizeOptions}
+                        value={size}
+                        onChange={(v) => setSize(v as ControlSize)}
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {OPTIONS.map((option) => (
+                        <React.Fragment key={option.value}>
+                          <ToggleRow
+                            label={`Hide ${option.label}`}
+                            checked={!!segmentFlags[option.value]?.hidden}
+                            onChange={(v) =>
+                              setFlag(option.value, "hidden", v)
+                            }
+                          />
+                          <ToggleRow
+                            label={`Disable ${option.label}`}
+                            checked={!!segmentFlags[option.value]?.disabled}
+                            onChange={(v) =>
+                              setFlag(option.value, "disabled", v)
+                            }
+                          />
+                        </React.Fragment>
+                      ))}
+                    </div>
+                    <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                      <strong>Hide</strong> takes a segment out of the track
+                      entirely — the others close ranks, and hiding the{" "}
+                      <em>selected</em> one makes the indicator jump out of
+                      sight rather than slide. <strong>Disable</strong> keeps
+                      the segment in place, dimmed and inert, still selected if
+                      it was.
+                    </p>
                   </div>
                 ),
               },

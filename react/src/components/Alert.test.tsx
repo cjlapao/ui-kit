@@ -4,6 +4,7 @@ import Alert from "./Alert";
 import {
   ALERT_INTENT_CONFIG,
   ALERT_INTENTS,
+  ALERT_VARIANTS,
   TRUE_COLORS,
   type ControlSize,
 } from "../theme/Theme";
@@ -161,13 +162,11 @@ describe("Alert", () => {
 
     it("renders every tone and variant without a gap", () => {
       for (const color of TRUE_COLORS) {
-        for (const variant of [
-          "subtle",
-          "solid",
-          "outline",
-          "glass",
-          "liquid-glass",
-        ] as const) {
+        // Straight off the table, not a copy of it: this array was still five
+        // long the day `ALERT_VARIANTS` grew to six, and a variant the token
+        // table has and the sweep has not is exactly the gap this test exists
+        // to close.
+        for (const variant of ALERT_VARIANTS) {
           const { container, unmount } = render(
             <Alert color={color} variant={variant} title="t" description="d" />,
           );

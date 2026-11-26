@@ -10,6 +10,8 @@ import { controlSizeOptions, panelCornerOptions, panelPaddingOptions, surfaceVar
 
 const IDENTITY_MODE_ORDER: IdentityMode[] = ["emoji", "image", "monogram"];
 const MODE_TOGGLE_LABELS: Record<IdentityMode, string> = { emoji: "Emoji", image: "Image upload", monogram: "Monogram" };
+// The avatar rides the shared control scale, with an explicit rung back to following `size`.
+const iconSizeOptions = [{ label: "Follow size", value: "auto" }, ...controlSizeOptions];
 
 /** Shared playground controls keep both upload components on the same scales. */
 export function IdentityPickerPlayground({ fileOnly = false }: { fileOnly?: boolean }) {
@@ -25,6 +27,8 @@ export function IdentityPickerPlayground({ fileOnly = false }: { fileOnly?: bool
   const [inputTone, setInputTone] = useState<TrueColor | undefined>(undefined);
   const [inputFillTone, setInputFillTone] = useState<TrueColor | undefined>(undefined);
   const [size, setSize] = useState<ControlSize>("md");
+  // `auto` leaves the avatar on the component's own ladder — the prop's documented default.
+  const [iconSize, setIconSize] = useState<ControlSize | "auto">("auto");
   const [compact, setCompact] = useState(true);
   const [disabled, setDisabled] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -43,6 +47,8 @@ export function IdentityPickerPlayground({ fileOnly = false }: { fileOnly?: bool
       <ToggleRow label="Compact layout" checked={compact} onChange={setCompact} />
       <SelectControl label="Variant" options={surfaceVariantOptions} value={variant} onChange={value => setVariant(value as SurfaceVariant)} />
       <SelectControl label="Size" options={controlSizeOptions} value={size} onChange={value => setSize(value as ControlSize)} />
+      {/* The avatar rides its own rung of the same ladder; the upload-only playground has no preview to grow. */}
+      {fileOnly ? null : <SelectControl label="Icon size" options={iconSizeOptions} value={iconSize} onChange={value => setIconSize(value as ControlSize | "auto")} />}
       <Control label="Tone"><SurfaceToneSwatches value={tone} onSelect={setTone} /></Control>
       {/* The card's tone paints the card, tiles, chips and tabs; this moves only the fill of the fields nested inside it. Hidden on the upload-only playground, which has no fields. */}
       {fileOnly ? null : <>
@@ -66,7 +72,7 @@ export function IdentityPickerPlayground({ fileOnly = false }: { fileOnly?: bool
   ]} /><p className="text-xs text-neutral-500">Selection stays local. The app owns upload requests and persisted values.</p></div>}
     preview={<div className="w-full max-w-2xl space-y-4">{fileOnly
       ? <FileUpload {...surface} value={files} onChange={value => { setFiles(value); pushLog(`onChange → ${value.map(file => file.name).join(", ") || "empty"}`); }} onReject={value => pushLog(`onReject → ${value.map(item => item.code).join(", ")}`)} multiple={multiple} accept={accept === "all" ? undefined : accept} maxSize={5 * 1024 * 1024} maxFiles={4} />
-      : <IdentityPicker {...surface} name="Project Atlas" modes={modes} inputTone={inputTone} inputFillTone={inputFillTone} value={identity} onChange={value => { setIdentity(value); pushLog(`onChange → ${value?.type ?? "reset"}`); }} onReject={value => pushLog(`onReject → ${value.map(item => item.code).join(", ")}`)} />}
+      : <IdentityPicker {...surface} name="Project Atlas" modes={modes} iconSize={iconSize === "auto" ? undefined : iconSize} inputTone={inputTone} inputFillTone={inputFillTone} value={identity} onChange={value => { setIdentity(value); pushLog(`onChange → ${value?.type ?? "reset"}`); }} onReject={value => pushLog(`onReject → ${value.map(item => item.code).join(", ")}`)} />}
       <p className="text-xs text-neutral-500">{fileOnly ? `Selected: ${files.length} file(s)` : `Value: ${identity === null ? "null" : identity.type === "emoji" ? identity.emoji : identity.type === "monogram" ? identity.text : identity.file?.name ?? identity.src}`}</p>
       <EventLogControl log={log} />
     </div>} />;

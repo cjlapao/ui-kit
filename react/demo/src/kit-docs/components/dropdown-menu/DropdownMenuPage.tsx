@@ -13,7 +13,9 @@ export const DropdownMenuPage: React.FC = () => (
   <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Dropdown Menu"
-      description="The raw, positioning-only menu — no trigger of its own. Align, side, width and max-height against the viewport; icons, descriptions, disabled and danger items, with full keyboard support."
+      description={
+        "The raw, positioning-only menu — no trigger of its own. Align, side, width and max-height against the viewport; icons, descriptions, disabled and danger items, with full keyboard support. `optionHoverTone` tints the idle rows&rsquo; hover wash; danger items keep their rose, and \"selected\" falls back to the family hue — a menu has no selection of its own."
+      }
     />
     <DropdownMenuPlayground />
     <section className="flex flex-col gap-5">

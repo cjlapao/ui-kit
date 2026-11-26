@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { fireEvent, render, act } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { useRef, useState } from "react";
 import DropdownMenu, { type DropdownMenuOption } from "./DropdownMenu";
+import { POPUP_ROW_WASH } from "../theme/Theme";
 
 // The component pulls useIconRenderer on mount; our items use no icons, so a
 // no-op renderer is enough to keep it from touching the real Icon context.
@@ -296,5 +297,87 @@ describe("DropdownMenu — focus management", () => {
     await act(async () => {});
 
     expect(document.activeElement).not.toBe(trigger);
+  });
+});
+
+describe("DropdownMenu — optionHoverTone (menu row wash)", () => {
+  // The same host the rest of the file uses, with the new prop threaded
+  // through. The literal hues are the shared `OptionRowTone` narrowed to
+  // what these tests exercise.
+  function ToneHarness({
+    items = ITEMS,
+    onClose,
+    onSelect,
+    optionHoverTone,
+  }: {
+    items?: DropdownMenuOption[];
+    onClose?: () => void;
+    onSelect?: (item: DropdownMenuOption) => void;
+    optionHoverTone?: "rose" | "selected" | "emerald";
+  }) {
+    const anchorRef = useRef<HTMLDivElement>(null);
+    return (
+      <div>
+        <div ref={anchorRef} data-testid="anchor" />
+        <DropdownMenu
+          anchorRef={anchorRef}
+          open
+          onClose={onClose ?? (() => {})}
+          items={items}
+          side="auto"
+          onSelect={onSelect}
+          optionHoverTone={optionHoverTone}
+        />
+      </div>
+    );
+  }
+  const menu = () => screen.getAllByRole("menuitem");
+
+  it("unconfigured rows wear the neutral constant, nothing toned", () => {
+    render(<ToneHarness />);
+    const [one] = menu();
+    expect(one.className.split(" ")).toEqual(
+      expect.arrayContaining(POPUP_ROW_WASH.hover.split(" ")),
+    );
+    expect(one.className).not.toMatch(/-500\/15/);
+  });
+
+  it("optionHoverTone paints the row under the pointer", () => {
+    render(<ToneHarness optionHoverTone="rose" />);
+    const [one] = menu();
+    expect(one.className.split(" ")).toEqual(
+      expect.arrayContaining([
+        "hover:bg-rose-500/15",
+        "dark:hover:bg-rose-500/20",
+      ]),
+    );
+    expect(one.className).not.toMatch(/hover:bg-neutral-/);
+  });
+
+  it("danger rows keep their rose, props or not", () => {
+    render(
+      <ToneHarness
+        optionHoverTone="rose"
+        items={[
+          { value: "1", label: "One" },
+          { value: "d", label: "Delete", danger: true },
+        ]}
+      />,
+    );
+    const [, danger] = menu();
+    expect(danger.className).toContain("text-rose-600");
+    expect(danger.className).toContain("hover:bg-rose-50");
+    expect(danger.className).not.toContain("hover:bg-rose-500/15");
+  });
+
+  it('"selected" falls back to the family default hue — a menu has no selection', () => {
+    render(<ToneHarness optionHoverTone="selected" />);
+    const [one] = menu();
+    expect(one.className.split(" ")).toEqual(
+      expect.arrayContaining([
+        "hover:bg-blue-500/15",
+        "dark:hover:bg-blue-500/20",
+      ]),
+    );
   });
 });

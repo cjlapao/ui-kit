@@ -685,6 +685,122 @@ describe("ActivityFeed", () => {
     });
   });
 
+  describe("full height", () => {
+    /**
+     * The Panel's own body wrappers, read up from the feed's card column:
+     * `bodyContent` (the element `flexBody` stretches) sits inside
+     * `bodySection`. `h3` is the feed's header, always the column's first
+     * grandchild — the least brittle way to name the column's parent.
+     */
+    const wrappers = (container: HTMLElement) => {
+      const column = container.querySelector("h3")!.parentElement!.parentElement!;
+      return {
+        root: container.querySelector("section") as HTMLElement,
+        bodyContent: column.parentElement as HTMLElement,
+        bodySection: column.parentElement!.parentElement as HTMLElement,
+        column: column as HTMLElement,
+      };
+    };
+
+    it("stretches the card and lets the body region take the rest", () => {
+      const { container } = render(<ActivityFeed items={items} fullHeight />);
+      const { root, bodyContent, bodySection, column } = wrappers(container);
+      expect(root.className).toContain("h-full");
+      expect(root.className).toContain("min-h-0");
+      // The Panel's flex body — the only thing the feed's column can stretch
+      // against — and the two flex children the feed adds to it.
+      expect(bodyContent.className).toContain("flex-1");
+      expect(bodyContent.className).toContain("min-h-0");
+      expect(bodySection.className).toContain("flex-col");
+      expect(bodySection.className).toContain("w-full");
+      // The Panel body's own `overflow-auto` is off under `fullHeight`: a
+      // second scroller would compete with the feed's.
+      expect(bodySection.className).not.toContain("overflow-auto");
+      expect(column.className).toContain("flex-1");
+      const region = bodyContent.querySelector("div.relative") as HTMLElement;
+      expect(region.className).toContain("flex-1");
+      expect(region.className).toContain("min-h-0");
+    });
+
+    it("renders an untouched feed when the prop is not asked for", () => {
+      const { container } = render(<ActivityFeed items={items} />);
+      const { root, bodyContent, bodySection, column } = wrappers(container);
+      // The negative control: no stretch anywhere, and the Panel body keeps the
+      // `overflow-auto` it has carried since before this prop existed.
+      expect(root.className).not.toContain("h-full");
+      expect(bodyContent.className).not.toContain("flex-1");
+      expect(bodySection.className).toContain("overflow-auto");
+      expect(column.className).not.toContain("flex-1");
+      expect(container.querySelector('[data-slot="scrollarea"]')).toBeNull();
+    });
+
+    it("turns the body region into the scroller when there is no cap", () => {
+      const { container } = render(<ActivityFeed items={items} fullHeight />);
+      const frame = container.querySelector('[data-slot="scrollarea"]') as HTMLElement;
+      const viewport = container.querySelector('[data-slot="scrollarea-viewport"]');
+      expect(frame).not.toBeNull();
+      expect(frame.className).toContain("h-full");
+      expect(frame.className).toContain("min-h-0");
+      // Filling is not capping: the height comes from the parent, so no
+      // `max-height` ever lands on the frame.
+      expect(frame.style.maxHeight).toBe("");
+      expect(viewport!.querySelector("li")).not.toBeNull();
+    });
+
+    it("watches the sentinel inside the filled body, not a button", async () => {
+      const onLoadMore = vi.fn(async () => {});
+      render(<ActivityFeed items={items} fullHeight hasMore onLoadMore={onLoadMore} />);
+      // Filling is a scroller worth watching: the same contract `maxHeight`
+      // has always had, and the mirror of the uncapped feed's button fallback.
+      expect(screen.queryByRole("button", { name: /Load more/ })).toBeNull();
+      expect(observers.length).toBeGreaterThan(0);
+      await act(async () => {
+        observers[observers.length - 1].trigger(true);
+      });
+      await waitFor(() => expect(onLoadMore).toHaveBeenCalledTimes(1));
+    });
+
+    it("lets maxHeight keep the body when both are given", () => {
+      const { container } = render(
+        <ActivityFeed items={items} fullHeight maxHeight={240} />,
+      );
+      const frame = container.querySelector('[data-slot="scrollarea"]') as HTMLElement;
+      // MemoryLibrary's rule: the cap wins the body, the card still stretches.
+      expect(frame.style.maxHeight).toBe("240px");
+      expect(frame.className).not.toContain("h-full");
+      expect((container.querySelector("section") as HTMLElement).className).toContain("h-full");
+    });
+
+    it("pins the loading overlay outside the scroller", () => {
+      const { container } = render(
+        <ActivityFeed items={items} fullHeight loading loaderType="spinner" />,
+      );
+      // The Table's rule: an `absolute inset-0` overlay inside a scroller
+      // scrolls away with the content, so the Loader is a sibling of the frame.
+      const overlay = container.querySelector('[role="status"]') as HTMLElement;
+      expect(overlay).not.toBeNull();
+      expect(overlay.closest('[data-slot="scrollarea"]')).toBeNull();
+      expect(
+        container.querySelector("li")!.closest('[data-slot="scrollarea"]'),
+      ).not.toBeNull();
+    });
+
+    it("keeps the Load-more tail outside the filled body", () => {
+      const { container } = render(
+        <ActivityFeed
+          items={items}
+          fullHeight
+          hasMore
+          loadMode="button"
+          onLoadMore={vi.fn()}
+        />,
+      );
+      const button = screen.getByRole("button", { name: /Load more/ });
+      expect(button.closest('[data-slot="scrollarea"]')).toBeNull();
+      expect(container.querySelector('[data-slot="scrollarea"]')).not.toBeNull();
+    });
+  });
+
   describe("custom item bodies", () => {
     it("renders the item's body in place of the whole row content", () => {
       const { container } = render(

@@ -39,6 +39,23 @@ const LIFE_OPTIONS: { label: string; value: string }[] = [
   { label: "Sticky", value: "0" },
 ];
 
+/**
+ * Deck widths, in CSS `width` values — the geometry axis.
+ *
+ * Width is its own lever on purpose. `Size` is the type-and-padding scale: it
+ * moves the title, the detail, the glyph and the card's height together, so
+ * "wider" is not something it can say. The viewport's `width` sets the column
+ * the cards fill (every card is `width: 100%` of it), which is what a deck of
+ * long details actually needs.
+ */
+const WIDTH_OPTIONS: { label: string; value: string }[] = [
+  { label: "18.75rem (kit default)", value: "18.75rem" },
+  { label: "22.5rem (360px)", value: "22.5rem" },
+  { label: "26rem", value: "26rem" },
+  { label: "30rem", value: "30rem" },
+  { label: "Fill the corner (92vw, ≤34rem)", value: "min(92vw, 34rem)" },
+];
+
 const PLAYGROUND_GROUP = "toast-playground";
 
 export const ToastPlayground: React.FC = () => (
@@ -54,6 +71,8 @@ const Controls: React.FC = () => {
   const [size, setSize] = useState<ControlSize>("md");
   const [position, setPosition] = useState<ToastPosition>("bottom-right");
   const [mode, setMode] = useState<ToastMode>("stacked");
+  // Geometry, independent of `size` — see WIDTH_OPTIONS.
+  const [width, setWidth] = useState("22.5rem");
   const [overrideTone, setOverrideTone] = useState(false);
   const [color, setColor] = useState<TrueColor>("emerald");
   const [life, setLife] = useState("5000");
@@ -149,14 +168,22 @@ const Controls: React.FC = () => {
                         onChange={(value) => setMode(value as ToastMode)}
                       />
                     </div>
-                    <SelectControl
-                      label="Position"
-                      options={toastPositionOptions}
-                      value={position}
-                      onChange={(value) =>
-                        setPosition(value as ToastPosition)
-                      }
-                    />
+                    <div className="grid grid-cols-2 gap-3">
+                      <SelectControl
+                        label="Position"
+                        options={toastPositionOptions}
+                        value={position}
+                        onChange={(value) =>
+                          setPosition(value as ToastPosition)
+                        }
+                      />
+                      <SelectControl
+                        label="Width"
+                        options={WIDTH_OPTIONS}
+                        value={width}
+                        onChange={setWidth}
+                      />
+                    </div>
                   </>
                 ),
               },
@@ -244,8 +271,11 @@ const Controls: React.FC = () => {
           />
           <p className="text-xs opacity-70">
             The toast lands in <strong>{livePosition}</strong> as{" "}
-            <strong>{liveMode}</strong> — pick a new corner, then raise again.
-            Fire a few to watch the deck stack; hover it to fan out.
+            <strong>{liveMode}</strong> at{" "}
+            <strong>{width}</strong> — pick a new corner, then raise again. Fire
+            a few to watch the deck stack; hover it to fan out. Width is the
+            deck's column only: it changes no type and no height, which is what{" "}
+            <strong>Size</strong> is for.
           </p>
         </div>
       }
@@ -274,6 +304,7 @@ const Controls: React.FC = () => {
         group={PLAYGROUND_GROUP}
         position={livePosition}
         mode={liveMode}
+        width={width}
       />
     </>
   );

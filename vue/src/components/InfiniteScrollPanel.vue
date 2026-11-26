@@ -65,6 +65,13 @@ export interface InfiniteScrollPanelProps<T> {
   // ── States ────────────────────────────────────────────────────────────────
   /** Copy for the built-in end marker. */
   endMessage?: string;
+  /**
+   * Render the end-of-list marker at all. It only appears once the content
+   * actually overflows the scroll area — a list that fits on one page just
+   * ends; `false` switches the marker (built-in and the `endComponent` slot)
+   * off even then. @default true
+   */
+  showEndMarker?: boolean;
   /** Copy for the built-in empty state. */
   emptyMessage?: string;
 
@@ -112,6 +119,7 @@ import {
 import classNames from "classnames";
 import Button from "./Button.vue";
 import { useInfiniteScroll } from "../composables/useInfiniteScroll";
+import { useScrollOverflow } from "../composables/useScrollOverflow";
 import Panel from "./Panel.vue";
 import Spinner from "./Spinner.vue";
 import {
@@ -130,6 +138,7 @@ const props = withDefaults(defineProps<InfiniteScrollPanelProps<T>>(), {
   rootMargin: 320,
   minItems: 0,
   endMessage: "You have reached the end",
+  showEndMarker: true,
   emptyMessage: "No items found",
   variant: "plain",
   tone: "none",
@@ -155,6 +164,7 @@ const columnCount = ref(1);
 const containerRef = ref<HTMLDivElement | null>(null);
 const gridRef = ref<HTMLDivElement | null>(null);
 const sentinelRef = ref<HTMLDivElement | null>(null);
+const endRef = ref<HTMLElement | null>(null);
 let itemRefs: Array<HTMLDivElement | null> = [];
 
 let widthObserver: ResizeObserver | null = null;
@@ -176,6 +186,17 @@ const { error, busy, loadMore } = useInfiniteScroll(containerRef, sentinelRef, (
   onError: (caught) => emit("error", caught),
 }));
 const retry = () => { void loadMore(); };
+
+// The end marker answers "is there more than a page to scroll?", so a short
+// list that never scrolls simply ends. The marker's own box is excluded from
+// the measurement, so showing it cannot be what made it worth showing.
+const overflow = useScrollOverflow(containerRef, {
+  excludeRef: endRef,
+  deps: () => [
+    props.items, props.hasMore, error.value, busy.value,
+    columnCount.value, props.layout,
+  ],
+});
 
 // ── Columns ─────────────────────────────────────────────────────────────────
 const measureColumns = () => {
@@ -437,14 +458,23 @@ const keyFor = (item: T, index: number) =>
           </div>
         </slot>
       </div>
-      <!-- The list used to just stop, with no signal that it was finished. -->
-      <slot v-else-if="items.length > 0" name="endComponent">
-        <div
-          class="flex items-center justify-center p-6 text-center text-xs text-neutral-500 dark:text-neutral-400"
-        >
-          {{ endMessage }}
-        </div>
-      </slot>
+      <!-- The list used to just stop, with no signal that it was finished —
+           but only once there was actually something to finish: a list that
+           fits on one page has no end of scrolling to announce. The wrapper
+           carries the ref the overflow measurement excludes, so the marker
+           can never trigger itself into visibility. -->
+      <div
+        v-else-if="items.length > 0 && showEndMarker && overflow"
+        ref="endRef"
+      >
+        <slot name="endComponent">
+          <div
+            class="flex items-center justify-center p-6 text-center text-xs text-neutral-500 dark:text-neutral-400"
+          >
+            {{ endMessage }}
+          </div>
+        </slot>
+      </div>
     </div>
   </component>
 </template>

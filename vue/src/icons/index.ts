@@ -219,6 +219,7 @@ export * from "./components/SwitchOn";
 export * from "./components/Taint";
 export * from "./components/Target";
 export * from "./components/Task";
+export * from "./components/TestTube";
 export * from "./components/ThemeAuto";
 export * from "./components/ThemeDark";
 export * from "./components/ThemeLight";

@@ -18,12 +18,14 @@ import Tones from "./examples/Tones";
 import tonesCode from "./examples/Tones.tsx?raw";
 import Separators from "./examples/Separators";
 import separatorsCode from "./examples/Separators.tsx?raw";
+import HiddenDisabled from "./examples/HiddenDisabled";
+import hiddenDisabledCode from "./examples/HiddenDisabled.tsx?raw";
 
 export const MultiTogglePage: React.FC = () => (
   <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Multi Toggle"
-      description="A segmented control — a radiogroup with a sliding indicator. The track takes the same eight surface variants as Panel, so it sits flush beside a card; the indicator is its own scale, and `background={false}` takes the track away altogether. A `{ type: &quot;separator&quot; }` option rules a group boundary whose own padding — not the item `gap` — spaces it. Arrow keys, Home and End move the selection and skip disabled options and separators alike."
+      description="A segmented control — a radiogroup with a sliding indicator. The track takes the same eight surface variants as Panel, so it sits flush beside a card; the indicator is its own scale, and `background={false}` takes the track away altogether. A `{ type: &quot;separator&quot; }` option rules a group boundary whose own padding — not the item `gap` — spaces it. Arrow keys, Home and End move the selection and skip hidden options, disabled options and separators alike — and a `{ hidden: true }` option leaves the row entirely, the indicator jumping rather than sliding when it is the selected one."
     />
     <MultiTogglePlayground />
     <section className="flex flex-col gap-5">
@@ -37,6 +39,14 @@ export const MultiTogglePage: React.FC = () => (
         filename="Separators.tsx"
       >
         <Separators />
+      </ExampleCard>
+      <ExampleCard
+        title="Hiding &amp; disabling segments"
+        description="The two ways a segment stops being selectable are not the same control. `disabled` keeps it in the row, dimmed — still the selection if it was. `hidden` removes it outright: the others close ranks, the arrow keys never meet it, and hiding the <em>selected</em> segment makes the indicator jump out of sight instead of sliding over the wrong one — the value is the caller&rsquo;s and stays untouched."
+        code={hiddenDisabledCode}
+        filename="HiddenDisabled.tsx"
+      >
+        <HiddenDisabled />
       </ExampleCard>
       <ExampleCard
         title="Long labels in a narrow parent"
@@ -77,7 +87,7 @@ export const MultiTogglePage: React.FC = () => (
           name: "options",
           type: "MultiToggleOption[]",
           description:
-            "`value`, `label`, `icon` (registry name or element), `disabled`, and an optional fixed `width` for icon-only segments. A `{ type: &quot;separator&quot; }` entry draws a vertical hairline instead of a segment — as many as the row needs; separators are not radios and the arrow keys step over them. Labels are ReactNodes and entirely the caller&rsquo;s — this component owns no strings.",
+            "`value`, `label`, `icon` (registry name or element), `disabled`, `hidden`, and an optional fixed `width` for icon-only segments. A `{ type: &quot;separator&quot; }` entry draws a vertical hairline instead of a segment — as many as the row needs; separators are not radios and the arrow keys step over them. A `hidden` entry is gone from the track altogether — unmeasured, untabbable, skipped by the arrow keys — and the group keeps its `value` even when the hidden option is the selected one; the indicator just withdraws. Labels are ReactNodes and entirely the caller&rsquo;s — this component owns no strings.",
         },
         {
           name: "value",
@@ -195,7 +205,8 @@ export const MultiTogglePage: React.FC = () => (
           One <C>Tab</C> stop — the selected segment — then <C>←</C> <C>→</C>{" "}
           (or <C>↑</C> <C>↓</C>) move the selection itself, not just the focus,
           wrapping at both ends; <C>Home</C> and <C>End</C> jump. Steps skip
-          disabled options, so a keyboard user never has to arrow through an
+          disabled options (a <C>hidden</C> option is not in the tree to skip at
+          all), so a keyboard user never has to arrow through an
           option that cannot be chosen. The stop tracks the <em>selection</em> —
           the same <C>value</C> the pill is drawn under — so there is never a
           split state where the pill says one segment and the keyboard enters at

@@ -409,8 +409,12 @@ const ToastMessageCard: React.FC<ToastMessageCardProps> = ({
               onClose(message.id);
             }}
             className={classNames(
+              // `closeInset` is the corner: the card's padding would otherwise
+              // sit a full step off its own border, which reads as a control
+              // parked in the middle of the card's top-right quadrant.
               "inline-flex shrink-0 items-center justify-center self-start rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2",
               size.close,
+              size.closeInset,
               tokens.dismiss,
             )}
             aria-label={t("kit.toast.closeAria")}

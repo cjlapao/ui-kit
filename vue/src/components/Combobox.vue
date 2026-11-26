@@ -36,6 +36,22 @@ export interface ComboboxProps {
   tone?: TrueColor;
   /** Alias for `tone`, matching `Input` and `Select`. */
   color?: TrueColor;
+  /**
+   * The hue the copy of the option matching the current value wears —
+   * Combobox's selected state is copy-only, so this moves the words, not a
+   * fill. The focus ring and glow stay `tone`'s either way.
+   * Default: the field's `tone`.
+   */
+  optionSelectedTone?: TrueColor;
+  /**
+   * The hue the active row wears — in this list the cursor follows the
+   * mouse, so pointer and keyboard share one wash. Unset keeps the
+   * field-shadow default: a suggestion list is the field's shadow, so it
+   * tints like the field does. `"selected"` follows the effective selected
+   * hue (`optionSelectedTone ?? tone`).
+   * @default undefined
+   */
+  optionHoverTone?: OptionRowTone;
   /** Entry style. @default "flat" */
   variant?: ComboboxVariant;
   /** @default "none" */
@@ -69,7 +85,11 @@ import { useKitT } from "../i18n";
 import Input from "./Input.vue";
 import Spinner from "./Spinner.vue";
 import CustomIcon from "./CustomIcon.vue";
-import { TRUE_COLORS } from "../theme/Theme";
+import {
+  TRUE_COLORS,
+  type OptionRowTone,
+  resolveOptionRowWash,
+} from "../theme/Theme";
 import type { IconName } from "../icons/registry";
 
 /**
@@ -154,6 +174,21 @@ const inputRef = ref<InstanceType<typeof Input> | null>(null);
 const accent = computed<TrueColor>(() => props.tone ?? props.color ?? "blue");
 const toneClasses = computed(
   () => COMBOBOX_TONE_CLASSES[accent.value] ?? COMBOBOX_TONE_CLASSES.blue,
+);
+// The popup's row washes, resolved once (see React `Combobox`). The cursor
+// wash keeps the neutral `POPUP_ROW_WASH.cursor` until `optionHoverTone`
+// names a hue; the pointer wash keeps its field-shadow recipe (`active`)
+// either way. Selected copy is Combobox's own pair, parameterised by the
+// resolved selected hue.
+const rowWash = computed(() =>
+  resolveOptionRowWash({
+    optionHoverTone: props.optionHoverTone,
+    optionSelectedTone: props.optionSelectedTone,
+    tone: accent.value,
+  }),
+);
+const selectedCopy = computed(
+  () => buildToneClasses(props.optionSelectedTone ?? accent.value).selected,
 );
 // `error` predates `validationStatus`; the explicit status wins.
 const status = computed<ComboboxValidationStatus>(() =>
@@ -427,9 +462,16 @@ const onFocus = () => {
             // background at the same specificity are resolved by emission
             // order, which is arbitrary.
             index === activeIndex && !option.disabled
-              ? toneClasses.active
+              ? optionHoverTone === undefined
+                ? toneClasses.active
+                : classNames(
+                    rowWash.cursor,
+                    option.value === value
+                      ? selectedCopy
+                      : toneClasses.selected,
+                  )
               : option.value === value
-                ? toneClasses.selected
+                ? selectedCopy
                 : 'text-neutral-900 dark:text-neutral-100',
             option.value === value && 'font-medium',
           )

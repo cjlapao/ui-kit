@@ -66,6 +66,7 @@ export const InfiniteScrollPanelPlayground: React.FC = () => {
   const [maxColumns, setMaxColumns] = useState(4);
   const [failNext, setFailNext] = useState(false);
   const [empty, setEmpty] = useState(false);
+  const [showEndMarker, setShowEndMarker] = useState(true);
   const [glassOpacity, setGlassOpacity] = useState<GlassOpacity>("frosted");
   const [vibrancy, setVibrancy] = useState<GlassVibrancy>("medium");
   const [specularMode, setSpecularMode] =
@@ -173,6 +174,11 @@ export const InfiniteScrollPanelPlayground: React.FC = () => {
                   <div className="grid grid-cols-1 gap-2">
                     <ToggleRow label="Empty" checked={empty} onChange={setEmpty} />
                     <ToggleRow
+                      label="Show end marker"
+                      checked={showEndMarker}
+                      onChange={setShowEndMarker}
+                    />
+                    <ToggleRow
                       label="Next page fails"
                       checked={failNext}
                       onChange={setFailNext}
@@ -259,6 +265,7 @@ export const InfiniteScrollPanelPlayground: React.FC = () => {
               maxColumns={maxColumns}
               minColumnWidth={220}
               height={480}
+              showEndMarker={showEndMarker}
               glassOpacity={glassOpacity}
               vibrancy={vibrancy}
               specularMode={specularMode}

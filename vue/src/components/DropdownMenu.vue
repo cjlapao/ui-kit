@@ -20,6 +20,15 @@ export interface DropdownMenuProps {
   width?: number | "trigger";
   maxHeight?: number;
   itemClassName?: string;
+  /**
+   * The hue the menu's idle rows wear under the pointer. Unset keeps the
+   * neutral `POPUP_ROW_WASH` blend — which replaces the old
+   * `hover:bg-neutral-100` step; an explicit hue tints the wash. A menu has
+   * no selection of its own, so `"selected"` falls back to the family
+   * default hue (`blue`). `danger` items keep their rose either way.
+   * @default undefined
+   */
+  optionHoverTone?: OptionRowTone;
 }
 
 type RectBounds = {
@@ -79,6 +88,7 @@ import {
   type CSSProperties,
 } from "vue";
 import classNames from "classnames";
+import { type OptionRowTone, resolveOptionRowWash } from "../theme/Theme";
 import { useIconRenderer } from "../contexts/IconContext";
 import { useClassAttrs } from "../utils/attrsUtils";
 import VNodeRenderer from "./internal/VNodeRenderer";
@@ -474,7 +484,10 @@ const itemClass = (item: DropdownMenuOption) =>
       ? "cursor-not-allowed opacity-50"
       : item.danger
         ? "text-rose-600 hover:bg-rose-50 dark:text-rose-300 dark:hover:bg-rose-500/10"
-        : "hover:bg-neutral-100 dark:hover:bg-neutral-800",
+        : resolveOptionRowWash({
+            optionHoverTone: props.optionHoverTone,
+            tone: "blue",
+          }).hover,
     props.itemClassName,
   );
 </script>

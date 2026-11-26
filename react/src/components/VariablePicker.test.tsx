@@ -231,3 +231,70 @@ describe("VariablePicker (behaviours)", () => {
     expect(screen.getByText("Keine vault-Variablen.")).toBeInTheDocument();
   });
 });
+
+describe("VariablePicker — optionHoverTone (popup row wash)", () => {
+  const GROUPS: SmartVariableGroup[] = [
+    {
+      id: "app",
+      label: "App",
+      variables: [{ key: "REGION", label: "Region", value: "eu-west-1" }],
+    },
+  ];
+  const row = () => screen.getByRole("button", { name: /Region/ });
+
+  it("unconfigured rows wear the neutral constant, nothing toned", () => {
+    render(<VariablePicker groups={GROUPS} onSelect={() => {}} />);
+    const classes = row().className.split(" ");
+    expect(classes).toEqual(
+      expect.arrayContaining(POPUP_ROW_WASH.hover.split(" ")),
+    );
+    expect(row().className).not.toMatch(/-500\/15/);
+  });
+
+  it("optionHoverTone paints the row under the pointer", () => {
+    render(
+      <VariablePicker
+        groups={GROUPS}
+        optionHoverTone="rose"
+        onSelect={() => {}}
+      />,
+    );
+    expect(row().className.split(" ")).toEqual(
+      expect.arrayContaining([
+        "hover:bg-rose-500/15",
+        "dark:hover:bg-rose-500/20",
+      ]),
+    );
+    expect(
+      row().className.split(" ").filter((c) => c.startsWith("hover:bg-")).length,
+    ).toBe(1);
+  });
+
+  it('"selected" follows the effective row tone', () => {
+    const plain = render(
+      <VariablePicker groups={GROUPS} optionHoverTone="selected" onSelect={() => {}} />,
+    );
+    expect(row().className.split(" ")).toEqual(
+      expect.arrayContaining([
+        "hover:bg-blue-500/15",
+        "dark:hover:bg-blue-500/20",
+      ]),
+    );
+    plain.unmount();
+    // Per-group colour rides the badge and the tab; `optionHoverTone` is the
+    // caller overruling on purpose, so the row wash follows the group hue.
+    render(
+      <VariablePicker
+        groups={[{ ...GROUPS[0], tone: "violet" }]}
+        optionHoverTone="selected"
+        onSelect={() => {}}
+      />,
+    );
+    expect(row().className.split(" ")).toEqual(
+      expect.arrayContaining([
+        "hover:bg-violet-500/15",
+        "dark:hover:bg-violet-500/20",
+      ]),
+    );
+  });
+});

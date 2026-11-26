@@ -8,6 +8,7 @@ import type {
   SurfaceCorner,
   SurfaceVariant,
   TrueColor,
+  OptionRowTone,
 } from "@cjlapao/ui-kit";
 import {
   ChoiceControl,
@@ -17,7 +18,10 @@ import {
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
 import { ControlAccordion } from "../../shared/ControlAccordion";
-import { HueControl } from "../../shared/HueControl";
+import {
+  HueControl,
+  HoverHueControl,
+} from "../../shared/HueControl";
 import { EventLogControl, useEventLog } from "../../shared/EventLog";
 import {
   controlSizeOptions,
@@ -59,6 +63,8 @@ export const VariablePickerPlayground: React.FC = () => {
   // The search field's own fill hue — the card stays `variant`'s and
   // `panelTone`'s.
   const [fill, setFill] = useState<TrueColor | undefined>(undefined);
+  // The rows' own hue, decoupled from the surface around them.
+  const [optionHoverTone, setOptionHoverTone] = useState<OptionRowTone | undefined>(undefined);
   const [raisedSurface, setRaisedSurface] = useState(false);
   const [withResolve, setWithResolve] = useState(true);
   const [empty, setEmpty] = useState(false);
@@ -110,6 +116,14 @@ export const VariablePickerPlayground: React.FC = () => {
                       onChange={setFill}
                       autoLabel="None — the variant’s own fill"
                     />
+                    {/* The rows' hue, decoupled from the surface around them. */}
+                    <HoverHueControl
+                      label="Hover hue"
+                      value={optionHoverTone}
+                      onChange={setOptionHoverTone}
+                      autoLabel="Auto — the neutral blend"
+                      followLabel='"Selected" — follow the row tone'
+                    />
                     {/* The dropdown card takes its depth step here, not in the shared widget. */}
                     <ToggleRow
                       label="Raised surface"
@@ -158,6 +172,7 @@ export const VariablePickerPlayground: React.FC = () => {
           variant={variant}
           corner={corner}
           tone={tone}
+          optionHoverTone={optionHoverTone}
           inputFillTone={fill}
           raisedSurface={raisedSurface}
           onSelect={(v) => pushLog(`selected \`${v.fullToken}\` — onSelect`)}

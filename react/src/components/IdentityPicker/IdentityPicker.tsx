@@ -57,6 +57,15 @@ export interface IdentityPickerProps extends Pick<PanelProps, "variant" | "tone"
   fontFamily?: string;
   /** Scales preview, emoji glyphs/tiles, typography, spacing and all controls. */
   size?: ControlSize;
+  /**
+   * Scales the header preview — the identity avatar holding the emoji, image or
+   * monogram — independently of `size`, so a compact `sm` card can wear an `lg`
+   * avatar. Box and glyph grow as one step on the same ladder. The emoji tiles,
+   * the tabs, the fields, the typography and the spacing are the card's furniture
+   * and keep following `size`.
+   * @default the component `size`
+   */
+  iconSize?: ControlSize;
   /** Space-saving arrangement. Set false for category chips and stacked fields. @default true */
   compact?: boolean;
   /**
@@ -107,7 +116,7 @@ function initials(name: string) {
 export const IDENTITY_EMOJI_FONT_FAMILY = '"Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif';
 
 export function IdentityPicker({ value, defaultValue = null, onChange, onReject, name = "", emojis = IDENTITY_EMOJIS,
-  fontFamily = IDENTITY_EMOJI_FONT_FAMILY, size = "md", compact = true, disabled = false, loading = false, error,
+  fontFamily = IDENTITY_EMOJI_FONT_FAMILY, size = "md", iconSize, compact = true, disabled = false, loading = false, error,
   maxImageSize = 5 * 1024 * 1024, modes, labels: overrides, uploadLabels, className, inputFillTone, inputTone, ...surface }: IdentityPickerProps) {
   const density = identitySizeTokens[size];
   const spacing = compact ? compactIdentitySpacing[size] : density;
@@ -138,7 +147,9 @@ export function IdentityPicker({ value, defaultValue = null, onChange, onReject,
     if (query.trim()) return [emoji.label, emoji.emoji, ...(emoji.keywords ?? [])].some(value => value.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()));
     return category === "all" || (category === "recommended" ? (!hasRecommended || emoji.recommended) : emoji.category === category);
   });
-  const previewClass = classNames("flex shrink-0 items-center justify-center overflow-hidden border border-neutral-200 dark:border-neutral-600", density.preview, getSurfaceCornerClass(surface.corner ?? "rounded-md"), tokens.bg);
+  // The avatar answers `iconSize`, not `size`: the preview token bundles box and glyph, so the
+  // avatar grows as one step on the same ladder while the card's furniture stays on `size`.
+  const previewClass = classNames("flex shrink-0 items-center justify-center overflow-hidden border border-neutral-200 dark:border-neutral-600", identitySizeTokens[iconSize ?? size].preview, getSurfaceCornerClass(surface.corner ?? "rounded-md"), tokens.bg);
   const preview = selected?.type === "image" ? <ImagePreview file={selected.file} src={selected.src} alt={labels.preview} className="h-full w-full object-contain" />
     : <span style={{ fontFamily }} aria-hidden="true">{selected?.type === "emoji" ? selected.emoji : selected?.type === "monogram" ? selected.text : automatic}</span>;
   // One entry per identity kind; `modes` decides which of these the app offers.

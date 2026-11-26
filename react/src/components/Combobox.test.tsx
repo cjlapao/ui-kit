@@ -379,3 +379,89 @@ describe("Combobox - loading reads before the list is even open", () => {
     expect(queryByLabelText("Loading…")).toBeTruthy();
   });
 });
+
+describe("Combobox — optionHoverTone / optionSelectedTone (popup row washes)", () => {
+  // The list opens on focus, the way every other test here drives it.
+  const openRows = (
+    props: Partial<React.ComponentProps<typeof Combobox>> = {},
+  ) => {
+    const utils = render(
+      <Combobox options={FRUIT} value="Banana" onChange={vi.fn()} {...props} />,
+    );
+    const field = utils.getByRole("combobox");
+    fireEvent.focus(field);
+    // The query seeds from `value`, which would leave the list showing only
+    // the picked row; clearing it reopens all options while `value` still
+    // marks Banana selected — the state a real owner sees mid-edit.
+    fireEvent.change(field, { target: { value: "" } });
+    return {
+      field,
+      unmount: utils.unmount,
+      options: () => within(utils.getByRole("listbox")).getAllByRole("option"),
+    };
+  };
+
+  it("unconfigured keeps the field-shadow hover and the tone's selected copy", () => {
+    const { options } = openRows();
+    const [apple, , banana] = options();
+    // The field-shadow default hover is deliberately toned (owner's call) —
+    // what must stay foreign here is any wash the props would introduce and
+    // any fill on the selected row, which today is copy-only.
+    expect(apple.className).toContain("hover:bg-blue-50");
+    expect(apple.className).toContain("dark:hover:bg-blue-500/15");
+    expect(apple.className.split(" ")).not.toContain("bg-rose-500/15");
+    expect(banana.className).toContain("text-blue-700");
+    // Selected is copy-only: the `hover:`-prefixed wash rides every row (as
+    // today), but no unprefixed fill belongs on the selected one.
+    const bananaTokens = banana.className.split(" ");
+    expect(bananaTokens).not.toContain("bg-blue-50");
+    expect(bananaTokens).not.toContain("bg-blue-500/15");
+  });
+
+  it("optionHoverTone tints unselected rows; the selected row keeps its copy", () => {
+    const { options } = openRows({ optionHoverTone: "rose" });
+    const [apple, , banana] = options();
+    expect(apple.className.split(" ")).toEqual(
+      expect.arrayContaining(["hover:bg-rose-500/15", "dark:hover:bg-rose-500/20"]),
+    );
+    expect(apple.className).not.toContain("hover:bg-blue-50");
+    expect(banana.className).toContain("text-blue-700");
+    // The `hover:` wash rides every row of this list (as today — the picked
+    // row has no fill to protect); what must stay absent is an unprefixed fill.
+    expect(banana.className.split(" ")).not.toContain("bg-rose-500/15");
+  });
+
+  it("optionSelectedTone moves the selected copy, not the field's accent", () => {
+    const { field, options } = openRows({ optionSelectedTone: "emerald" });
+    const [, , banana] = options();
+    expect(banana.className).toContain("text-emerald-700");
+    expect(banana.className).toContain("dark:text-emerald-200");
+    expect(banana.className).toContain("font-medium");
+    expect(field.className).not.toContain("emerald");
+  });
+
+  it('"selected" follows optionSelectedTone, then the field tone', () => {
+    const first = openRows({ optionSelectedTone: "emerald", optionHoverTone: "selected" });
+    const [apple] = first.options();
+    expect(apple.className.split(" ")).toEqual(
+      expect.arrayContaining(["hover:bg-emerald-500/15", "dark:hover:bg-emerald-500/20"]),
+    );
+    // The bound queries reach into document.body, so a second open combobox
+    // would make them ambiguous — tear the first down first.
+    first.unmount();
+    const second = openRows({ optionHoverTone: "selected" });
+    const [apple2] = second.options();
+    expect(apple2.className.split(" ")).toEqual(
+      expect.arrayContaining(["hover:bg-blue-500/15", "dark:hover:bg-blue-500/20"]),
+    );
+  });
+
+  it("the keyboard cursor is the hover wash minus the hover: prefix", () => {
+    const { field, options } = openRows({ optionHoverTone: "rose", value: undefined });
+    fireEvent.keyDown(field, { key: "ArrowDown" });
+    const [apple] = options();
+    expect(apple.className.split(" ")).toEqual(
+      expect.arrayContaining(["bg-rose-500/15", "dark:bg-rose-500/20"]),
+    );
+  });
+});

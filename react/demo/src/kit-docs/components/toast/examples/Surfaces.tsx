@@ -8,9 +8,10 @@ import {
 } from "@cjlapao/ui-kit";
 
 /**
- * The same five surfaces as Alert — the same token table drives both, so a
- * toast never drifts from the callout language. The glass pair reads best
- * over a busy page.
+ * The same surfaces as Alert — one token table drives both, so a toast never
+ * drifts from the callout language. `tonal` is the opaque member of the tinted
+ * pair: a card that arrives in the corner has to be seen, not just tinted.
+ * The glass pair reads best over a busy page.
  */
 export default function Surfaces() {
   return (

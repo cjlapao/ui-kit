@@ -18,7 +18,7 @@ import Panel from "./Panel";
 import Spinner from "./Spinner";
 import CustomIcon from "./CustomIcon";
 import {
-  POPUP_ROW_WASH,
+  type OptionRowTone,
   type ControlSize,
   DEFAULT_GLOW_INTENSITY,
   FIELD_STATUS_CLASSES,
@@ -40,6 +40,7 @@ import {
   getInputVariantTokens,
   getSurfaceTextTokens,
   resolveGlowGradient,
+  resolveOptionRowWash,
   stripBorderColor,
 } from "../theme";
 import type { TreeTone } from "./TreeView/types";
@@ -66,9 +67,6 @@ const toneTokens: Record<
     /** Open state for the `underline` variant: the tint without the box. */
     triggerOpenBorder: string;
     filterActive: string;
-    optionSelectedBg: string;
-    optionSelectedText: string;
-    optionSelectedIcon: string;
   }
 > = Object.fromEntries(
   TRUE_COLORS.map((c) => [
@@ -81,9 +79,6 @@ const toneTokens: Record<
       triggerOpen: `border-${c}-400 ring-2 ring-inset ring-${c}-400/60 dark:border-${c}-400`,
       triggerOpenBorder: `border-${c}-400 dark:border-${c}-400`,
       filterActive: `bg-${c}-100 text-${c}-600 dark:bg-${c}-900/40 dark:text-${c}-400`,
-      optionSelectedBg: `bg-${c}-50 dark:bg-${c}-900/20`,
-      optionSelectedText: `text-${c}-700 dark:text-${c}-300`,
-      optionSelectedIcon: `text-${c}-500 dark:text-${c}-400`,
     },
   ]),
 ) as Record<
@@ -92,9 +87,6 @@ const toneTokens: Record<
     triggerOpen: string;
     triggerOpenBorder: string;
     filterActive: string;
-    optionSelectedBg: string;
-    optionSelectedText: string;
-    optionSelectedIcon: string;
   }
 >;
 
@@ -223,6 +215,20 @@ export interface PickerProps {
    * @deprecated Use `tone`, which is what every control calls it.
    */
   color?: TrueColor;
+  /**
+   * The hue the selected option rows wear — fill, copy and checkmark ink.
+   * Default: the field's `tone`. Focus border, ring and glow stay `tone`'s
+   * either way — this prop moves only what happens inside the popup.
+   */
+  optionSelectedTone?: TrueColor;
+  /**
+   * The hue the unselected option rows wear under the pointer — and under the
+   * keyboard cursor, which by definition wears the same whisper as hover.
+   * Unset keeps the neutral `POPUP_ROW_WASH` blend; `"selected"` follows the
+   * effective selected hue (`optionSelectedTone ?? tone`).
+   * @default undefined
+   */
+  optionHoverTone?: OptionRowTone;
   /** Visual surface style, from the shared field system. @default "flat" */
   variant?: InputVariant;
   /**
@@ -326,6 +332,8 @@ const Picker: React.FC<PickerProps> = ({
   className,
   tone,
   color,
+  optionSelectedTone,
+  optionHoverTone,
   variant = "flat",
   inputFillTone,
   gradientFrom,
@@ -374,6 +382,14 @@ const Picker: React.FC<PickerProps> = ({
   const optionId = (index: number) => `${listboxId}-option-${index}`;
   const effectiveTone = tone ?? color ?? "blue";
   const colorTokens = toneTokens[effectiveTone] ?? toneTokens.blue;
+  // The popup's row washes, resolved once: the selected hue is
+  // `optionSelectedTone ?? tone`, the pointer wash the neutral blend unless
+  // `optionHoverTone` names a hue or asks for the selected one.
+  const rowWash = resolveOptionRowWash({
+    optionHoverTone,
+    optionSelectedTone,
+    tone: effectiveTone,
+  });
   // The field system, shared with Input, Select and SearchBar — so a Picker
   // stacked beside any of them lines up and focuses identically.
   const sizeToken = getFieldSizeTokens(size);
@@ -824,7 +840,7 @@ const Picker: React.FC<PickerProps> = ({
                     // removed, while nothing is selected.
                     "flex w-full select-none items-center justify-between border-b border-black/5 px-4 py-1.5 text-xs dark:border-white/10",
                     effectiveSelectedIds.length > 0
-                      ? `cursor-pointer ${POPUP_ROW_WASH.hover}`
+                      ? `cursor-pointer ${rowWash.hover}`
                       : "invisible",
                     popupText.muted,
                   )}
@@ -898,9 +914,9 @@ const Picker: React.FC<PickerProps> = ({
                                   state === "none"
                                     ? "border-neutral-300 dark:border-neutral-600"
                                     : classNames(
-                                        colorTokens.optionSelectedBg,
+                                        rowWash.selected.bg,
                                         "border-current",
-                                        colorTokens.optionSelectedIcon,
+                                        rowWash.selected.icon,
                                       ),
                                 )}
                               >
@@ -944,7 +960,7 @@ const Picker: React.FC<PickerProps> = ({
                                 onClick={() => handleToggleGroup(g)}
                                 className={classNames(
                                   headerClass,
-                                  `cursor-pointer border-0 bg-transparent ${POPUP_ROW_WASH.hover}`,
+                                  `cursor-pointer border-0 bg-transparent ${rowWash.hover}`,
                                 )}
                               >
                                 {label}
@@ -973,8 +989,8 @@ const Picker: React.FC<PickerProps> = ({
                           className={classNames(
                             "m-0 flex w-full cursor-pointer select-none items-center gap-3 border-0 px-4 py-2.5 outline-none transition-colors",
                             isSelected
-                              ? colorTokens.optionSelectedBg
-                              : POPUP_ROW_WASH.hover,
+                              ? rowWash.selected.bg
+                              : rowWash.hover,
                             // The highlight is where the KEYBOARD is, never
                             // a claim of selection - in multi mode an
                             // unchecked row can carry it, and a solid grey
@@ -988,7 +1004,7 @@ const Picker: React.FC<PickerProps> = ({
                               cursorByKeyboard &&
                               (isSelected
                                 ? "[&_p:first-child]:underline [&_p:first-child]:underline-offset-2"
-                                : POPUP_ROW_WASH.cursor),
+                                : rowWash.cursor),
                           )}
                         >
                           {/* Multi: always show checkbox. Single: only show checkmark for selected item. */}
@@ -998,9 +1014,9 @@ const Picker: React.FC<PickerProps> = ({
                                 "flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors",
                                 isSelected
                                   ? classNames(
-                                      colorTokens.optionSelectedBg,
+                                      rowWash.selected.bg,
                                       "border-current",
-                                      colorTokens.optionSelectedIcon,
+                                      rowWash.selected.icon,
                                     )
                                   : "border-neutral-300 dark:border-neutral-600",
                               )}
@@ -1009,7 +1025,7 @@ const Picker: React.FC<PickerProps> = ({
                                 <svg
                                   className={classNames(
                                     "h-3.5 w-3.5",
-                                    colorTokens.optionSelectedIcon,
+                                    rowWash.selected.icon,
                                   )}
                                   viewBox="0 0 24 24"
                                   fill="none"
@@ -1029,7 +1045,7 @@ const Picker: React.FC<PickerProps> = ({
                               <svg
                                 className={classNames(
                                   "h-3.5 w-3.5",
-                                  colorTokens.optionSelectedIcon,
+                                  rowWash.selected.icon,
                                 )}
                                 viewBox="0 0 24 24"
                                 fill="none"
@@ -1051,7 +1067,7 @@ const Picker: React.FC<PickerProps> = ({
                               className={classNames(
                                 "shrink-0",
                                 isSelected
-                                  ? colorTokens.optionSelectedIcon
+                                  ? rowWash.selected.icon
                                   : popupText.muted,
                               )}
                             >
@@ -1066,7 +1082,7 @@ const Picker: React.FC<PickerProps> = ({
                               className={classNames(
                                 "truncate text-sm font-medium",
                                 isSelected
-                                  ? colorTokens.optionSelectedText
+                                  ? rowWash.selected.text
                                   : popupText.heading,
                               )}
                             >

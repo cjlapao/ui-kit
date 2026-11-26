@@ -279,3 +279,132 @@ describe("MultiToggle separators, gap and background", () => {
     w.unmount();
   });
 });
+
+describe("MultiToggle hidden options", () => {
+  const HIDEABLE = [
+    { value: "a", label: "Alpha" },
+    { value: "b", label: "Beta", hidden: true },
+    { type: "separator" as const, hidden: true },
+    { value: "c", label: "Gamma" },
+  ];
+
+  it("takes a hidden option out of the track entirely", () => {
+    // Hidden means *absent*: no radio, no rule, no tooltip — the segments
+    // simply close ranks, exactly as if the option had never been in the
+    // array. A raw index that once counted it would desync the pill.
+    const w = mountToggle({ options: HIDEABLE });
+    expect(radios(w)).toHaveLength(2);
+    expect(w.html()).not.toContain("Beta");
+    expect(w.findAll('[role="separator"]')).toHaveLength(0);
+    w.unmount();
+  });
+
+  it("withdraws the pill when the selected option is hidden, value intact", () => {
+    // The old bail-out left the stale pill frozen over the wrong segment.
+    // The value is the caller's business: the group keeps it, the pill hides.
+    const w = mountToggle({ options: HIDEABLE, modelValue: "b" });
+    const indicator = w.find(".multi-toggle-indicator").element as HTMLElement;
+    expect(indicator.style.getPropertyValue("--mt-opacity")).toBe("0");
+    // Nothing *flipped* here — it mounted withdrawn, so no jump frame.
+    expect(indicator.hasAttribute("data-mt-jump")).toBe(false);
+    expect(w.emitted("update:modelValue")).toBeUndefined();
+    expect(radios(w).map((r) => r.attributes("aria-checked"))).toEqual([
+      "false",
+      "false",
+    ]);
+    w.unmount();
+  });
+
+  it("jumps the pill back in when the selected option is un-hidden", async () => {
+    const options = (hidden: boolean) => [
+      { value: "a", label: "Alpha" },
+      { value: "b", label: "Beta", hidden },
+      { value: "c", label: "Gamma" },
+    ];
+    const w = mountToggle({ options: options(true), modelValue: "b" });
+    expect(
+      (w.find(".multi-toggle-indicator").element as HTMLElement).style.getPropertyValue(
+        "--mt-opacity",
+      ),
+    ).toBe("0");
+
+    await w.setProps({ options: options(false) });
+    const indicator = w.find(".multi-toggle-indicator");
+    // The flip renders exactly one jump frame: geometry lands instantly…
+    expect(indicator.attributes("data-mt-jump")).toBe("");
+    expect(
+      (indicator.element as HTMLElement).style.getPropertyValue("--mt-opacity"),
+    ).toBe("1");
+    // …and the spring comes back two frames later for the next selection.
+    await new Promise((resolve) =>
+      window.requestAnimationFrame(() =>
+        window.requestAnimationFrame(() => resolve(undefined)),
+      ),
+    );
+    await nextTick();
+    expect(indicator.attributes("data-mt-jump")).toBeUndefined();
+    w.unmount();
+  });
+
+  it("positions the fullWidth pill by the visible index, not the raw one", async () => {
+    // Even-segment maths multiplies an index by the segment width — the raw
+    // index (1) would put the pill one segment too far right once the first
+    // option is hidden and only two remain rendered.
+    const w = mountToggle({
+      options: [
+        { value: "a", label: "Alpha", hidden: true },
+        { value: "b", label: "Beta" },
+        { value: "c", label: "Gamma" },
+      ],
+      modelValue: "b",
+      fullWidth: true,
+    });
+    Object.defineProperty(w.element, "clientWidth", {
+      configurable: true,
+      value: 308,
+    });
+    window.dispatchEvent(new Event("resize"));
+    await nextTick();
+    const indicator = w.find(".multi-toggle-indicator").element as HTMLElement;
+    // jsdom ships no stylesheet, so the track's `px-1` computes to 0 padding:
+    // inner 308 / 2 rendered segments = 154 wide, inset 1 ⇒ offset 1px. The
+    // old raw-index maths would have landed it at 155px.
+    expect(indicator.style.getPropertyValue("--mt-offset")).toBe("1px");
+    expect(indicator.style.getPropertyValue("--mt-width")).toBe("152px");
+    w.unmount();
+  });
+
+  it("steps the arrow keys over hidden options", async () => {
+    const w = mountToggle({ options: HIDEABLE, modelValue: "a" });
+    await radios(w)[0].trigger("keydown", { key: "ArrowRight" });
+    expect(w.emitted("update:modelValue")?.[0]).toEqual(["c"]);
+    await radios(w)[0].trigger("keydown", { key: "End" });
+    expect(w.emitted("update:modelValue")?.[1]).toEqual(["c"]);
+    expect(w.emitted("update:modelValue")).not.toContainEqual(["b"]);
+    w.unmount();
+  });
+
+  it("keeps hidden labels out of the max-width measuring pass", () => {
+    // activeWidthStrategy="max" sizes every segment to the widest label —
+    // widest among the *rendered* ones, or a hidden long label would stretch
+    // the track around a gap where its segment used to be.
+    const w = mountToggle({
+      options: [
+        { value: "a", label: "One", width: 60 },
+        {
+          value: "b",
+          label: "A hidden label far too long",
+          hidden: true,
+          width: 60,
+        },
+        { value: "c", label: "Three" },
+      ],
+      modelValue: "a",
+      activeWidthStrategy: "max",
+    });
+    const measuring = w.find('[aria-hidden="true"]');
+    expect(measuring.exists()).toBe(true);
+    expect(measuring.findAll(":scope > div")).toHaveLength(2);
+    w.unmount();
+  });
+});

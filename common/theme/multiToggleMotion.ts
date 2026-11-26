@@ -1,4 +1,10 @@
-/** Geometry stays bounded during spring overshoot, including simultaneous resizing. */
+/**
+ * Geometry stays bounded during spring overshoot, including simultaneous
+ * resizing. `visible` is the pill's alpha as a custom property: a withdrawn
+ * pill (the selected option is `hidden`) reads `--mt-opacity: 0`, and because
+ * that property is deliberately *not* transitioned, the vanish/appear is a
+ * jump rather than a slide.
+ */
 export const getMultiToggleMotionStyle = (
   offset: number,
   width: number,
@@ -6,6 +12,7 @@ export const getMultiToggleMotionStyle = (
   paddingLeft: number,
   paddingRight: number,
   inset: number,
+  visible = true,
 ) => {
   const left = paddingLeft + inset;
   const right = Math.max(left, trackWidth - paddingRight - inset);
@@ -14,6 +21,7 @@ export const getMultiToggleMotionStyle = (
     "--mt-width": `${width}px`,
     "--mt-left": `${left}px`,
     "--mt-right": `${right}px`,
+    "--mt-opacity": visible ? "1" : "0",
   };
 };
 

@@ -10,7 +10,7 @@ export default function Variants() {
           intent="info"
           size="sm"
           title={variant}
-          description="Same message, five surfaces."
+          description={`Same message, ${ALERT_VARIANTS.length} surfaces.`}
         />
       ))}
     </div>

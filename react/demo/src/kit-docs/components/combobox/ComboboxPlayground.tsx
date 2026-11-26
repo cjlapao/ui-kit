@@ -8,6 +8,7 @@ import type {
   SurfaceTone,
   SurfaceVariant,
   TrueColor,
+  OptionRowTone,
 } from "@cjlapao/ui-kit";
 import {
   Control,
@@ -16,7 +17,10 @@ import {
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
 import { SurfaceToneSwatches } from "../../shared/SurfaceToneControl";
-import { HueControl } from "../../shared/HueControl";
+import {
+  HueControl,
+  HoverHueControl,
+} from "../../shared/HueControl";
 import { ControlAccordion } from "../../shared/ControlAccordion";
 import { EventLogControl, useEventLog } from "../../shared/EventLog";
 import {
@@ -75,6 +79,9 @@ export const ComboboxPlayground: React.FC = () => {
   const [variant, setVariant] = useState<ComboboxVariant>("flat");
   const [tone, setTone] = useState<TrueColor>("blue");
   const [fill, setFill] = useState<TrueColor | undefined>(undefined);
+  // The popup's own hues: the rows may disagree with the field on purpose.
+  const [optionSelectedTone, setOptionSelectedTone] = useState<TrueColor | undefined>(undefined);
+  const [optionHoverTone, setOptionHoverTone] = useState<OptionRowTone | undefined>(undefined);
   const [validationStatus, setValidationStatus] =
     useState<ComboboxValidationStatus>("none");
 
@@ -131,6 +138,21 @@ export const ComboboxPlayground: React.FC = () => {
                       value={fill}
                       onChange={setFill}
                       autoLabel="None — the variant’s own fill"
+                    />
+                    {/* The popup's hues, decoupled from the field's: rows
+                        inside the dropdown may disagree with the trigger. */}
+                    <HueControl
+                      label="Selected hue"
+                      value={optionSelectedTone}
+                      onChange={setOptionSelectedTone}
+                      autoLabel="Auto — the field's hue"
+                    />
+                    <HoverHueControl
+                      label="Hover hue"
+                      value={optionHoverTone}
+                      onChange={setOptionHoverTone}
+                      autoLabel="Auto — the neutral blend"
+                      followLabel='"Selected" — follow the selected hue'
                     />
                     <SelectControl
                       label="Popup surface"
@@ -229,6 +251,8 @@ export const ComboboxPlayground: React.FC = () => {
         <div className="w-full max-w-md space-y-2">
           <Combobox
             options={OPTIONS}
+            optionSelectedTone={optionSelectedTone}
+            optionHoverTone={optionHoverTone}
             value={value}
             onChange={(next) => {
               setValue(next);

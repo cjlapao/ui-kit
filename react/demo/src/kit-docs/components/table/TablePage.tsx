@@ -94,7 +94,7 @@ export const TablePage: React.FC = () => (
           name: "infiniteScroll",
           type: "TableInfiniteScrollState",
           description:
-            "Optional { hasMore, onLoadMore, rootMargin?, onError?, resetKey? }. Append fetched pages to data; the table requests more near the body bottom (320px by default), prevents concurrent requests and offers retry. Takes precedence over pagination; custom footers remain visible. Use maxHeight or a bounded fullHeight parent. Change resetKey when replacing rows after server filtering or sorting; discard stale network responses in the parent. Pair remote sorting with manualSorting. Local sorting and grouping apply only to loaded rows. A page that adds no rows pauses automatic loading until data changes; Load more remains available.",
+            "Optional { hasMore, onLoadMore, rootMargin?, onError?, resetKey?, showEndMarker? }. Append fetched pages to data; the table requests more near the body bottom (320px by default), prevents concurrent requests and offers retry. Takes precedence over pagination; custom footers remain visible. Use maxHeight or a bounded fullHeight parent. Change resetKey when replacing rows after server filtering or sorting; discard stale network responses in the parent. Pair remote sorting with manualSorting. Local sorting and grouping apply only to loaded rows. A page that adds no rows pauses automatic loading until data changes; Load more remains available. The \u201cend of results\u201d marker appears only when the rows actually overflow the body \u2014 a one-page table just ends; showEndMarker: false switches it off entirely.",
         },
         {
           name: "pagination",

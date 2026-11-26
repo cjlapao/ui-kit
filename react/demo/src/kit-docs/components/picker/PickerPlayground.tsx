@@ -7,6 +7,7 @@ import type {
   GlowIntensity,
   InputVariant,
   TrueColor,
+  OptionRowTone,
   ValidationStatus,
   SurfaceCorner,
 } from "@cjlapao/ui-kit";
@@ -18,7 +19,7 @@ import {
 } from "../../shared/PlaygroundPanel";
 import { PanelSurfaceControls } from "../../shared/PanelSurfaceControls";
 import { ControlAccordion } from "../../shared/ControlAccordion";
-import { HueControl } from "../../shared/HueControl";
+import { HueControl, HoverHueControl } from "../../shared/HueControl";
 import { EventLogControl, useEventLog } from "../../shared/EventLog";
 import {
   controlSizeOptions,
@@ -56,6 +57,9 @@ export const PickerPlayground: React.FC = () => {
   // The field's own fill hue, for when it should disagree with the tone — the
   // dropdown card stays `panelTone`'s and `panelVariant`'s.
   const [fill, setFill] = useState<TrueColor | undefined>(undefined);
+  // The popup's own hues: the rows may disagree with the field on purpose.
+  const [optionSelectedTone, setOptionSelectedTone] = useState<TrueColor | undefined>(undefined);
+  const [optionHoverTone, setOptionHoverTone] = useState<OptionRowTone | undefined>(undefined);
   const [size, setSize] = useState<ControlSize>("md");
   const [corner, setCorner] = useState<SurfaceCorner>("auto");
   const [panelCorner, setPanelCorner] = useState<SurfaceCorner>("auto");
@@ -87,6 +91,8 @@ export const PickerPlayground: React.FC = () => {
       }
       groupSelectable={grouped}
       tone={tone}
+      optionSelectedTone={optionSelectedTone}
+      optionHoverTone={optionHoverTone}
       inputFillTone={fill}
       size={size}
       corner={corner}
@@ -155,6 +161,21 @@ export const PickerPlayground: React.FC = () => {
                       value={fill}
                       onChange={setFill}
                       autoLabel="None — the variant’s own fill"
+                    />
+                    {/* The popup's hues, decoupled from the field's: rows
+                        inside the dropdown may disagree with the trigger. */}
+                    <HueControl
+                      label="Selected hue"
+                      value={optionSelectedTone}
+                      onChange={setOptionSelectedTone}
+                      autoLabel="Auto — the field's hue"
+                    />
+                    <HoverHueControl
+                      label="Hover hue"
+                      value={optionHoverTone}
+                      onChange={setOptionHoverTone}
+                      autoLabel="Auto — the neutral blend"
+                      followLabel='"Selected" — follow the selected hue'
                     />
                     <ChoiceControl
                       label="Size"

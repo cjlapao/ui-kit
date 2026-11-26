@@ -1,6 +1,11 @@
 <script lang="ts">
 import type { VNodeChild } from "vue";
-import { TRUE_COLORS, type TrueColor } from "../theme/Theme";
+import {
+  TRUE_COLORS,
+  type OptionRowTone,
+  type TrueColor,
+  resolveOptionRowWash,
+} from "../theme/Theme";
 import type { TreeTone } from "./TreeView/types";
 
 /**
@@ -17,9 +22,6 @@ const toneTokens: Record<
   {
     triggerOpen: string;
     filterActive: string;
-    optionSelectedBg: string;
-    optionSelectedText: string;
-    optionSelectedIcon: string;
   }
 > = Object.fromEntries(
   TRUE_COLORS.map((c) => [
@@ -27,9 +29,6 @@ const toneTokens: Record<
     {
       triggerOpen: `border-${c}-500 ring-2 ring-${c}-500/20 dark:border-${c}-400`,
       filterActive: `bg-${c}-100 text-${c}-600 dark:bg-${c}-900/40 dark:text-${c}-400`,
-      optionSelectedBg: `bg-${c}-50 dark:bg-${c}-900/20`,
-      optionSelectedText: `text-${c}-700 dark:text-${c}-300`,
-      optionSelectedIcon: `text-${c}-500 dark:text-${c}-400`,
     },
   ]),
 ) as Record<
@@ -37,9 +36,6 @@ const toneTokens: Record<
   {
     triggerOpen: string;
     filterActive: string;
-    optionSelectedBg: string;
-    optionSelectedText: string;
-    optionSelectedIcon: string;
   }
 >;
 
@@ -157,6 +153,19 @@ export interface PickerProps {
    */
   escapeBoundary?: boolean;
   color?: TrueColor;
+  /**
+   * The hue the selected option rows wear — fill, copy and checkmark ink.
+   * Default: the field's `color`. Focus border, ring and glow stay `color`'s
+   * either way — this prop moves only what happens inside the popup.
+   */
+  optionSelectedTone?: TrueColor;
+  /**
+   * The hue the unselected option rows wear under the pointer. Unset keeps
+   * the neutral `POPUP_ROW_WASH` blend; `"selected"` follows the effective
+   * selected hue (`optionSelectedTone ?? color`).
+   * @default undefined
+   */
+  optionHoverTone?: OptionRowTone;
 
   // ── Multi-select ────────────────────────────────────────────────────────
   /** Enable multi-select mode. Use selectedIds + @multiChange instead of selectedId + @select. */
@@ -221,6 +230,17 @@ const filterActive = ref(true);
 const dropdownStyle = ref<CSSProperties | undefined>();
 const computedMaxHeight = ref(MAX_DROPDOWN_HEIGHT);
 const colorTokens = computed(() => toneTokens[props.color] ?? toneTokens.blue);
+// The popup's row washes, resolved once (see React `Picker`): the selected
+// hue is `optionSelectedTone ?? color`, the pointer wash the neutral blend
+// unless `optionHoverTone` names a hue or asks for the selected one. Vue's
+// Picker paints no keyboard cursor, so only the pointer half is spread.
+const rowWash = computed(() =>
+  resolveOptionRowWash({
+    optionHoverTone: props.optionHoverTone,
+    optionSelectedTone: props.optionSelectedTone,
+    tone: props.color,
+  }),
+);
 
 // Normalised selection for both modes
 const effectiveSelectedIds = computed<string[]>(() =>
@@ -690,7 +710,8 @@ const triggerClass = computed(() =>
           <!-- Multi-select clear row -->
           <li
             v-if="multi && effectiveSelectedIds.length > 0"
-            class="flex cursor-pointer select-none items-center justify-between px-4 py-1.5 text-xs text-neutral-400 hover:bg-neutral-50 dark:hover:bg-neutral-800/60 dark:text-neutral-500 border-b border-neutral-100 dark:border-neutral-800"
+            class="flex cursor-pointer select-none items-center justify-between px-4 py-1.5 text-xs text-neutral-400 dark:text-neutral-500 border-b border-neutral-100 dark:border-neutral-800"
+            :class="rowWash.hover"
             @mousedown.prevent
             @click="handleClearMulti"
           >
@@ -717,8 +738,8 @@ const triggerClass = computed(() =>
                 classNames(
                   'flex cursor-pointer select-none items-center gap-3 px-4 py-2.5 transition-colors',
                   effectiveSelectedIds.includes(item.id)
-                    ? colorTokens.optionSelectedBg
-                    : 'hover:bg-neutral-50 dark:hover:bg-neutral-800/60',
+                    ? rowWash.selected.bg
+                    : rowWash.hover,
                 )
               "
               @mousedown.prevent
@@ -732,9 +753,9 @@ const triggerClass = computed(() =>
                     'flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors',
                     effectiveSelectedIds.includes(item.id)
                       ? classNames(
-                          colorTokens.optionSelectedBg,
+                          rowWash.selected.bg,
                           'border-current',
-                          colorTokens.optionSelectedIcon,
+                          rowWash.selected.icon,
                         )
                       : 'border-neutral-300 dark:border-neutral-600',
                   )
@@ -743,7 +764,7 @@ const triggerClass = computed(() =>
                 <svg
                   v-if="effectiveSelectedIds.includes(item.id)"
                   :class="
-                    classNames('h-3.5 w-3.5', colorTokens.optionSelectedIcon)
+                    classNames('h-3.5 w-3.5', rowWash.selected.icon)
                   "
                   viewBox="0 0 24 24"
                   fill="none"
@@ -763,7 +784,7 @@ const triggerClass = computed(() =>
               >
                 <svg
                   :class="
-                    classNames('h-3.5 w-3.5', colorTokens.optionSelectedIcon)
+                    classNames('h-3.5 w-3.5', rowWash.selected.icon)
                   "
                   viewBox="0 0 24 24"
                   fill="none"
@@ -785,7 +806,7 @@ const triggerClass = computed(() =>
                   classNames(
                     'shrink-0',
                     effectiveSelectedIds.includes(item.id)
-                      ? colorTokens.optionSelectedIcon
+                      ? rowWash.selected.icon
                       : 'text-neutral-400 dark:text-neutral-500',
                   )
                 "
@@ -800,7 +821,7 @@ const triggerClass = computed(() =>
                     classNames(
                       'truncate text-sm font-medium',
                       effectiveSelectedIds.includes(item.id)
-                        ? colorTokens.optionSelectedText
+                        ? rowWash.selected.text
                         : 'text-neutral-800 dark:text-neutral-200',
                     )
                   "

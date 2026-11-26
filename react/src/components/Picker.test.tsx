@@ -1,9 +1,9 @@
 import { I18nProvider } from "../i18n";
 import { afterEach, describe, it, expect, vi } from "vitest";
 import { fireEvent, render, screen, within } from "@testing-library/react";
-import Picker from "./Picker";
+import Picker, { type PickerProps } from "./Picker";
 import { POPUP_ROW_WASH } from "../theme/Theme";
-import TagPicker from "./TagPicker";
+import TagPicker, { type TagPickerProps } from "./TagPicker";
 import SplitView from "./SplitView";
 import { TRUE_COLORS, getSurfaceCornerClass } from "../theme/Theme";
 
@@ -860,5 +860,191 @@ describe("loading disables the trigger", () => {
     const cls = container.querySelector("button")!.className;
     expect(cls).toContain("cursor-wait");
     expect(cls).not.toContain("opacity-50");
+  });
+});
+
+describe("Picker — optionHoverTone / optionSelectedTone (popup row washes)", () => {
+  const open = (props: Partial<PickerProps> = {}) => {
+    const utils = render(<Picker items={ITEMS} {...props} />);
+    fireEvent.click(screen.getByRole("button"));
+    return utils;
+  };
+
+  it("unconfigured rows wear the neutral constant, nothing toned", () => {
+    // The backward-compatibility promise: both props unset must paint what
+    // they painted before these props existed — the neutral blend for the
+    // unselected row, the field tone's fill for the selected one.
+    open({ multi: true, selectedIds: ["b"], onMultiChange: () => {} });
+    const [alpha, beta] = screen.getAllByRole("option");
+    expect(alpha.className.split(" ")).toEqual(
+      expect.arrayContaining(POPUP_ROW_WASH.hover.split(" ")),
+    );
+    expect(beta.className).toContain("bg-blue-50");
+    expect(alpha.className).not.toMatch(/-500\/15/);
+    expect(beta.className).not.toMatch(/-500\/15/);
+  });
+
+  it("optionHoverTone tints unselected rows; the selected row keeps its fill", () => {
+    open({
+      multi: true,
+      selectedIds: ["b"],
+      onMultiChange: () => {},
+      optionHoverTone: "rose",
+    });
+    const [alpha, beta] = screen.getAllByRole("option");
+    expect(alpha.className.split(" ")).toEqual(
+      expect.arrayContaining(["hover:bg-rose-500/15", "dark:hover:bg-rose-500/20"]),
+    );
+    // Hover paints unselected rows only — the checked row keeps its tone fill.
+    expect(beta.className).toContain("bg-blue-50");
+    expect(beta.className).not.toContain("bg-rose-500/15");
+  });
+
+  it("optionSelectedTone moves fill, copy and ink — and only inside the popup", () => {
+    const { container } = open({
+      selectedId: "a",
+      onSelect: () => {},
+      optionSelectedTone: "emerald",
+    });
+    const [alpha] = screen.getAllByRole("option");
+    expect(alpha.className).toContain("bg-emerald-50");
+    expect(alpha.className).toContain("dark:bg-emerald-900/20");
+    // The title's copy ink rides the selected hue, not the field tone.
+    expect(within(alpha).getByText("Alpha").className).toContain(
+      "text-emerald-700",
+    );
+    // The field keeps its own state colours: the open rim is still blue.
+    const trigger = container.querySelector("button")!;
+    expect(trigger.className).toContain("border-blue-400");
+    expect(trigger.className).not.toContain("emerald");
+  });
+
+  it("optionSelectedTone moves the multi checkbox ink with the fill", () => {
+    open({
+      multi: true,
+      selectedIds: ["b"],
+      onMultiChange: () => {},
+      optionSelectedTone: "emerald",
+    });
+    const [, beta] = screen.getAllByRole("option");
+    expect(beta.className).toContain("bg-emerald-50");
+    // A rose row with a blue tick reads broken — the checkmark follows.
+    expect(beta.querySelector('[class*="text-emerald-500"]')).not.toBeNull();
+  });
+
+  it('"selected" follows optionSelectedTone, then the field tone', () => {
+    const first = open({
+      multi: true,
+      selectedIds: [],
+      onMultiChange: () => {},
+      optionSelectedTone: "emerald",
+      optionHoverTone: "selected",
+    });
+    const [alpha] = screen.getAllByRole("option");
+    expect(alpha.className.split(" ")).toEqual(
+      expect.arrayContaining(["hover:bg-emerald-500/15", "dark:hover:bg-emerald-500/20"]),
+    );
+    first.unmount();
+    const second = open({
+      multi: true,
+      selectedIds: [],
+      onMultiChange: () => {},
+      optionHoverTone: "selected",
+    });
+    const [alpha2] = screen.getAllByRole("option");
+    expect(alpha2.className.split(" ")).toEqual(
+      expect.arrayContaining(["hover:bg-blue-500/15", "dark:hover:bg-blue-500/20"]),
+    );
+    second.unmount();
+  });
+
+  it("the keyboard cursor is the hover wash minus the hover: prefix", () => {
+    open({
+      multi: true,
+      selectedIds: [],
+      onMultiChange: () => {},
+      optionHoverTone: "rose",
+    });
+    fireEvent.keyDown(screen.getByRole("combobox"), { key: "ArrowDown" });
+    const [alpha] = screen.getAllByRole("option");
+    expect(alpha).toHaveAttribute("data-active", "true");
+    expect(alpha.className.split(" ")).toEqual(
+      expect.arrayContaining(["bg-rose-500/15", "dark:bg-rose-500/20"]),
+    );
+  });
+});
+
+describe("TagPicker — optionHoverTone / optionSelectedTone (popup row washes)", () => {
+  const tags = ITEMS.map((i) => ({ id: i.id, label: i.title }));
+  const open = (props: Partial<TagPickerProps> = {}) => {
+    const utils = render(
+      <TagPicker items={tags} value={["b"]} onChange={vi.fn()} {...props} />,
+    );
+    // The pill's Remove button shares the trigger area — open through the
+    // popup opener, the way the file's other TagPicker tests do.
+    fireEvent.click(document.querySelector("[aria-haspopup]") as HTMLElement);
+    return utils;
+  };
+
+  it("unconfigured rows wear the neutral constant, nothing toned", () => {
+    open();
+    const [alpha, beta] = screen.getAllByRole("option");
+    expect(alpha.className.split(" ")).toEqual(
+      expect.arrayContaining(POPUP_ROW_WASH.hover.split(" ")),
+    );
+    expect(beta.className).toContain("bg-blue-50");
+    expect(alpha.className).not.toMatch(/-500\/15/);
+    expect(beta.className).not.toMatch(/-500\/15/);
+  });
+
+  it("optionHoverTone tints unchecked rows; the checked row keeps its fill", () => {
+    open({ optionHoverTone: "rose" });
+    const [alpha, beta] = screen.getAllByRole("option");
+    expect(alpha.className.split(" ")).toEqual(
+      expect.arrayContaining(["hover:bg-rose-500/15", "dark:hover:bg-rose-500/20"]),
+    );
+    expect(beta.className).toContain("bg-blue-50");
+    expect(beta.className).not.toContain("bg-rose-500/15");
+  });
+
+  it("optionSelectedTone moves fill, copy and ink — and only inside the popup", () => {
+    open({ optionSelectedTone: "emerald" });
+    const [, beta] = screen.getAllByRole("option");
+    expect(beta.className).toContain("bg-emerald-50");
+    expect(within(beta).getByText("Beta").className).toContain("text-emerald-700");
+    expect(beta.querySelector('[class*="text-emerald-500"]')).not.toBeNull();
+    // The field control itself keeps the `tone` rim; emerald lives only in
+    // the popup. (The pills wear `itemColor ?? tone`, never this prop.)
+    // The rim lives on the field shell, which when open wears the tone's
+    // inset ring. No row classes leak here — emerald stays inside the popup.
+    const shell = document.querySelector("div[class*='ring-inset']") as HTMLElement;
+    expect(shell.className).toContain("border-blue-400");
+    expect(shell.className).not.toContain("emerald");
+  });
+
+  it('"selected" follows optionSelectedTone, then the field tone', () => {
+    const first = open({ optionSelectedTone: "emerald", optionHoverTone: "selected" });
+    const [alpha] = screen.getAllByRole("option");
+    expect(alpha.className.split(" ")).toEqual(
+      expect.arrayContaining(["hover:bg-emerald-500/15", "dark:hover:bg-emerald-500/20"]),
+    );
+    first.unmount();
+    const second = open({ optionHoverTone: "selected" });
+    const [alpha2] = screen.getAllByRole("option");
+    expect(alpha2.className.split(" ")).toEqual(
+      expect.arrayContaining(["hover:bg-blue-500/15", "dark:hover:bg-blue-500/20"]),
+    );
+    second.unmount();
+  });
+
+  it("the keyboard cursor is the hover wash minus the hover: prefix", () => {
+    open({ optionHoverTone: "rose" });
+    // Opening parks the cursor on the last picked row (Beta); ArrowUp walks
+    // it back onto the unchecked row, where the cursor wash is on display.
+    fireEvent.keyDown(screen.getByRole("combobox"), { key: "ArrowUp" });
+    const [alpha] = screen.getAllByRole("option");
+    expect(alpha.className.split(" ")).toEqual(
+      expect.arrayContaining(["bg-rose-500/15", "dark:bg-rose-500/20"]),
+    );
   });
 });

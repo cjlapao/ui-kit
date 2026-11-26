@@ -5,7 +5,7 @@ import type {
   SmartVariableGroup,
   SmartVariableResolver,
 } from "../types/Variables";
-import type { TrueColor } from "../theme/Theme";
+import type { OptionRowTone, TrueColor } from "../theme/Theme";
 
 export interface VariablePickerProps {
   variant?: SurfaceVariant;
@@ -16,6 +16,16 @@ export interface VariablePickerProps {
   resolve?: SmartVariableResolver;
   /** Accent colour. @default "blue" */
   tone?: TrueColor;
+  /**
+   * The hue the variable rows wear under the pointer. Unset keeps the
+   * neutral `POPUP_ROW_WASH` blend — the list doctrine: a per-group tone
+   * wash would read as selection across a menu (Vue's row used to wear the
+   * surface-trigger hover, which is exactly that). An explicit hue (or
+   * `"selected"`, which follows the row's effective tone — the group hue
+   * when it names one) is the caller overruling on purpose.
+   * @default undefined
+   */
+  optionHoverTone?: OptionRowTone;
   /**
    * Scale of the search field, matched to the control that opened the picker
    * so the two do not look like different widgets stacked on each other.
@@ -39,7 +49,7 @@ import Panel from "./Panel.vue";
 import SearchBar from "./SearchBar.vue";
 import Tabs from "./Tabs.vue";
 import SmartVariableBadge from "./SmartVariableBadge.vue";
-import { getSurfaceTriggerTokens } from "../theme/Theme";
+import { getSurfaceTriggerTokens, resolveOptionRowWash } from "../theme/Theme";
 import { groupToVariables } from "../utils/smartVariables";
 import { useClassAttrs } from "../utils/attrsUtils";
 
@@ -124,10 +134,16 @@ const emptyMessage = computed(() => {
 });
 
 const rowClass = (groupTone?: TrueColor) => {
-  const trigger = getSurfaceTriggerTokens(groupTone ?? props.tone);
+  const tone = groupTone ?? props.tone;
+  const trigger = getSurfaceTriggerTokens(tone);
+  // The list doctrine, not the surface-trigger family: rows wash with the
+  // family blend, resolved through the shared resolver so `optionHoverTone`
+  // (and `"selected"` following the group hue) lands here like it does in
+  // React's `VariablePicker`. The focus ring stays the surface-trigger's.
+  const rowWash = resolveOptionRowWash({ optionHoverTone: props.optionHoverTone, tone });
   return classNames(
     "flex w-full flex-col items-start gap-1 rounded-lg px-3 py-2.5 text-left transition",
-    trigger.hover,
+    rowWash.hover,
     trigger.focusRing,
   );
 };

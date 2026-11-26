@@ -2479,6 +2479,7 @@ function TableComponent<T>({
                   <TableInfiniteScroll
                     config={infiniteScroll}
                     sentinelRef={infiniteSentinelRef}
+                    scrollRef={scrollContainerRef}
                     itemCount={data.length}
                     state={infiniteState}
                   />
@@ -2944,6 +2945,7 @@ function TableComponent<T>({
                 <TableInfiniteScroll
                   config={infiniteScroll}
                   sentinelRef={infiniteSentinelRef}
+                  scrollRef={scrollContainerRef}
                   itemCount={data.length}
                   state={infiniteState}
                 />

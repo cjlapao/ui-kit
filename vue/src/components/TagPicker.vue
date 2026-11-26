@@ -1,6 +1,11 @@
 <script lang="ts">
 import type { VNode } from "vue";
-import { TRUE_COLORS, type TrueColor } from "../theme/Theme";
+import {
+  TRUE_COLORS,
+  type OptionRowTone,
+  type TrueColor,
+  resolveOptionRowWash,
+} from "../theme/Theme";
 import type { PickerTag } from "./Picker.vue";
 
 // ── Tone tokens (mirrors Picker) ──────────────────────────────────────────────
@@ -15,10 +20,6 @@ const toneTokens: Record<
   TrueColor,
   {
     triggerOpen: string;
-    optionSelectedBg: string;
-    optionSelectedText: string;
-    optionSelectedIcon: string;
-    focusedBg: string;
     createRowIcon: string;
     createRowLabel: string;
   }
@@ -27,10 +28,6 @@ const toneTokens: Record<
     c,
     {
       triggerOpen: `border-${c}-500 ring-2 ring-${c}-500/20 dark:border-${c}-400`,
-      optionSelectedBg: `bg-${c}-50 dark:bg-${c}-900/20`,
-      optionSelectedText: `text-${c}-700 dark:text-${c}-300`,
-      optionSelectedIcon: `text-${c}-500 dark:text-${c}-400`,
-      focusedBg: `bg-${c}-50/60 dark:bg-${c}-900/10`,
       createRowIcon: `text-${c}-500 dark:text-${c}-400`,
       createRowLabel: `text-${c}-700 dark:text-${c}-300`,
     },
@@ -39,10 +36,6 @@ const toneTokens: Record<
   TrueColor,
   {
     triggerOpen: string;
-    optionSelectedBg: string;
-    optionSelectedText: string;
-    optionSelectedIcon: string;
-    focusedBg: string;
     createRowIcon: string;
     createRowLabel: string;
   }
@@ -159,6 +152,20 @@ export interface TagPickerProps {
   loading?: boolean;
   loadingMessage?: string;
   color?: TrueColor;
+  /**
+   * The hue the selected tag rows wear — fill, copy and checkmark ink.
+   * Default: the field's `color`. Focus border, ring and glow stay `color`'s
+   * either way — this prop moves only what happens inside the popup.
+   */
+  optionSelectedTone?: TrueColor;
+  /**
+   * The hue the unchecked tag rows wear under the pointer — and under the
+   * keyboard cursor, which by definition wears the same whisper as hover.
+   * Unset keeps the neutral `POPUP_ROW_WASH` blend; `"selected"` follows the
+   * effective selected hue (`optionSelectedTone ?? color`).
+   * @default undefined
+   */
+  optionHoverTone?: OptionRowTone;
   itemColor?: TrueColor;
   /**
    * When true, the dropdown positions against the viewport instead of a clipping ancestor.
@@ -235,6 +242,18 @@ const showAllTags = ref(false);
 
 const colorTokens = computed(
   () => toneTokens[props.color] ?? toneTokens.blue,
+);
+// The popup's row washes, resolved once (see React `TagPicker`). The cursor
+// wash is the hover wash minus the `hover:` prefix — Vue's cursor follows the
+// mouse into `focusedIndex` just as React's does, and the same whisper paints
+// either way; the per-tone wash that used to live here made unchecked rows
+// look picked, the bug React retired in 2d024d52.
+const rowWash = computed(() =>
+  resolveOptionRowWash({
+    optionHoverTone: props.optionHoverTone,
+    optionSelectedTone: props.optionSelectedTone,
+    tone: props.color,
+  }),
 );
 const resolvedItemColor = computed(() => props.itemColor ?? props.color);
 
@@ -730,10 +749,10 @@ const triggerClass = computed(() =>
                 selectedSet.has(item.id)
                   ? sessionAddedSet.has(item.id)
                     ? 'bg-emerald-50 dark:bg-emerald-900/20'
-                    : colorTokens.optionSelectedBg
+                    : rowWash.selected.bg
                   : index === focusedIndex
-                    ? colorTokens.focusedBg
-                    : 'hover:bg-neutral-50 dark:hover:bg-neutral-800/60',
+                    ? rowWash.cursor
+                    : rowWash.hover,
               )
             "
             @mousedown.prevent
@@ -749,7 +768,7 @@ const triggerClass = computed(() =>
                     'h-3.5 w-3.5',
                     sessionAddedSet.has(item.id)
                       ? 'text-emerald-500 dark:text-emerald-400'
-                      : colorTokens.optionSelectedIcon,
+                      : rowWash.selected.icon,
                   )
                 "
                 viewBox="0 0 24 24"
@@ -774,7 +793,7 @@ const triggerClass = computed(() =>
                   selectedSet.has(item.id)
                     ? sessionAddedSet.has(item.id)
                       ? 'text-emerald-500 dark:text-emerald-400'
-                      : colorTokens.optionSelectedIcon
+                      : rowWash.selected.icon
                     : 'text-neutral-400 dark:text-neutral-500',
                 )
               "
@@ -790,7 +809,7 @@ const triggerClass = computed(() =>
                   selectedSet.has(item.id)
                     ? sessionAddedSet.has(item.id)
                       ? 'text-emerald-700 dark:text-emerald-300'
-                      : colorTokens.optionSelectedText
+                      : rowWash.selected.text
                     : 'text-neutral-800 dark:text-neutral-200',
                 )
               "
@@ -832,8 +851,8 @@ const triggerClass = computed(() =>
               classNames(
                 'flex cursor-pointer select-none items-center gap-2 border-t border-neutral-100 px-4 py-2.5 text-sm transition-colors dark:border-neutral-700/60',
                 focusedIndex === filtered.length
-                  ? colorTokens.focusedBg
-                  : 'hover:bg-neutral-50 dark:hover:bg-neutral-800/60',
+                  ? rowWash.cursor
+                  : rowWash.hover,
               )
             "
             @mousedown.prevent

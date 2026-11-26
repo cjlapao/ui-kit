@@ -10,7 +10,10 @@ import { createPortal } from "react-dom";
 import classNames from "classnames";
 import { useIconRenderer } from "../contexts/IconContext";
 import { useMenuPopupZIndex } from "../contexts/MenuPopupContext";
-import { POPUP_ROW_WASH } from "../theme";
+import {
+  type OptionRowTone,
+  resolveOptionRowWash,
+} from "../theme";
 
 export interface DropdownMenuOption {
   label: ReactNode;
@@ -33,6 +36,14 @@ export interface DropdownMenuProps {
   maxHeight?: number;
   className?: string;
   itemClassName?: string;
+  /**
+   * The hue the menu's idle rows wear under the pointer. Unset keeps the
+   * neutral `POPUP_ROW_WASH` blend; an explicit hue tints the wash. A menu
+   * has no selection of its own, so `"selected"` falls back to the family
+   * default hue (`blue`). `danger` items keep their rose either way.
+   * @default undefined
+   */
+  optionHoverTone?: OptionRowTone;
 }
 
 const PORTAL_ROOT = typeof document !== "undefined" ? document.body : null;
@@ -96,7 +107,11 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
   maxHeight = 288,
   className,
   itemClassName,
+  optionHoverTone,
 }) => {
+  // A menu has no field tone to follow, so `"selected"` resolves against the
+  // family default — naming a hue outright is the caller's real lever here.
+  const rowWash = resolveOptionRowWash({ optionHoverTone, tone: "blue" });
   const renderIcon = useIconRenderer();
   const menuRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
@@ -491,7 +506,7 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
                   ? "cursor-not-allowed opacity-50"
                   : item.danger
                     ? "text-rose-600 hover:bg-rose-50 dark:text-rose-300 dark:hover:bg-rose-500/10"
-                    : POPUP_ROW_WASH.hover,
+                    : rowWash.hover,
                 itemClassName,
               )}
             >

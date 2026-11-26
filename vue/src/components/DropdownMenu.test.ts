@@ -4,6 +4,7 @@ import { nextTick } from "vue";
 import DropdownMenu, {
   type DropdownMenuOption,
 } from "./DropdownMenu.vue";
+import { POPUP_ROW_WASH } from "../theme/Theme";
 
 const ITEMS: DropdownMenuOption[] = [
   { value: "1", label: "One" },
@@ -236,5 +237,64 @@ describe("DropdownMenu — behaviour", () => {
     expect(wrapper.emitted("select")).toBeUndefined();
     expect(wrapper.emitted("close")).toBeUndefined();
     wrapper.unmount();
+  });
+});
+
+describe("DropdownMenu — optionHoverTone (menu row wash)", () => {
+  afterEach(() => {
+    document.body.innerHTML = "";
+  });
+
+  it("unconfigured rows wear the neutral constant, not the old step", async () => {
+    const w = await mountMenu();
+    await openMenu(w);
+    const [one] = itemEls();
+    expect(one.className.split(" ")).toEqual(
+      expect.arrayContaining(POPUP_ROW_WASH.hover.split(" ")),
+    );
+    expect(one.className.split(" ")).not.toContain("hover:bg-neutral-100");
+    w.unmount();
+  });
+
+  it("optionHoverTone paints the row under the pointer", async () => {
+    const w = await mountMenu(ITEMS, { optionHoverTone: "rose" });
+    await openMenu(w);
+    const [one] = itemEls();
+    expect(one.className.split(" ")).toEqual(
+      expect.arrayContaining([
+        "hover:bg-rose-500/15",
+        "dark:hover:bg-rose-500/20",
+      ]),
+    );
+    w.unmount();
+  });
+
+  it("danger rows keep their rose, props or not", async () => {
+    const w = await mountMenu(
+      [
+        { value: "1", label: "One" },
+        { value: "d", label: "Delete", danger: true },
+      ],
+      { optionHoverTone: "rose" },
+    );
+    await openMenu(w);
+    const [, danger] = itemEls();
+    expect(danger.className).toContain("text-rose-600");
+    expect(danger.className).toContain("hover:bg-rose-50");
+    expect(danger.className).not.toContain("hover:bg-rose-500/15");
+    w.unmount();
+  });
+
+  it('"selected" falls back to the family default hue — a menu has no selection', async () => {
+    const w = await mountMenu(ITEMS, { optionHoverTone: "selected" });
+    await openMenu(w);
+    const [one] = itemEls();
+    expect(one.className.split(" ")).toEqual(
+      expect.arrayContaining([
+        "hover:bg-blue-500/15",
+        "dark:hover:bg-blue-500/20",
+      ]),
+    );
+    w.unmount();
   });
 });

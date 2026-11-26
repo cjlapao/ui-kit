@@ -1744,6 +1744,9 @@ export const THIN_SCROLLBAR_FIELD =
  * Deliberately neutral, not the tone: a row wash that took the popup's hue read as
  * selection two rows down from the one that is selected — which is why
  * `VariablePicker`'s per-group colours ride the badge and the tab, never the row.
+ * A caller who wants toned rows on purpose asks for them through `optionHoverTone`;
+ * the toned twins of this constant live in `getOptionRowWashClasses`, and the
+ * family resolves through `resolveOptionRowWash`, never by hand.
  */
 export const POPUP_ROW_WASH = {
   /** Pointer feedback. Lightens in dark, darkens in light — never a step. */
@@ -1751,6 +1754,80 @@ export const POPUP_ROW_WASH = {
   /** Where the keyboard is, never a claim of selection: the same whisper as hover. */
   cursor: "bg-neutral-900/5 dark:bg-neutral-100/10",
 } as const;
+
+/**
+ * The hue a popup row wash may wear: a kit tone, or `"selected"` — the
+ * effective selected hue (`optionSelectedTone ?? tone`), so a caller can say
+ * "hover wears what the selection wears" without naming the colour twice.
+ */
+export type OptionRowTone = TrueColor | "selected";
+
+/**
+ * The toned twin of `POPUP_ROW_WASH` — a blend, never a step. The alphas ride
+ * the same ladder `getSubItemHoverClasses` uses (`-500/15` light, `-500/20`
+ * dark), so the wash lightens in dark and darkens in light against any card
+ * the way the neutral constant does; only the hue is the caller's. The cursor
+ * class is the hover class minus the `hover:` prefix — one whisper, kept so by
+ * construction, not by two hand-matched literals.
+ *
+ * Callers never reach for this directly: the popup family resolves through
+ * `resolveOptionRowWash`, which owns the precedence.
+ */
+export const getOptionRowWashClasses = (tone: TrueColor): {
+  hover: string;
+  cursor: string;
+} => ({
+  hover: `hover:bg-${tone}-500/15 dark:hover:bg-${tone}-500/20`,
+  cursor: `bg-${tone}-500/15 dark:bg-${tone}-500/20`,
+});
+
+/**
+ * The toned selected-option triple, lifted out of the five popup components'
+ * private `toneTokens` maps — the fill, the copy, and the checkmark/radio ink
+ * that must ride with them (a rose row with a blue tick reads broken). Same
+ * recipe the components always emitted: `bg-{c}-50` / `dark:bg-{c}-900/20`,
+ * `text-{c}-700` / `dark:text-{c}-300`, `text-{c}-500` / `dark:text-{c}-400`.
+ */
+export const getOptionSelectedClasses = (tone: TrueColor): {
+  bg: string;
+  text: string;
+  icon: string;
+} => ({
+  bg: `bg-${tone}-50 dark:bg-${tone}-900/20`,
+  text: `text-${tone}-700 dark:text-${tone}-300`,
+  icon: `text-${tone}-500 dark:text-${tone}-400`,
+});
+
+/**
+ * The one precedence rule for the popup family's row washes: the selected hue
+ * is `optionSelectedTone ?? tone`; the wash is the neutral constant unless
+ * `optionHoverTone` names a hue or asks for `"selected"`, in which case it is
+ * `getOptionRowWashClasses` of the effective selected hue. Components spread
+ * the result into their row classNames — none re-derives the rule.
+ */
+export const resolveOptionRowWash = (opts: {
+  optionHoverTone?: OptionRowTone;
+  optionSelectedTone?: TrueColor;
+  /** The field's effective tone (the `color` alias already folded). */
+  tone: TrueColor;
+}): {
+  hover: string;
+  cursor: string;
+  selected: { bg: string; text: string; icon: string };
+} => {
+  const selectedTone = opts.optionSelectedTone ?? opts.tone;
+  const selected = getOptionSelectedClasses(selectedTone);
+  if (opts.optionHoverTone === undefined)
+    return {
+      selected,
+      hover: POPUP_ROW_WASH.hover,
+      cursor: POPUP_ROW_WASH.cursor,
+    };
+  const wash = getOptionRowWashClasses(
+    opts.optionHoverTone === "selected" ? selectedTone : opts.optionHoverTone,
+  );
+  return { selected, hover: wash.hover, cursor: wash.cursor };
+};
 
 const surfacePaddingClasses: Record<SurfacePadding, string> = {
   none: "p-0",
@@ -3605,10 +3682,16 @@ export const getAlertColorClasses = (color: TrueColor): AlertTheme[TrueColor] =>
  * Alert treatments. `glass` and `liquid-glass` are the same pair `Panel` and
  * `Pill` offer, so a callout dropped on a glass card no longer has to be the
  * one opaque slab in the layout.
+ *
+ * `tonal` is `Panel`'s tinted surface, consumed through `getPanelToneStyles`
+ * rather than re-declared: the fill and its rim are one definition for the
+ * whole kit, so a callout and a panel in the same tone cannot drift apart.
+ * It sits between `subtle` and `solid` — real chroma, without the slab.
  */
 export const ALERT_VARIANTS = [
   "subtle",
   "solid",
+  "tonal",
   "outline",
   "glass",
   "liquid-glass",
@@ -3732,10 +3815,24 @@ export interface ToastSizeTokens {
    * centres on the title's cap height at any size (Alert's calibration).
    */
   iconBox: string;
-  /** The close button's square box. */
+  /**
+   * The close button's square box — deliberately one rung narrower than the
+   * copy row it hangs beside, so the affordance reads as a corner of the card
+   * rather than a second column of content. From `sm` up it never goes below
+   * `h-6 w-6`: 24px is WCAG 2.5.8's minimum target, and a target is not
+   * decoration to shrink for taste. `xs` is the one rung below, on a card
+   * whose whole content row is 20px tall.
+   */
   close: string;
   /** The close glyph's size. */
   closeIcon: ControlSize;
+  /**
+   * Pulls the close button into the card's corner. The card's own `py`/`px`
+   * is what put it a full padding-step off the border; this hands half of it
+   * back, so the × sits on the corner while the copy keeps its padding, its
+   * `gap` from the glyph and the button's `gap` from the text.
+   */
+  closeInset: string;
   /** The progress bar's height, on the shared scale. */
   progress: ControlSize;
   /** The action buttons' size (trigger family). */
@@ -3754,6 +3851,7 @@ const toastSizeTokens: Record<ControlSize, ToastSizeTokens> = {
     iconBox: "h-4",
     close: "h-5 w-5",
     closeIcon: "xs",
+    closeInset: "-mt-1 -mr-1",
     progress: "xs",
     action: "xs",
     actions: "pt-1.5",
@@ -3767,6 +3865,7 @@ const toastSizeTokens: Record<ControlSize, ToastSizeTokens> = {
     iconBox: "h-4",
     close: "h-6 w-6",
     closeIcon: "xs",
+    closeInset: "-mt-1 -mr-1",
     progress: "sm",
     action: "xs",
     actions: "pt-2",
@@ -3778,8 +3877,9 @@ const toastSizeTokens: Record<ControlSize, ToastSizeTokens> = {
     detail: "text-sm",
     icon: "md",
     iconBox: "h-5",
-    close: "h-7 w-7",
+    close: "h-6 w-6",
     closeIcon: "sm",
+    closeInset: "-mt-1.5 -mr-1.5",
     progress: "sm",
     action: "sm",
     actions: "pt-2",
@@ -3791,8 +3891,9 @@ const toastSizeTokens: Record<ControlSize, ToastSizeTokens> = {
     detail: "text-sm",
     icon: "md",
     iconBox: "h-6",
-    close: "h-8 w-8",
+    close: "h-7 w-7",
     closeIcon: "sm",
+    closeInset: "-mt-1.5 -mr-1.5",
     progress: "md",
     action: "sm",
     actions: "pt-2.5",
@@ -3804,8 +3905,9 @@ const toastSizeTokens: Record<ControlSize, ToastSizeTokens> = {
     detail: "text-sm",
     icon: "lg",
     iconBox: "h-7",
-    close: "h-9 w-9",
+    close: "h-8 w-8",
     closeIcon: "md",
+    closeInset: "-mt-2 -mr-2",
     progress: "md",
     action: "md",
     actions: "pt-3",
@@ -3923,6 +4025,15 @@ export interface AlertVariantTokens {
 }
 
 /**
+ * The dismiss button for the tinted and outlined variants. Named rather than
+ * repeated, because `tonal` and `subtle`/`outline` want the identical button
+ * and two copies of a hover ladder is how one of them stops matching the
+ * surface it sits on.
+ */
+const alertDismissTokens = (color: TrueColor): string =>
+  `text-${color}-600 hover:bg-${color}-100 hover:text-${color}-800 dark:text-${color}-300 dark:hover:bg-${color}-500/20 dark:hover:text-${color}-100 focus-visible:ring-${color}-400`;
+
+/**
  * Replaces the old flat `getAlertColorClasses` bag, which handed the *same*
  * `icon`, `text` and `dismiss` classes to every variant. On `solid` — a
  * `{color}-600` fill — that painted the description `{color}-700` and the icon
@@ -3943,13 +4054,56 @@ export const getAlertVariantTokens = (
     // the neutrals): the fill itself sits in the middle of the range where
     // neither end has contrast. Stepping the fill one shade out at each end
     // clears 4.5:1 for every tone in both themes — the worst case is yellow at
-    // 4.93 light and indigo at 5.12 dark.
+    // 4.93 light and indigo at 5.12 dark. The detail line carries /95 of that
+    // copy rather than /90: at /90 the alpha does the damage the shade was
+    // picked to avoid, and yellow, lime and green land at 4.32–4.36:1. A
+    // secondary line is still copy, so `alertRim.test.ts` holds it to the same
+    // 4.5:1 as the title, and the fill pays for it in alpha rather than shade.
+    // The rim was `border-transparent` for the whole life of this table, which
+    // measures 1.000:1 against its own fill and 1.000:1 against the page: not
+    // a weak edge, no edge. One card survives that on the fill's own
+    // luminance; a stacked deck does not — five identical `{c}-400` fills agree
+    // with each other, and the deck reads as one shape with stepped
+    // protrusions. The rim is therefore the fill's neighbour on the ramp, one
+    // step *toward the page* at each end: `-{c}-600` light, `-{c}-500` dark.
+    // Page → rim → fill in both modes, so the edge reads as the card's own and
+    // not as a frame dropped over it: 1.239:1 (worst violet) and 1.216:1
+    // (worst orange) against the fill it frames, 2.931 and 3.704 against the
+    // page. Rejected, with the numbers: `-700` light is the fill itself
+    // (1.000:1), `-900` dark lands back on the page (1.000:1 on the neutrals),
+    // and the pair this table first shipped with — `-800` / `-600` — cleared
+    // both bars (1.250 / 1.510) but put a 6.875:1 dark outline round a
+    // light-mode card, which is a frame, not an edge.
+    // `react/src/theme/alertRim.test.ts` re-runs all of it against the palette
+    // Tailwind will compile.
     return {
       surface: `bg-${color}-700 text-white dark:bg-${color}-400 dark:text-${color}-950`,
-      border: "border-transparent",
+      border: `border-${color}-600 dark:border-${color}-500`,
       icon: `text-white dark:text-${color}-950`,
-      text: `text-white/90 dark:text-${color}-950/90`,
+      text: `text-white/95 dark:text-${color}-950/95`,
       dismiss: `text-white/80 hover:bg-white/20 hover:text-white focus-visible:ring-white dark:text-${color}-950/80 dark:hover:bg-black/15 dark:hover:text-${color}-950`,
+    };
+  }
+
+  if (variant === "tonal") {
+    // A callout's `tonal` is not `Panel`'s `tonal`, and the difference is the
+    // distance it has to travel. A panel sits *inside* content, so its tint is
+    // a whisper (`bg-{c}-200/60`, `dark:bg-{c}-500/15`) — measured over a dark
+    // page that is 1.525:1 of nothing, a card made of air. A toast arrives in
+    // the corner of someone's work and has to be an object before it is a
+    // message, so this fill is opaque and one rung deeper at each end:
+    // `{c}-200` light, `{c}-800` dark. It carries `{c}-950` / `{c}-50` copy
+    // (worst 10.35 and 6.64 against its own fill) and a `-{c}-400` /
+    // `-{c}-600` rim, which clears the resting-edge bars at 1.316 / 1.557
+    // against the fill and 1.535 / 2.296 against the page. `tonalRim.test.ts`
+    // still governs the Panel card; `alertRim.test.ts` governs this one, and
+    // asserts the two have diverged on purpose rather than by drift.
+    return {
+      surface: `bg-${color}-200 text-${color}-950 dark:bg-${color}-800 dark:text-${color}-50`,
+      border: `border-${color}-400 dark:border-${color}-600`,
+      icon: `text-${color}-800 dark:text-${color}-300`,
+      text: `text-${color}-900 dark:text-${color}-200`,
+      dismiss: alertDismissTokens(color),
     };
   }
 
@@ -3984,7 +4138,7 @@ export const getAlertVariantTokens = (
         : `border-${color}-200 dark:border-${color}-500/40`,
     icon: `text-${color}-600 dark:text-${color}-300`,
     text: `text-${color}-800 dark:text-${color}-200`,
-    dismiss: `text-${color}-600 hover:bg-${color}-100 hover:text-${color}-800 dark:text-${color}-300 dark:hover:bg-${color}-500/20 dark:hover:text-${color}-100 focus-visible:ring-${color}-400`,
+    dismiss: alertDismissTokens(color),
   };
 };
 

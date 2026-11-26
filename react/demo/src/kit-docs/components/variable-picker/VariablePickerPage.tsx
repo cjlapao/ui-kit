@@ -18,6 +18,12 @@ export const VariablePickerPage: React.FC = () => (
     <PropsTable
       props={[
         {
+          name: "optionHoverTone",
+          type: "OptionRowTone",
+          description:
+            "The hue the variable rows wash with under the pointer. Unset keeps the neutral family blend — the list doctrine: a per-group hue rides the badge and the tab, never the row, because a tinted menu reads as selection. An explicit hue overrules that on purpose; `\"selected\"` follows the row&rsquo;s effective tone (the group hue when it names one).",
+        },
+        {
           name: "groups / onSelect",
           type: "SmartVariableGroup[] / (variable) => void",
           description:

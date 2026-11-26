@@ -1,12 +1,13 @@
 import React, { useMemo, useRef, useState } from "react";
 import { Button, DropdownMenu, MultiToggle } from "@cjlapao/ui-kit";
-import type { DropdownMenuOption } from "@cjlapao/ui-kit";
+import type { DropdownMenuOption, OptionRowTone } from "@cjlapao/ui-kit";
 import {
   Control,
   PlaygroundPanel,
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
 import { ControlAccordion } from "../../shared/ControlAccordion";
+import { HoverHueControl } from "../../shared/HueControl";
 import {
   dropdownAlignOptions,
   dropdownMaxHeightOptions,
@@ -53,6 +54,9 @@ export const DropdownMenuPlayground: React.FC = () => {
   const [showDanger, setShowDanger] = useState(true);
   const [open, setOpen] = useState(false);
   const [selection, setSelection] = useState("");
+  // The popup's own hue: a menu has no selection of its own, so "selected"
+  // falls back to the family default (blue) — visible right here.
+  const [optionHoverTone, setOptionHoverTone] = useState<OptionRowTone | undefined>(undefined);
   const anchorRef = useRef<HTMLButtonElement>(null);
 
   // Item-shape toggles: strip a field (or drop a whole row) from the rich
@@ -125,6 +129,13 @@ export const DropdownMenuPlayground: React.FC = () => {
                           }
                         />
                       </Control>
+                      <HoverHueControl
+                        label="Hover hue"
+                        value={optionHoverTone}
+                        onChange={setOptionHoverTone}
+                        autoLabel="Auto — the neutral blend"
+                        followLabel='"Selected" — the family hue (a menu has none)'
+                      />
                     </div>
                   </>
                 ),
@@ -184,6 +195,7 @@ export const DropdownMenuPlayground: React.FC = () => {
             open={open}
             onClose={() => setOpen(false)}
             items={liveItems}
+            optionHoverTone={optionHoverTone}
             align={align}
             side={side}
             width={widthChoice === "trigger" ? "trigger" : Number(widthChoice)}

@@ -10,6 +10,7 @@ import {
 import React, {
   type ReactNode,
   useCallback,
+  useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -75,6 +76,14 @@ export interface MultiToggleOption {
   label?: ReactNode;
   icon?: string | React.ReactElement;
   disabled?: boolean;
+  /**
+   * Takes the option out of the track entirely — no render, no measurement,
+   * no tab stop, skipped by keyboard navigation. The group's `value` is never
+   * touched: a hidden option may stay the selected one, in which case the
+   * indicator is withdrawn (it jumps, it never slides) until the option or
+   * the selection comes back.
+   */
+  hidden?: boolean;
   width?: MultiToggleOptionWidth;
   /**
    * `"separator"` draws a vertical hairline at this position instead of a
@@ -87,6 +96,10 @@ export interface MultiToggleOption {
 /** A separator option — a hairline between groups, not a radio. */
 const isSeparatorOption = (option: MultiToggleOption): boolean =>
   option.type === "separator";
+
+/** An option taken out of the track — absent from render, maths and keys. */
+const isHiddenOption = (option: MultiToggleOption): boolean =>
+  option.hidden === true;
 
 export interface MultiToggleProps
   // The root element is the radiogroup `<div>`, not a button. These props used
@@ -279,7 +292,10 @@ const MultiToggle: React.FC<MultiToggleProps> = ({
   const hasCustomWidths =
     adaptiveWidth ||
     options.some(
-      (option) => !isSeparatorOption(option) && option.width !== undefined,
+      (option) =>
+        !isSeparatorOption(option) &&
+        !isHiddenOption(option) &&
+        option.width !== undefined,
     );
   const [indicatorInlineStyle, setIndicatorInlineStyle] =
     useState<React.CSSProperties>();
@@ -319,22 +335,49 @@ const MultiToggle: React.FC<MultiToggleProps> = ({
 
   const optionCount = options.length ?? 0;
   // Separators are not radios: they take no segment slot, no indicator maths
-  // and no keyboard step — they only occupy their own padded width.
+  // and no keyboard step — they only occupy their own padded width. Hidden
+  // options are absent outright, so the indicator maths must count and index
+  // only what actually renders: a raw `options` index desyncs the pill the
+  // moment any option stops being one.
   const separatorCount = options.reduce(
     (count, option) => count + (isSeparatorOption(option) ? 1 : 0),
     0,
   );
-  const itemCount = optionCount - separatorCount;
+  const visibleRawIndices: number[] = [];
+  options.forEach((option, index) => {
+    if (!isSeparatorOption(option) && !isHiddenOption(option)) {
+      visibleRawIndices.push(index);
+    }
+  });
   const usesFreeFlowLayout = separatorCount > 0 || gap !== undefined;
   // A group of nothing but separators would divide by zero in the fallback
   // pill maths below; it still has to render its rules, so clamp to one.
-  const segmentCount = Math.max(1, itemCount);
-  const activeIndex = Math.max(
-    0,
-    options.findIndex(
-      (option) => !isSeparatorOption(option) && option.value === value,
-    ),
+  const segmentCount = Math.max(1, visibleRawIndices.length);
+  // The raw index of the selected option (-1 when the value matches nothing).
+  const activeRawIndex = options.findIndex(
+    (option) => !isSeparatorOption(option) && option.value === value,
   );
+  // The keyboard cursor keeps the old clamp-to-first semantics for values
+  // matching nothing — an unmoved arrow key needs somewhere to start from.
+  const keyboardActiveIndex = Math.max(0, activeRawIndex);
+  const matchedVisible = visibleRawIndices.findIndex(
+    (rawIndex) => options[rawIndex].value === value,
+  );
+  const hasVisibleActive = matchedVisible !== -1;
+  // The measured button the pill is positioned from: the match, or — for an
+  // unmatched value — the first rendered segment, as before.
+  const activeRefIndex = hasVisibleActive
+    ? visibleRawIndices[matchedVisible]
+    : visibleRawIndices.length > 0
+      ? visibleRawIndices[0]
+      : activeRawIndex;
+  // The selected option exists but is hidden ⇒ the pill is withdrawn; it must
+  // not freeze over the wrong segment (the old code's stale-geometry bail).
+  const pillVisible =
+    hasVisibleActive ||
+    (activeRawIndex === -1 && visibleRawIndices.length > 0);
+  // Index among rendered segments for the even-segment maths.
+  const visibleActiveIndex = hasVisibleActive ? matchedVisible : 0;
   const sizeStyles = sizeTokens[size] ?? sizeTokens.md;
   // `color` is the old name for `tone`.
   const resolvedTone = tone ?? color ?? "blue";
@@ -380,22 +423,23 @@ const MultiToggle: React.FC<MultiToggleProps> = ({
     if (usesSegmentLayout) {
       return {
         width: `calc(${segmentExpression} - ${margin * 2}px)`,
-        transform: `translateX(calc(${CONTAINER_HORIZONTAL_PADDING}px + ${activeIndex} * (${segmentExpression}) + ${margin}px))`,
-      };
+        transform: `translateX(calc(${CONTAINER_HORIZONTAL_PADDING}px + ${visibleActiveIndex} * (${segmentExpression}) + ${margin}px))`,
+        "--mt-opacity": pillVisible ? "1" : "0",
+      } as React.CSSProperties;
     }
 
     const widthPercent = 100 / segmentCount;
     return {
       width: `calc(${widthPercent}% - ${margin * 2}px)`,
-      transform: `translateX(calc(${activeIndex} * (100% / ${segmentCount}) + ${margin}px))`,
-    };
-  }, [activeIndex, segmentCount, usesSegmentLayout]);
+      transform: `translateX(calc(${visibleActiveIndex} * (100% / ${segmentCount}) + ${margin}px))`,
+      "--mt-opacity": pillVisible ? "1" : "0",
+    } as React.CSSProperties;
+  }, [pillVisible, segmentCount, usesSegmentLayout, visibleActiveIndex]);
 
   const updateIndicatorPosition = useCallback(() => {
     const container = containerRef.current;
-    const activeButton = optionRefs.current[activeIndex];
 
-    if (!container || !activeButton) {
+    if (!container) {
       return;
     }
 
@@ -418,11 +462,27 @@ const MultiToggle: React.FC<MultiToggleProps> = ({
       container.clientWidth - paddingLeft - paddingRight,
     );
 
+    // The selected option is hidden (or everything is): withdraw the pill —
+    // geometry collapsed, alpha off. The old code bailed on the missing
+    // button here and left the stale pill frozen over the wrong segment.
+    if (!pillVisible) {
+      setIndicatorInlineStyle(getMultiToggleMotionStyle(
+        0, 0, container.clientWidth, paddingLeft, paddingRight, 0, false,
+      ) as React.CSSProperties);
+      return;
+    }
+
+    const activeButton = optionRefs.current[activeRefIndex];
+
+    if (!activeButton) {
+      return;
+    }
+
     if (usesSegmentLayout) {
       const segmentWidth = containerInnerWidth / segmentCount;
       const inset = computeInset(segmentWidth);
       const indicatorWidth = Math.max(0, segmentWidth - inset * 2);
-      const offset = paddingLeft + activeIndex * segmentWidth + inset;
+      const offset = paddingLeft + visibleActiveIndex * segmentWidth + inset;
       setIndicatorInlineStyle(getMultiToggleMotionStyle(
         offset, indicatorWidth, container.clientWidth, paddingLeft, paddingRight, inset,
       ) as React.CSSProperties);
@@ -451,11 +511,13 @@ const MultiToggle: React.FC<MultiToggleProps> = ({
       offset, indicatorWidth, container.clientWidth, paddingLeft, paddingRight, inset,
     ) as React.CSSProperties);
   }, [
-    activeIndex,
+    activeRefIndex,
+    pillVisible,
     shouldLockToMaxWidth,
     maxOptionWidth,
     segmentCount,
     usesSegmentLayout,
+    visibleActiveIndex,
     truncateOverflow,
   ]);
 
@@ -469,7 +531,7 @@ const MultiToggle: React.FC<MultiToggleProps> = ({
               : option.label !== undefined
                 ? "node"
                 : "";
-          return `${option.value ?? ""}:${option.type ?? ""}:${option.width ?? ""}:${labelSignature}`;
+          return `${option.value ?? ""}:${option.type ?? ""}:${option.width ?? ""}:${option.hidden ? "h" : ""}:${labelSignature}`;
         })
         .join("|"),
     [options],
@@ -558,6 +620,38 @@ const MultiToggle: React.FC<MultiToggleProps> = ({
   ]);
 
   /**
+   * A pill appearing or vanishing is a jump, not a journey: whichever way
+   * `pillVisible` flips, that one render carries `data-mt-jump`, which kills
+   * the custom-property transition so the geometry lands instantly instead of
+   * sliding across the track (or sliding half-visible under a fade). Cleared
+   * two frames later, once the snapped geometry has been committed.
+   */
+  const [indicatorJump, setIndicatorJump] = useState(false);
+  const previousPillVisibleRef = useRef<boolean | undefined>(undefined);
+
+  useLayoutEffect(() => {
+    const previous = previousPillVisibleRef.current;
+    if (previous !== undefined && previous !== pillVisible) {
+      setIndicatorJump(true);
+    }
+    previousPillVisibleRef.current = pillVisible;
+  }, [pillVisible]);
+
+  useEffect(() => {
+    if (!indicatorJump || typeof window === "undefined") {
+      return;
+    }
+    let secondFrame = 0;
+    const firstFrame = window.requestAnimationFrame(() => {
+      secondFrame = window.requestAnimationFrame(() => setIndicatorJump(false));
+    });
+    return () => {
+      window.cancelAnimationFrame(firstFrame);
+      window.cancelAnimationFrame(secondFrame);
+    };
+  }, [indicatorJump]);
+
+  /**
    * Arrow-key navigation. The component already used a roving tabindex (only
    * the active option is tabbable) but handled no keys, so a keyboard user
    * could reach the group and then had no way to change the selection — the
@@ -578,7 +672,10 @@ const MultiToggle: React.FC<MultiToggleProps> = ({
         .map((option, index) => ({ option, index }))
         .filter(
           ({ option }) =>
-            !isSeparatorOption(option) && !option.disabled && !disabled,
+            !isSeparatorOption(option) &&
+            !isHiddenOption(option) &&
+            !option.disabled &&
+            !disabled,
         );
       if (selectable.length === 0) return;
 
@@ -598,12 +695,12 @@ const MultiToggle: React.FC<MultiToggleProps> = ({
       }
 
       const current = selectable.findIndex(
-        ({ index }) => index === activeIndex,
+        ({ index }) => index === keyboardActiveIndex,
       );
       // Wraps at both ends, which is what the radiogroup pattern specifies.
       commit(selectable[(current + step + selectable.length) % selectable.length]);
     },
-    [options, disabled, activeIndex, onChange],
+    [options, disabled, keyboardActiveIndex, onChange],
   );
 
   // Auto width grows to the labels until the parent constrains the track.
@@ -644,6 +741,7 @@ const MultiToggle: React.FC<MultiToggleProps> = ({
           sizeStyles.paddingY,
         )}
         style={computedIndicatorStyle ?? indicatorStyle}
+        data-mt-jump={indicatorJump ? "" : undefined}
       >
         <span
           className={classNames(
@@ -668,6 +766,12 @@ const MultiToggle: React.FC<MultiToggleProps> = ({
         >
           {options.map((option, index) => {
             if (isSeparatorOption(option)) {
+              return null;
+            }
+            // A hidden label must not feed `maxOptionWidth` — its measurement
+            // slot is nulled so the widest *rendered* segment wins.
+            if (isHiddenOption(option)) {
+              measurementRefs.current[index] = null;
               return null;
             }
             const measurementStyle: React.CSSProperties = {};
@@ -715,6 +819,14 @@ const MultiToggle: React.FC<MultiToggleProps> = ({
       )}
 
       {options.map((option, index) => {
+        if (isHiddenOption(option)) {
+          // Absent outright — separators included: no button, no rule, no
+          // tooltip, no ref. The segments close ranks and the keyboard never
+          // meets it.
+          optionRefs.current[index] = null;
+          return null;
+        }
+
         if (isSeparatorOption(option)) {
           // No ref, no radio — just a hairline. Its own padding is the only
           // space around it: the item gap is cancelled on both sides so the

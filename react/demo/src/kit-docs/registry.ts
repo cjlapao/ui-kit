@@ -878,7 +878,7 @@ export const DOC_COMPONENTS: DocComponent[] = [
     slug: "alert",
     name: "Alert",
     description:
-      "Semantic callouts — intent-driven tones, five variants and optional actions.",
+      "Semantic callouts — intent-driven tones, six variants and optional actions.",
     icon: "Warning",
     category: "Feedback",
     Page: lazy(() => import("./components/alert/AlertPage")),

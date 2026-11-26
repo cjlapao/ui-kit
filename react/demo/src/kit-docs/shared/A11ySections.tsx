@@ -110,7 +110,11 @@ export interface PropDoc {
  * Prop descriptions are written as plain strings, where `&rsquo;` is just
  * nine characters — HTML entities decode only inside JSX. Most pages learned
  * that the hard way and printed `group&rsquo;s` literally, so the decoder
- * lives here, at the one place the strings are rendered.
+ * lives here, at the one place the strings are rendered — which is two
+ * columns, not one: a `default` is a plain string too, and a default that
+ * reads `the card&rsquo;s tone` deserves the same answer as its description.
+ * `type` stays verbatim; a type expression is code, and `&lt;` there means
+ * the three characters.
  */
 const DOC_ENTITIES: Record<string, string> = {
   rsquo: "\u2019",
@@ -177,7 +181,7 @@ export const PropsTable: React.FC<{ props: PropDoc[]; title?: string }> = ({
               <td className="py-2 pr-4 align-top">
                 {fallback ? (
                   <code className="font-mono text-[13px] text-neutral-500 dark:text-neutral-400">
-                    {fallback}
+                    {decodeDocEntities(fallback)}
                   </code>
                 ) : (
                   <span className="text-neutral-300 dark:text-neutral-600">

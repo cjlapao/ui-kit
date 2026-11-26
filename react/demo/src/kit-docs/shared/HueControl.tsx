@@ -1,4 +1,8 @@
-import { ColorSwatches, type TrueColor } from "@cjlapao/ui-kit";
+import {
+  ColorSwatches,
+  type OptionRowTone,
+  type TrueColor,
+} from "@cjlapao/ui-kit";
 import { Control } from "./PlaygroundPanel";
 
 /**
@@ -58,6 +62,70 @@ export function HueControl({
   return (
     <Control label={label}>
       <HueSwatches value={value} onSelect={onChange} autoLabel={autoLabel} />
+    </Control>
+  );
+}
+
+/**
+ * The `optionHoverTone` control the popup-family playgrounds share.
+ *
+ * Hover has three decisions a swatch row cannot express on its own: unset
+ * (the neutral `POPUP_ROW_WASH` blend), the literal `"selected"` (follow the
+ * selected hue), or a hue of its own. Same shape as `HueSwatches`, with the
+ * follow-the-selection option wearing its own button next to Auto.
+ */
+export function HoverHueControl({
+  label,
+  value,
+  onChange,
+  autoLabel = "Auto — the neutral blend",
+  followLabel = '"Selected" — follow the selected hue',
+}: {
+  label: string;
+  value?: OptionRowTone;
+  onChange: (value?: OptionRowTone) => void;
+  /** Names what auto means for this prop, since it differs between them. */
+  autoLabel?: string;
+  /** Names what following the selection means for this component. */
+  followLabel?: string;
+}) {
+  return (
+    <Control label={label}>
+      <div className="space-y-3">
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            aria-pressed={value === undefined}
+            onClick={() => onChange(undefined)}
+            className={`rounded-md border px-3 py-1 text-xs ${
+              value === undefined
+                ? "border-neutral-500 bg-neutral-100 dark:bg-neutral-800"
+                : "border-neutral-300 dark:border-neutral-700"
+            }`}
+          >
+            {autoLabel}
+          </button>
+          <button
+            type="button"
+            aria-pressed={value === "selected"}
+            onClick={() => onChange("selected")}
+            className={`rounded-md border px-3 py-1 text-xs ${
+              value === "selected"
+                ? "border-neutral-500 bg-neutral-100 dark:bg-neutral-800"
+                : "border-neutral-300 dark:border-neutral-700"
+            }`}
+          >
+            {followLabel}
+          </button>
+        </div>
+        <ColorSwatches
+          selectable
+          size="sm"
+          value={value === "selected" ? undefined : value}
+          onSelect={(hue) => onChange(hue)}
+          defaultExpanded
+        />
+      </div>
     </Control>
   );
 }

@@ -170,3 +170,85 @@ describe("Table infinite scroll", () => {
     expect(onLoadMore).toHaveBeenCalledTimes(2);
   });
 });
+
+describe("infinite scroll end marker", () => {
+  /** jsdom reports a zero box, which the overflow hook treats as unmeasurable
+   * (and shows the marker); a fake one page of layout asks the real question. */
+  const fakeScrollerBox = (root: Element, clientHeight: number, scrollHeight: number) => {
+    const viewport = root.querySelector<HTMLElement>(".overflow-y-auto")!;
+    expect(viewport).toBeTruthy();
+    Object.defineProperty(viewport, "clientHeight", { configurable: true, value: clientHeight });
+    Object.defineProperty(viewport, "scrollHeight", { configurable: true, value: scrollHeight });
+  };
+
+  const mountPanel = (overrides: Record<string, unknown> = {}) => {
+    const wrapper = mount(InfiniteScrollPanel as any, {
+      props: { items: [1, 2, 3], hasMore: false, onLoadMore: vi.fn().mockResolvedValue(undefined), layout: "list", ...overrides },
+      slots: { renderItem: "Item" },
+    });
+    wrappers.push(wrapper);
+    return wrapper;
+  };
+
+  it("omits the panel end marker when the content fits on one page", async () => {
+    const wrapper = mountPanel();
+    await flushPromises();
+    expect(wrapper.text()).toContain("You have reached the end");
+    fakeScrollerBox(wrapper.element, 800, 200);
+    // A fresh items identity re-runs the measurement.
+    await wrapper.setProps({ items: [1, 2, 3] });
+    await flushPromises();
+    expect(wrapper.text()).not.toContain("You have reached the end");
+  });
+
+  it("keeps the panel end marker once the content overflows", async () => {
+    const wrapper = mountPanel();
+    await flushPromises();
+    fakeScrollerBox(wrapper.element, 300, 1200);
+    await wrapper.setProps({ items: [1, 2, 3] });
+    await flushPromises();
+    expect(wrapper.text()).toContain("You have reached the end");
+  });
+
+  it("never shows the panel end marker when showEndMarker is off", async () => {
+    const wrapper = mountPanel({ showEndMarker: false });
+    await flushPromises();
+    fakeScrollerBox(wrapper.element, 300, 1200);
+    await wrapper.setProps({ items: [1, 2, 3] });
+    await flushPromises();
+    expect(wrapper.text()).not.toContain("You have reached the end");
+  });
+
+  it("omits the table end marker when the rows fit without scrolling", async () => {
+    const state = config();
+    const wrapper = setup({ infiniteScroll: { ...state, hasMore: false } });
+    await flushPromises();
+    expect(wrapper.text()).toContain("You have reached the end");
+    fakeScrollerBox(wrapper.element, 800, 200);
+    // More rows, still one page — a new itemCount re-runs the measurement.
+    await wrapper.setProps({ data: [...rows, { id: 2, name: "Second" }], infiniteScroll: { ...state, hasMore: false } });
+    await flushPromises();
+    expect(wrapper.text()).not.toContain("You have reached the end");
+  });
+
+  it("shows the table end marker once the rows overflow the viewport", async () => {
+    const state = config();
+    const wrapper = setup({ data: [], infiniteScroll: { ...state, hasMore: false } });
+    await flushPromises();
+    expect(wrapper.text()).not.toContain("You have reached the end");
+    fakeScrollerBox(wrapper.element, 300, 1200);
+    await wrapper.setProps({ data: rows });
+    await flushPromises();
+    expect(wrapper.text()).toContain("You have reached the end");
+  });
+
+  it("never shows the table end marker when showEndMarker is off", async () => {
+    const state = config({ showEndMarker: false });
+    const wrapper = setup({ infiniteScroll: { ...state, hasMore: false } });
+    await flushPromises();
+    fakeScrollerBox(wrapper.element, 300, 1200);
+    await wrapper.setProps({ data: [...rows, { id: 2, name: "Second" }], infiniteScroll: { ...state, hasMore: false } });
+    await flushPromises();
+    expect(wrapper.text()).not.toContain("You have reached the end");
+  });
+});

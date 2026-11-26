@@ -130,6 +130,12 @@ export const PickerPage: React.FC = () => (
             "The shared field tone. `color` is the deprecated alias and `tone` wins when both are set — the family rule.",
         },
         {
+          name: "optionSelectedTone / optionHoverTone",
+          type: "TrueColor / OptionRowTone",
+          description:
+            "The popup&rsquo;s own hues, decoupled from the field. `optionSelectedTone` moves the selected rows&rsquo; fill, copy and icon ink (default: the field&rsquo;s `tone`); `optionHoverTone` tints the wash unchecked rows wear under the pointer — and the keyboard cursor follows hover by construction. `\"selected\"` makes the wash follow the selected hue. Both props live entirely inside the dropdown: focus border, ring and glow keep following `tone`.",
+        },
+        {
           name: "variant / size / validationStatus / glow trio",
           type: "InputVariant / ControlSize / ValidationStatus / …",
           description:

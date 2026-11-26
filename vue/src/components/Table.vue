@@ -2503,6 +2503,7 @@ const handleNextPage = () => {
             :busy="infiniteBusy"
             :error="infiniteError"
             :load-more="loadMoreRows"
+            :scroll-element="scrollContainerRef"
             @sentinel="(element) => infiniteSentinelRef = element"
           />
           <!-- Full-height column-resize guide, spanning the whole table. -->
@@ -2576,6 +2577,7 @@ const handleNextPage = () => {
           :busy="infiniteBusy"
           :error="infiniteError"
           :load-more="loadMoreRows"
+          :scroll-element="panelScrollRef"
           @sentinel="(element) => infiniteSentinelRef = element"
         />
       </div>

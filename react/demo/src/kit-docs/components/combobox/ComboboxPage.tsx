@@ -74,6 +74,12 @@ export const ComboboxPage: React.FC = () => (
     <PropsTable
       props={[
         {
+          name: "optionSelectedTone / optionHoverTone",
+          type: "TrueColor / OptionRowTone",
+          description:
+            "The listbox&rsquo;s own hues, decoupled from the field. `optionSelectedTone` moves the copy hue of the option matching the value (Combobox&rsquo;s selected state is copy-only) — the focus ring and glow stay `tone`&rsquo;s. `optionHoverTone` paints the wash unselected rows wear under the pointer and the keyboard cursor; unset, the pointer wash keeps the field-shadow recipe (a suggestion list is the field&rsquo;s shadow, so it tints like the field does). `\"selected\"` follows the effective selected hue.",
+        },
+        {
           name: "value / onChange / onSelect",
           type: "string / (value) => void / (option) => void",
           description:

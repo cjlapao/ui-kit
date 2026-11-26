@@ -104,6 +104,75 @@ describe("InfiniteScrollPanel", () => {
       expect(screen.getByText("Loading more...")).toBeTruthy();
       expect(screen.queryByText("You have reached the end")).toBeNull();
     });
+
+    /**
+     * jsdom reports a zero box for everything, which the overflow hook treats
+     * as unmeasurable (and shows the marker). A fake one page of layout lets a
+     * test ask the real question: does the content actually need to scroll?
+     */
+    const fakeBox = (
+      container: HTMLElement,
+      clientHeight: number,
+      scrollHeight: number,
+    ) => {
+      const viewport = container.querySelector<HTMLElement>(
+        '[data-slot="scrollarea-viewport"]',
+      )!;
+      Object.defineProperty(viewport, "clientHeight", {
+        configurable: true,
+        value: clientHeight,
+      });
+      Object.defineProperty(viewport, "scrollHeight", {
+        configurable: true,
+        value: scrollHeight,
+      });
+    };
+
+    it("omits the end marker when the content fits on one page", () => {
+      const { rerender, container } = setup();
+      expect(screen.getByText("You have reached the end")).toBeTruthy();
+
+      fakeBox(container, 800, 200);
+      // A fresh items identity re-runs the measurement.
+      rerender(
+        <InfiniteScrollPanel<number>
+          items={[...items]}
+          hasMore={false}
+          onLoadMore={async () => {}}
+          renderItem={renderItem}
+        />,
+      );
+      expect(screen.queryByText("You have reached the end")).toBeNull();
+    });
+
+    it("keeps the end marker once the content overflows", () => {
+      const { rerender, container } = setup();
+      fakeBox(container, 300, 1200);
+      rerender(
+        <InfiniteScrollPanel<number>
+          items={[...items]}
+          hasMore={false}
+          onLoadMore={async () => {}}
+          renderItem={renderItem}
+        />,
+      );
+      expect(screen.getByText("You have reached the end")).toBeTruthy();
+    });
+
+    it("never shows the end marker when showEndMarker is off", () => {
+      const { rerender, container } = setup({ showEndMarker: false });
+      fakeBox(container, 300, 1200);
+      rerender(
+        <InfiniteScrollPanel<number>
+          items={[...items]}
+          hasMore={false}
+          onLoadMore={async () => {}}
+          renderItem={renderItem}
+          showEndMarker={false}
+        />,
+      );
+      expect(screen.queryByText("You have reached the end")).toBeNull();
+    });
   });
 
   describe("fetching", () => {

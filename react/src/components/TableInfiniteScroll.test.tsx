@@ -76,6 +76,42 @@ describe("Table infinite scroll", () => {
     expect(screen.queryByRole("button", { name: "Load more" })).toBeNull();
   });
 
+  /** jsdom reports a zero box, which the overflow hook treats as unmeasurable
+   * (and shows the marker); a fake one page of layout asks the real question. */
+  const fakeScrollerBox = (container: HTMLElement, clientHeight: number, scrollHeight: number) => {
+    const viewport = container.querySelector<HTMLElement>('[data-slot="scrollarea-viewport"]')!;
+    Object.defineProperty(viewport, "clientHeight", { configurable: true, value: clientHeight });
+    Object.defineProperty(viewport, "scrollHeight", { configurable: true, value: scrollHeight });
+  };
+
+  it("omits the end marker when the rows fit without scrolling", async () => {
+    const state = config();
+    const { rerender, container } = render(<Table {...props} infiniteScroll={{ ...state, hasMore: false }} />);
+    expect(screen.getByText("You have reached the end")).toBeTruthy();
+    fakeScrollerBox(container, 800, 200);
+    // More rows, still one page — a new itemCount re-runs the measurement.
+    rerender(<Table {...props} data={[...rows, { id: 2, name: "Second" }]} infiniteScroll={{ ...state, hasMore: false }} />);
+    expect(screen.queryByText("You have reached the end")).toBeNull();
+  });
+
+  it("shows the end marker once the rows overflow the viewport", async () => {
+    const state = config();
+    const { rerender, container } = render(<Table {...props} data={[]} infiniteScroll={{ ...state, hasMore: false }} />);
+    expect(screen.queryByText("You have reached the end")).toBeNull();
+    fakeScrollerBox(container, 300, 1200);
+    rerender(<Table {...props} data={rows} infiniteScroll={{ ...state, hasMore: false }} />);
+    expect(screen.getByText("You have reached the end")).toBeTruthy();
+  });
+
+  it("never shows the end marker when showEndMarker is off", async () => {
+    const state = config({ showEndMarker: false });
+    const { rerender, container } = render(<Table {...props} infiniteScroll={{ ...state, hasMore: false }} />);
+    expect(screen.queryByText("You have reached the end")).toBeNull();
+    fakeScrollerBox(container, 300, 1200);
+    rerender(<Table {...props} data={[...rows, { id: 2, name: "Second" }]} infiniteScroll={{ ...state, hasMore: false }} />);
+    expect(screen.queryByText("You have reached the end")).toBeNull();
+  });
+
   it("resets scroll, ignores stale failures and waits for the previous request", async () => {
     let reject!: (error: Error) => void;
     const onError = vi.fn();

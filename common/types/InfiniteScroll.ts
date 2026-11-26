@@ -8,4 +8,9 @@ export interface TableInfiniteScrollState {
   onError?: (error: unknown) => void;
   /** Change when replacing the dataset, such as after server sorting or filtering. */
   resetKey?: string | number;
+  /**
+   * Render the "end of results" marker at all — `false` lets the list simply
+   * stop. @default true
+   */
+  showEndMarker?: boolean;
 }

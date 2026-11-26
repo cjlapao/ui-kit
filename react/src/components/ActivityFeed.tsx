@@ -337,6 +337,17 @@ export interface ActivityFeedProps
    * Load-more stay pinned outside.
    */
   maxHeight?: number | string;
+  /**
+   * Fills the height of a parent that has one — the Table's `fullHeight`
+   * contract. The header, tag, filters and Load-more keep their size and the
+   * rows take the rest, scrolling inside the card; with no `maxHeight` the
+   * body region becomes the scroller, which also gives scroll-mode paging a
+   * viewport to watch. An explicit `maxHeight` still wins the body — the card
+   * stretches, the cap inside it holds. Without a defined-height parent the
+   * card stays content-sized, exactly as it is today.
+   * @default false
+   */
+  fullHeight?: boolean;
   /** Surface, as every card in the kit takes it. @default "outlined" */
   variant?: SurfaceVariant;
   /** @default "neutral" */
@@ -788,6 +799,7 @@ export const ActivityFeed = ({
   totalCount,
   countLabel,
   maxHeight,
+  fullHeight = false,
   variant = "outlined",
   tone: surfaceTone = "none",
   padding = "md",
@@ -847,12 +859,18 @@ export const ActivityFeed = ({
   // watch the Table and `InfiniteScrollPanel` run: a sentinel observed inside
   // the ScrollArea's viewport with a `rootMargin` lookahead, so a page is
   // already in flight before the reader reaches the end, and the under-fill
-  // pass keeps fetching until the body is full. It only engages with a
-  // capped body — an uncapped feed has no scroller to watch, and the
-  // Load-more button covers it.
+  // pass keeps fetching until the body is full. It only engages where there is
+  // a scroller to watch — the `maxHeight` cap, or the body region once
+  // `fullHeight` turns it into one — and an uncapped, unfilled feed has
+  // neither, so the Load-more button covers it.
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
-  const infinite = loadMode === "scroll" && maxHeight !== undefined && !!onLoadMore;
+  // A `maxHeight` cap wins the body: it brings its own ScrollArea. Without
+  // one, `fullHeight` turns the body region into the scroller — the same rule
+  // `MemoryLibrary` runs, so the kit answers that question one way.
+  const fill = fullHeight && maxHeight === undefined;
+  const infinite =
+    loadMode === "scroll" && (maxHeight !== undefined || fill) && !!onLoadMore;
   const scroll = useInfiniteScroll({
     rootRef: viewportRef,
     sentinelRef,
@@ -996,6 +1014,13 @@ export const ActivityFeed = ({
   );
 
   return (
+    // `flexBody` is what makes the stretch legal: it turns the Panel's body
+    // section and body content into `flex-1 flex flex-col min-h-0`
+    // (Panel.tsx:1143,1156), which is the only thing the feed's own column
+    // below can stretch against. `scrollable` goes false there for the mirror
+    // reason — the Panel body's own `overflow-auto` would be a second scroller
+    // competing with the feed's. `undefined` keeps Panel's default, so a feed
+    // that never asks for the height renders exactly as it did.
     <Panel
       {...rest}
       variant={variant}
@@ -1003,9 +1028,16 @@ export const ActivityFeed = ({
       padding={padding}
       corner={corner}
       raisedSurface={raisedSurface}
-      className={classNames("w-full", className)}
+      flexBody={fullHeight || undefined}
+      scrollable={fullHeight ? false : undefined}
+      className={classNames("w-full", fullHeight && "h-full min-h-0", className)}
     >
-      <div className="flex flex-col gap-4">
+      <div
+        className={classNames(
+          "flex flex-col gap-4",
+          fullHeight && "flex-1 min-h-0",
+        )}
+      >
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
           <h3 className="text-sm font-semibold">{title}</h3>
           {tag && !loading && (
@@ -1058,8 +1090,13 @@ export const ActivityFeed = ({
         {/* Spinner/progress modes pin the Loader to this wrapper, not the
             ScrollArea below — inside a scroll container an `absolute
             inset-0` overlay scrolls away with the content (Table's rule).
-            `skeleton` never reaches the overlay branch. */}
-        <div className="relative" aria-busy={loading || undefined}>
+            `skeleton` never reaches the overlay branch. Under `fullHeight`
+            this is also the flex child that takes the leftover height, while
+            the header, filters and tail keep theirs. */}
+        <div
+          className={classNames("relative", fullHeight && "flex-1 min-h-0")}
+          aria-busy={loading || undefined}
+        >
           {loading && loaderType !== "skeleton" && (
             <Loader
               overlay
@@ -1071,9 +1108,7 @@ export const ActivityFeed = ({
               className="rounded-none"
             />
           )}
-          {maxHeight === undefined ? (
-            body
-          ) : (
+          {maxHeight !== undefined ? (
             <ScrollArea
               horizontal={false}
               viewportRef={viewportRef}
@@ -1084,6 +1119,22 @@ export const ActivityFeed = ({
               {body}
               {scrollTail}
             </ScrollArea>
+          ) : fill ? (
+            // Filling a host-given height: the region itself is the scroller,
+            // `h-full` on the frame so it takes what the header and the tail
+            // left, `min-h-0` so it can actually shrink to it. `viewportRef`
+            // rides the same element the capped branch hands the infinite
+            // watch, so the sentinel is observed against what really scrolls.
+            <ScrollArea
+              horizontal={false}
+              viewportRef={viewportRef}
+              className="h-full min-h-0"
+            >
+              {body}
+              {scrollTail}
+            </ScrollArea>
+          ) : (
+            body
           )}
         </div>
 

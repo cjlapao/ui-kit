@@ -28,8 +28,8 @@
  * `hover:ring-{c}-300/70` ignition, which was lighter than the new resting
  * edge — through the same bar and requires it to fail.
  *
- * Colour maths mirrors `surfaceHover.test.ts` (jsdom computes no colours, so
- * no other test in the kit can measure any of this).
+ * Colour maths lives in `paletteProbe.ts` (jsdom computes no colours, so no
+ * other test in the kit can measure any of this).
  */
 import { describe, it, expect } from "vitest";
 import {
@@ -38,105 +38,14 @@ import {
   getSurfaceHoverTokens,
   type TrueColor,
 } from "../../../common/theme/Theme";
-import paletteFixture from "./tailwind-palette.json";
-
-type Rgb = [number, number, number];
-type Mode = "light" | "dark";
-
-// ── Colour maths (mirrors surfaceHover.test.ts) ───────────────────────────────
-
-const palette: Record<string, string> = paletteFixture.colors;
-
-function toLinearSrgb(color: string): Rgb {
-  const hex = color.match(/^#([0-9a-f]{6}|[0-9a-f]{3})$/i);
-  if (hex) {
-    const raw = hex[1];
-    const expanded =
-      raw.length === 3 ? raw.split("").map((c) => c + c).join("") : raw;
-    const n = parseInt(expanded, 16);
-    return [
-      ((n >> 16) & 255) / 255,
-      ((n >> 8) & 255) / 255,
-      (n & 255) / 255,
-    ].map((c) =>
-      c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4),
-    ) as Rgb;
-  }
-  const m = color.match(/^oklch\(\s*([\d.]+)%\s+([\d.]+)\s+([\d.]+)\s*\)$/);
-  if (!m) throw new Error(`unsupported colour: ${color}`);
-  const L = Number(m[1]) / 100;
-  const C = Number(m[2]);
-  const h = (Number(m[3]) * Math.PI) / 180;
-  const a = C * Math.cos(h);
-  const b = C * Math.sin(h);
-  const l = Math.pow(L + 0.3963377774 * a + 0.2158037573 * b, 3);
-  const md = Math.pow(L - 0.1055613458 * a - 0.0638541728 * b, 3);
-  const s = Math.pow(L - 0.0894841775 * a - 1.2914855480 * b, 3);
-  const r = 4.0767416621 * l - 3.3077115913 * md + 0.2309699292 * s;
-  const g = -1.2684380046 * l + 2.6097574011 * md - 0.3413193965 * s;
-  const bl = -0.0041960863 * l - 0.7034186147 * md + 1.7076147010 * s;
-  return [
-    Math.min(1, Math.max(0, r)),
-    Math.min(1, Math.max(0, g)),
-    Math.min(1, Math.max(0, bl)),
-  ];
-}
-
-const gamma = (c: number): number =>
-  c <= 0.0031308 ? 12.92 * c : 1.055 * Math.pow(c, 1 / 2.4) - 0.055;
-
-const luminance = (rgb: Rgb): number =>
-  0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];
-
-const page = (mode: Mode): Rgb =>
-  toLinearSrgb(palette[mode === "light" ? "white" : "neutral-900"]);
-
-const ratio = (a: Rgb, b: Rgb): number => {
-  const hi = Math.max(luminance(a), luminance(b));
-  const lo = Math.min(luminance(a), luminance(b));
-  return (hi + 0.05) / (lo + 0.05);
-};
-
-const TOKEN = /^(bg|border|ring)-([a-z]+-?\d+|white|black)(?:\/(\d+))?$/;
-
-/**
- * A colour utility composited onto the page, prefixes stripped. `dark:` ranks
- * above the plain token in dark mode and is skipped in light mode, the way the
- * cascade resolves it — a rim is a 1px line, so half of it being wrong is not
- * a rounding error, it is no edge at all.
- */
-function paint(classes: string, mode: Mode): Rgb {
-  let best: { rgb: Rgb; rank: number } | null = null;
-  for (const raw of classes.split(/\s+/).filter(Boolean)) {
-    let rest = raw;
-    const prefixes: string[] = [];
-    for (;;) {
-      const m = rest.match(/^(dark|hover|active|group-hover):(.*)$/);
-      if (!m) break;
-      prefixes.push(m[1]);
-      rest = m[2];
-    }
-    const mm = rest.match(TOKEN);
-    if (!mm) continue;
-    const isDark = prefixes.includes("dark");
-    if (mode === "light" && isDark) continue;
-    const source = palette[mm[2]];
-    if (!source) throw new Error(`palette has no colour "${mm[2]}"`);
-    const alpha = mm[3] === undefined ? 1 : Number(mm[3]) / 100;
-    const base = toLinearSrgb(source);
-    const bg = page(mode);
-    const srgb = base.map((c, i) =>
-      gamma(c) * alpha + gamma(bg[i]) * (1 - alpha),
-    ) as Rgb;
-    const rgb = srgb.map((c) =>
-      c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4),
-    ) as Rgb;
-    const rank = (mode === "dark" ? isDark : !isDark) ? 2 : 1;
-    if (!best || rank >= best.rank) best = { rgb, rank };
-  }
-  if (!best) throw new Error(`no colour utility in "${classes}"`);
-  return best.rgb;
-}
+import {
+  luminance,
+  page,
+  paint,
+  ratio,
+  type Mode,
+  type Rgb,
+} from "./paletteProbe";
 
 // ── The bars ──────────────────────────────────────────────────────────────────
 // A hairline is not text, but at 1px it is the only thing saying "this card is

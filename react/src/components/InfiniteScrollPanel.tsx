@@ -11,6 +11,7 @@ import React, {
 import classNames from "classnames";
 import Button from "./Button";
 import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
+import { useScrollOverflow } from "../hooks/useScrollOverflow";
 import Panel from "./Panel";
 import { ScrollArea } from "./ScrollArea";
 import Spinner from "./Spinner";
@@ -101,10 +102,18 @@ export interface InfiniteScrollPanelProps<T> {
   // ── States ────────────────────────────────────────────────────────────────
   loadingComponent?: React.ReactNode;
   emptyComponent?: React.ReactNode;
-  /** Shown once `hasMore` is false and there is something to show. */
+  /** Shown once `hasMore` is false, there is something to show, and the
+   * content overflows the scroll area (see `showEndMarker`). */
   endComponent?: React.ReactNode;
   /** Copy for the built-in end marker. @default "You have reached the end" */
   endMessage?: React.ReactNode;
+  /**
+   * Render the end-of-list marker at all. It only appears once the content
+   * actually overflows the scroll area — a list that fits on one page just
+   * ends; `false` switches the marker (built-in and `endComponent`) off even
+   * then. @default true
+   */
+  showEndMarker?: boolean;
   /** Copy for the built-in empty state. @default "No items found" */
   emptyMessage?: React.ReactNode;
   /** Called when `onLoadMore` rejects, in addition to the retry state. */
@@ -164,6 +173,7 @@ function ScrollBody<T>({
   emptyComponent,
   endComponent,
   endMessage = "You have reached the end",
+  showEndMarker = true,
   emptyMessage = "No items found",
   onError,
   tone,
@@ -179,11 +189,20 @@ function ScrollBody<T>({
   const containerRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const footerRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Array<HTMLDivElement | null>>([]);
 
   const { error, busy, loadMore } = useInfiniteScroll({
     rootRef: containerRef, sentinelRef, hasMore, onLoadMore, isLoading,
     itemCount: items.length, minItems, rootMargin, onError,
+  });
+
+  // The end marker answers "is there more than a page to scroll?", so a short
+  // list that never scrolls simply ends. The marker's own box is excluded from
+  // the measurement, so showing it cannot be what made it worth showing.
+  const overflow = useScrollOverflow(containerRef, {
+    excludeRef: footerRef,
+    deps: [items, hasMore, error, busy, columnCount, layout],
   });
 
   // ── Columns ───────────────────────────────────────────────────────────────
@@ -374,19 +393,24 @@ function ScrollBody<T>({
     }
 
     if (items.length === 0) return null;
+    if (!showEndMarker || !overflow) return null;
 
-    // The list used to just stop, with no signal that it was finished.
+    // The list used to just stop, with no signal that it was finished — but
+    // only once there was actually something to finish: a list that fits on
+    // one page has no end of scrolling to announce.
     return (
-      endComponent ?? (
-        <div
-          className={classNames(
-            "flex items-center justify-center p-6 text-center text-xs",
-            surface.muted,
-          )}
-        >
-          {endMessage}
-        </div>
-      )
+      <div ref={footerRef}>
+        {endComponent ?? (
+          <div
+            className={classNames(
+              "flex items-center justify-center p-6 text-center text-xs",
+              surface.muted,
+            )}
+          >
+            {endMessage}
+          </div>
+        )}
+      </div>
     );
   })();
 

@@ -189,3 +189,66 @@ describe("Combobox", () => {
     expect(w.find('[role="listbox"]').exists()).toBe(false);
   });
 });
+
+describe("Combobox — optionHoverTone / optionSelectedTone (popup row washes)", () => {
+  // Vue's Combobox paints its wash through `activeIndex` (the cursor follows
+  // the mouse), so the pointer wash shows up on the active row.
+  const openRows = async (props: Record<string, unknown> = {}) => {
+    const w = mountBox({ value: "Banana", ...props });
+    await field(w).trigger("focus");
+    await field(w).setValue("");
+    return w;
+  };
+  const optionByLabel = (w: ReturnType<typeof mountBox>, label: string) =>
+    w.findAll('[role="option"]').find((li) => li.text().includes(label))!;
+
+  it("unconfigured keeps the field-shadow active wash and the tone's selected copy", async () => {
+    const w = await openRows();
+    const banana = optionByLabel(w, "Banana");
+    expect(banana.classes()).toContain("text-blue-700");
+    expect(banana.classes()).toContain("font-medium");
+    const apple = optionByLabel(w, "Apple");
+    await apple.trigger("mouseenter");
+    // The active wash is the field's own tone — owner's call, unchanged.
+    expect(apple.classes()).toContain("bg-blue-50");
+  });
+
+  it("optionHoverTone paints the active row with the requested whisper", async () => {
+    const w = await openRows({ optionHoverTone: "rose" });
+    const apple = optionByLabel(w, "Apple");
+    await apple.trigger("mouseenter");
+    expect(apple.classes()).toEqual(
+      expect.arrayContaining(["bg-rose-500/15", "dark:bg-rose-500/20"]),
+    );
+    expect(apple.classes()).not.toContain("bg-blue-50");
+    expect(apple.classes()).toContain("text-blue-700");
+  });
+
+  it("optionSelectedTone moves the selected copy, not the field's accent", async () => {
+    const w = await openRows({ optionSelectedTone: "emerald" });
+    const banana = optionByLabel(w, "Banana");
+    expect(banana.classes()).toContain("text-emerald-700");
+    expect(banana.classes()).toContain("dark:text-emerald-200");
+    expect(banana.classes()).toContain("font-medium");
+    expect(field(w).attributes("class") ?? "").not.toContain("emerald");
+  });
+
+  it('"selected" follows optionSelectedTone, then the field tone', async () => {
+    const first = await openRows({
+      optionSelectedTone: "emerald",
+      optionHoverTone: "selected",
+    });
+    const apple = optionByLabel(first, "Apple");
+    await apple.trigger("mouseenter");
+    expect(apple.classes()).toEqual(
+      expect.arrayContaining(["bg-emerald-500/15", "dark:bg-emerald-500/20"]),
+    );
+    first.unmount();
+    const second = await openRows({ optionHoverTone: "selected" });
+    const apple2 = optionByLabel(second, "Apple");
+    await apple2.trigger("mouseenter");
+    expect(apple2.classes()).toEqual(
+      expect.arrayContaining(["bg-blue-500/15", "dark:bg-blue-500/20"]),
+    );
+  });
+});

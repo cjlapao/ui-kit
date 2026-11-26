@@ -1107,6 +1107,8 @@ reference that pattern, not re-teach it.
 | 2026-11-25 | Cross-kit | **The rename the 2026-11-24 row above predates:** the field-family fill override is `fillTone` on the six controls that *are* a field and `inputFillTone` on the eight that *have* one (`Picker`, `TagPicker`, `Combobox`, `SmartInput`, `DatePicker`, `KeyValueArrayField`, `DynamicFormField`, and `VariablePicker`'s search field — a new prop there, since its card fill was never its problem). `Panel`, `StatCard` and `MultiSelectPanel` keep `backgroundColor`: the card fill and the field fill are two different decisions and the two names are what keeps them so. Vue is still behind by exactly the same list — no Vue prop, no Vue test, no Vue demo control — and now behind on the *vocabulary* as well, which a port has to adopt rather than translate: a Vue `Input.vue` that declares `backgroundColor` would read as a card fill to anyone who has also opened `Panel.vue`. The portable half is `react/src/components/fieldFamilyFillContract.test.tsx`, which asserts the rule across all sixteen controls against `common/` and is the thing a Vue pass has to leave untouched. | react field family, Theme.ts |
 | 2026-11-26 | Cross-kit | **A `MultiToggle` separator pays its own way — the item `gap` is cancelled on both sides of the rule.** The component gained three independent knobs, ported identically to both kits: a `{ type: "separator" }` option (as many as a row needs; not a radio, no keyboard step, no segment slot, `value` optional), `gap` (px), and `separatorPadding` (px, `DEFAULT_SEPARATOR_PADDING` shared in `common/theme/multiToggleMotion.ts`). The spacing model is the lesson: `gap` rides the track's flex `column-gap` — a flex gap structurally *cannot* touch the first or last child, so "don't impose it on the edges" needed no code — and the separator cancels it with `margin: -gap` left and right, so the only space around a rule is its own padding and a neighbour never pays gap *plus* separator. The rule is `role="separator"` + `aria-orientation="vertical"`, a `w-0 border-l` hairline in the surface's `divider` token with a per-size `my-*` inset. Two consequences to remember: the even-segment indicator maths (`100% / count`) only holds while nothing breaks the evenness, so a separator or a gap flips the pill to the measured-segment path (`usesFreeFlowLayout`); and `background={false}` skips `getSurfaceVariantClasses` *and* takes the solid text pair regardless of the track variant — a trackless group's copy sits on the page, not on a surface. | MultiToggle (React + Vue), multiToggleMotion.ts |
 | 2026-11-26 | Cross-kit | **`ActivityFeed`'s row state hues are React-only; Vue knowingly lags** (divergence recorded, not silently fixed — the caller chose React-now, and it is the same scope rule as the field-family `fillTone` row above). React's feed gained `rowHoverTone` / `rowActiveTone` on the component and `hoverTone` / `activeTone` on the item, both pass-throughs to the row Panel's `hoverColor` / `activeTone`; `FeedRow` hands them over only when the chain produced a hue, so a feed that names nothing keeps Panel's neutral veil and blue-floor selection byte-identical. It also starts passing `pulseTone={item.attentionTone}` beside the `borderColor` it already passed: `activeHue` now prefers `activeTone`, so without that second hand-off naming a *selection* hue would have quietly repainted the *urgency* glow — the two messages parting is exactly the licence `pulseTone` exists to grant, and with no new prop set both still resolve to `attentionTone`, which is why the pre-existing `attentionTone` test is the no-regression proof. The hand-off is gated on the state too — `activeTone={item.active ? activeHue : undefined}` — because `pulseHue` rides `activeHue` and, unlike the hover follow, Panel does not gate that chain on `active`: the first browser pass found a row nobody had selected pulsing in the feed's selection hue, which is exactly the class of bug jsdom cannot see (no `:hover`, and a glow that lives in a custom property). A hue is not a state, on the glow as on the hover. Nothing in `common/theme` moved: the emitted shapes are the theme's `--ui-surface-color` / `--ui-surface-alpha` hover pair and the `outline-{hue}-{step}` rim, both already safelisted across 21 tones, so `generate-safelist.mjs` and `themeSafelist.test.ts` gained nothing — the feed's hover is invisible in jsdom, so the browser is where a hue is *seen* and the test is only where it is *said*. Vue is behind by exactly that list — no prop, no test, no playground control — and the gap is structural, not cosmetic: `vue/src/components/Panel.vue` has `hoverColor` but no `activeTone`, and its `activeHue` is `borderColor ?? tone` with no follow at all, so a port is `Panel.vue` work first (the prop, then the gated `active ? activeTone : undefined`) and `ActivityFeed.vue:487-493` / `:544` after it. The portable half is the React test list in `ActivityFeed.test.tsx` (`row hover and selection hues`), which a Vue pass has to leave untouched. | react/src/components/ActivityFeed.tsx, vue/src/components/Panel.vue |
+| 2026-11-26 | Cross-kit | **`ActivityFeed`'s `fullHeight` is React-only; Vue knowingly lags** (divergence recorded, not half-fixed — same scope rule as the row-hue row above, and this time the lag is cheap rather than structural). The prop is one word of kit vocabulary doing one job — fill a parent that already has a height — and the recipe was not invented here, it is `Table`'s: `flexBody` on the `Panel` (body section becomes `flex-1 flex flex-col min-h-0`), `h-full min-h-0` on the card root, `flex-1 min-h-0` on the card column *and* on the `relative` body wrapper, a `ScrollArea` on `h-full min-h-0` in the body slot. Three existing rules had to be respected rather than re-decided: the Loader stays a **sibling** of the scroller (an `absolute inset-0` overlay inside a scroller scrolls away with the content — the Table's rule, already the feed's shape for `maxHeight`); the Load-more tail stays outside it, so `flex-1` on the body pins the button to the card's bottom instead of letting it drift after the rows; and `Panel`'s `scrollable` goes `false` **only** under the prop — the body section carries `overflow-auto` by default, which under a stretched card is a second scroller competing with the feed's, and `undefined` is passed otherwise so a feed that never asks renders byte-identical. Two rules inherited, not invented: `maxHeight` **wins** the body (`const fill = fullHeight && maxHeight === undefined`, verbatim `MemoryLibrary.tsx:55`) — a cap the caller chose is not demoted to a floor, which is why `Gantt` may turn `height` into `minHeight` and this may not: there `height` *is* the canvas, here the cap is a deliberate ask (and the playground has to release the cap for the fill to be visible at all). And **filling counts as a scroller**: `infinite` gained `|| fill`, because a feed filling a parent has a real viewport to watch — omit that half and scroll-mode paging silently degrades to the button in exactly the layout that most wants it. `Panel` needed no change (`flexBody` already existed, `Panel.tsx:1143,1156`), and the root's `overflow-hidden` (`:1276`) is precisely why a bare `h-full` is not an answer: without a scroller it turns a long feed into a silent clip. Nothing entered the build — `h-full`/`min-h-0`/`flex-1` are utilities `Table` already puts on those same elements, so `generate-safelist.mjs` and `themeSafelist.test.ts` gained nothing. The Vue port is the stretch chain alone: `vue/src/components/Panel.vue` already has `flexBody` (`:68,270,607,617`) and `vue/src/components/ActivityFeed.vue` has no `maxHeight` at all, so there is no cap for it to disagree with — and Vue's own `Table.vue:1461-1477` runs the `overflow-y-auto` shape rather than a `ScrollArea`. The portable half is the React test list in `ActivityFeed.test.tsx` (`full height`), which a Vue pass has to leave untouched. | react/src/components/ActivityFeed.tsx, vue/src/components/ActivityFeed.vue |
+| 2026-11-26 | Docs-app | **A prop documented at word 880 of a wall is a structure bug, not a wording bug** (found by the reader, not by me: "*the api part seems broken and does not follow the playground example*"). `ActivityFeedPage` documented its API as one ~893-word, 1211px-tall `<p>` — and imitating the page above you in the same file is how that survives: only **5 of 144** pages do this, while **76** use the house `PropsTable` (Prop / Type / Default / Description), which is also what `Table` does. The fix was never to re-word the wall; it was to count the adoptions and then join them — three tables (card 19 rows, item 12, sub-item 5) **in the playground's own control order**, so the row a reader hunts for after flipping a toggle is the row they land on, `maxHeight`/`fullHeight` directly under the paging props. Two traps worth recording. (1) `PropsTable` ran `decodeDocEntities` on `description` **only** — a `default` of `"the card&rsquo;s tone"` printed its nine characters next to a description that decoded the same text; the file's own comment claimed the decoder lived "at the one place the strings are rendered", which was true of one of its **two** string columns, so both go through it now (`type` stays verbatim — a type expression is code, and `&lt;` there means the three characters). A shared renderer decoding *some* of its own columns is the kind of asymmetry that quietly teaches callers to avoid entities everywhere. (2) The "wall" a probe reports can be a stale reading: my first pass measured a 352-word `<p>` under **Playground**, and a second probe found none — the dev server was HMR-ing under the read (another session edits this tree). Measure structure on a cold `page.goto`, or over a `vite build`, before believing a number; and note the playground's footer prose really is 363 words (the house median across the 116 playgrounds is ~100–150, and the only longer one has far more controls) — pre-existing, recorded, and deliberately not mine to rewrite under this change. | react/demo/src/kit-docs/components/activity-feed/ActivityFeedPage.tsx, react/demo/src/kit-docs/shared/A11ySections.tsx |
 
 ## A Panel cannot be positioned by its caller - position a shell around it
 
@@ -1888,3 +1890,67 @@ the Panel inside as a plain block. Table's toolbar menus are the reference.
   pins the *rejected* rung (the old `{c}-300/70` / `{c}-500/30`) as a failure,
   asserting direction per tone and the minimum across all 21 — a single
   average ratio would have passed the exact version that shipped wrong.
+
+## A rim is the fill's neighbour toward the page, and a callout is not a panel (2026-11-26)
+
+- `getAlertVariantTokens`'s `solid` shipped `border: "border-transparent"`,
+  which measures **1.000:1 against its own fill and 1.000:1 against the page** —
+  not a weak edge, no edge. A single card survives that on the fill's own
+  luminance; a `stacked` deck does not, because the only thing the `gap` shows
+  of the card behind is another identical `{c}-400` fill, and agreement is
+  invisibility. The answer is the fill's neighbour **on the ramp, one rung
+  toward the page** (`{c}-600` light / `{c}-500` dark over the `-700` / `-400`
+  fill: 1.239 / 1.216 against the fill, 2.931 / 3.704 against the page, worst of
+  21 tones). The rung one step *past* the fill (`-800` / `-600`) cleared both
+  ratio floors — 1.250 against the fill, and 6.875 against the page — and was
+  rejected by eye as a frame dropped over the tone. Which is why
+  `react/src/theme/alertRim.test.ts` asserts **ordering** (page → rim → fill for
+  `solid`, page → fill → rim for the pale `tonal`, whose rim has to pass the
+  fill to be seen at all, the law `tonalRim.test.ts` already holds Panel to),
+  and pins the rejected rungs as canaries that must keep failing: floors alone
+  would have shipped the frame.
+- `tonal` was first built by borrowing `getPanelToneStyles`'s `tonalBg` /
+  `tonalBorder` — "one word for one surface" — and that was wrong, because the
+  two objects are not in the same conversation. A `Panel` sits inside content
+  someone is already reading; a toast arrives unannounced in the corner of
+  someone's work. Measured as fill-vs-page, Panel's tint is **1.099** light /
+  **1.138** dark: a card made of air, exactly what the review said. The callout
+  now declares its own opaque pair (`{c}-200` / `{c}-800`, **1.164** / **1.179**)
+  and keeps the *law* rather than the palette, with a test that fails if the two
+  converge again. Re-declining the two measured alternatives: dark `{c}-900`
+  lifts every copy pair but is the page's own darkness on the neutrals, so the
+  card stops being a tone, and `{c}-100` clears the rim bar by two hundredths
+  and belongs to `subtle`.
+- Copy is measured **per role, not per card**: title and body at 4.5:1 (AA
+  small text), the intent glyph at 3:1 (WCAG 1.4.11 — it is a graphical object,
+  and the test says so in the bar it asserts, rather than quietly failing at
+  4.123). Which needed `paint()` in the new `react/src/theme/paletteProbe.ts` to
+  take a `props` filter: a surface string carries `bg-…` **and** `text-…`, and
+  measuring a fill against its own `text-white` is a tautology dressed as a
+  test. The probe is shared with `tonalRim.test.ts` on purpose — two suites
+  hand-parsing the same composite is two chances to be wrong about it.
+- The same sweep found `solid`'s detail at `text-white/90` landing at
+  **4.31–4.36:1** on yellow, lime and green: the alpha did the damage the shade
+  had been chosen to avoid. Now `/95` (worst 4.613) — a secondary line is still
+  copy, and the fill pays for it in alpha rather than shade.
+- Walking `getAlertVariantTokens` from `themeSafelist.test.ts` turned up five
+  shapes the generator had never emitted, including `dark:hover:text-{c}-950`:
+  `solid`'s dismiss has been hovering **to its own rest colour** for its whole
+  life. A missing rim shape is quieter still — the border falls back to
+  `currentColor`, so a rim test would have measured a colour the stylesheet
+  never contained. Every colour token table has to be walked there, and the
+  guard is only green against a rebuilt `dist/index.css`.
+- A toast's close button sat a full padding-step off its own border, which reads
+  as a control parked in the card's top-right quadrant. The fix is a
+  `closeInset` field on `ToastSizeTokens` (half the card's padding back, on both
+  axes — one axis only reads as a misalignment) and a box one rung narrower,
+  with the ladder **bottoming out at 24px**: WCAG 2.5.8's minimum target, so
+  "make the × smaller" has a floor, and the floor is a number rather than a
+  preference. Geometry in the table, not in the component, or the table stops
+  being the description of the card.
+- "Give me more width" was not a missing feature: `ToastViewport` has owned a
+  `width` prop since the component existed (the deck's column, every card at
+  `width: 100%` of it), and the playground had it hard-coded. Check whether the
+  lever exists before adding one — and when a control has to be added, keep it
+  off the axes the others move: `Size` is type-and-padding, width is the column,
+  and the caption now says so beside both.

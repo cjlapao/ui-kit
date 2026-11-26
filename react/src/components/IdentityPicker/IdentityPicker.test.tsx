@@ -99,6 +99,23 @@ it("resizes previews, emoji glyphs and upload controls without resetting selecti
 });
 
 
+it("detaches the preview from the component size through iconSize", () => {
+  render(<IdentityPicker name="Project Atlas" size="sm" iconSize="lg" />);
+  expect(screen.getByRole("img", { name: "Identity preview: PA" })).toHaveClass("h-20", "w-20", "text-4xl");
+  // The card's furniture stays on the component ladder — only the avatar grew.
+  expect(screen.getByRole("button", { name: "Rocket" })).toHaveClass("h-8", "text-base");
+});
+
+
+it("scales the monogram and emoji previews with iconSize alike", () => {
+  render(<IdentityPicker defaultValue={{ type: "monogram", text: "AB" }} size="xs" iconSize="xl" />);
+  expect(screen.getByRole("img", { name: "Identity preview: AB" })).toHaveClass("h-24", "w-24", "text-5xl");
+  fireEvent.click(screen.getByRole("tab", { name: "Emoji picker" }));
+  fireEvent.click(screen.getByRole("button", { name: "Rocket" }));
+  expect(screen.getByRole("img", { name: "Identity preview: 🚀" })).toHaveClass("h-24", "w-24", "text-5xl");
+});
+
+
 it("switches compact arrangements without losing selected identity", () => {
   const {rerender} = render(<IdentityPicker />);
   expect(screen.getByRole("combobox", {name:"Emoji categories"})).toBeInTheDocument();

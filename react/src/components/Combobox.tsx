@@ -18,7 +18,8 @@ import { useIconRenderer } from "../contexts/IconContext";
 import { useFieldRow } from "../contexts/FieldRowContext";
 import {
   PANEL_TONE_FOR_FIELD,
-  POPUP_ROW_WASH,
+  type OptionRowTone,
+  resolveOptionRowWash,
   SURFACE_VARIANT_FOR_FIELD,
   TRUE_COLORS,
   VALIDATION_STATUSES,
@@ -118,6 +119,22 @@ export interface ComboboxProps extends Omit<
   tone?: TrueColor;
   /** Alias for `tone`, matching `Input` and `Select`. */
   color?: TrueColor;
+  /**
+   * The hue the copy of the option matching the current value wears —
+   * Combobox's selected state is copy-only, so this moves the words, not a
+   * fill. The focus ring, open rim and glow stay `tone`'s either way.
+   * Default: the field's `tone`.
+   */
+  optionSelectedTone?: TrueColor;
+  /**
+   * The hue unselected rows wear under the pointer — and under the keyboard
+   * cursor, which by definition wears the same whisper as hover. Unset keeps
+   * the field-shadow default: a suggestion list is the field's shadow, so it
+   * tints like the field does. `"selected"` follows the effective selected
+   * hue (`optionSelectedTone ?? tone`).
+   * @default undefined
+   */
+  optionHoverTone?: OptionRowTone;
   /** Entry style. @default "flat" */
   variant?: ComboboxVariant;
   /**
@@ -199,6 +216,8 @@ export const Combobox = React.forwardRef<HTMLInputElement, ComboboxProps>(
       size = "md",
       tone,
       color,
+      optionSelectedTone,
+      optionHoverTone,
       variant = "flat",
       inputFillTone,
       validationStatus = "none",
@@ -262,6 +281,23 @@ export const Combobox = React.forwardRef<HTMLInputElement, ComboboxProps>(
 
     const accent = tone ?? color ?? "blue";
     const toneClasses = getComboboxToneClasses(accent);
+    // The popup's row washes, resolved once (see `Picker`). The unselected
+    // cursor already defaults to the neutral `POPUP_ROW_WASH.cursor`, which
+    // is what the resolver yields with `optionHoverTone` unset — and the
+    // pointer wash keeps its field-shadow recipe unless the caller names a
+    // hue, so both props unset this is the paint of yesterday, token for
+    // token. Selected copy is Combobox's own pair, parameterised by the
+    // resolved selected hue.
+    const rowWash = resolveOptionRowWash({
+      optionHoverTone,
+      optionSelectedTone,
+      tone: accent,
+    });
+    const rowHover =
+      optionHoverTone === undefined ? toneClasses.hover : rowWash.hover;
+    const selectedCopy = getComboboxToneClasses(
+      optionSelectedTone ?? accent,
+    ).selected;
     const resolvedPanelVariant =
       panelVariant === "auto"
         ? SURFACE_VARIANT_FOR_FIELD[variant]
@@ -516,7 +552,7 @@ export const Combobox = React.forwardRef<HTMLInputElement, ComboboxProps>(
                             rowClass,
                             option.disabled
                               ? "cursor-not-allowed opacity-50"
-                              : classNames("cursor-pointer", toneClasses.hover),
+                              : classNames("cursor-pointer", rowHover),
                             // The cursor wash only paints when the keyboard
                             // parked it: two same-specificity fills otherwise
                             // resolve by emission order, not by intent.
@@ -527,9 +563,9 @@ export const Combobox = React.forwardRef<HTMLInputElement, ComboboxProps>(
                                     toneClasses.wash,
                                     "ring-1 ring-inset ring-neutral-400/40 dark:ring-white/25",
                                   )
-                                : POPUP_ROW_WASH.cursor),
+                                : rowWash.cursor),
                             selected
-                              ? classNames(toneClasses.selected, "font-medium")
+                              ? classNames(selectedCopy, "font-medium")
                               : "text-neutral-900 dark:text-neutral-100",
                           )}
                         >

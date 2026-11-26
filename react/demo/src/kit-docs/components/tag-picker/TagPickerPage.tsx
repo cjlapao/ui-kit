@@ -27,6 +27,12 @@ export const TagPickerPage: React.FC = () => (
     <PropsTable
       props={[
         {
+          name: "optionSelectedTone / optionHoverTone",
+          type: "TrueColor / OptionRowTone",
+          description:
+            "The popup&rsquo;s own hues, decoupled from the field. `optionSelectedTone` moves the picked rows&rsquo; fill, copy and checkmark ink (default: `color`); `optionHoverTone` tints the wash unchecked rows wear under the pointer — keyboard cursor included, since it follows hover by construction. `\"selected\"` makes the wash follow the selected hue; both props touch only what happens inside the dropdown.",
+        },
+        {
           name: "items / value / onChange",
           type: "TagPickerItem[] / string[] / (values) => void",
           description:

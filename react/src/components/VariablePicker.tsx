@@ -10,7 +10,8 @@ import { useSurfaceText } from "../contexts/SurfaceContext";
 import { useKitT } from "../i18n";
 import {
   PANEL_TONE_FOR_FIELD,
-  POPUP_ROW_WASH,
+  type OptionRowTone,
+  resolveOptionRowWash,
   getSurfaceTriggerTokens,
   isGlassSurface,
 } from "../theme/Theme";
@@ -37,6 +38,15 @@ export interface VariablePickerProps {
   resolve?: SmartVariableResolver;
   /** Accent colour. @default "blue" */
   tone?: TrueColor;
+  /**
+   * The hue the variable rows wear under the pointer. Unset keeps the
+   * neutral `POPUP_ROW_WASH` blend — the list doctrine: a per-group tone
+   * wash would read as selection across a menu. An explicit hue (or
+   * `"selected"`, which follows the row's effective tone — the group hue
+   * when it names one) is the caller overruling on purpose.
+   * @default undefined
+   */
+  optionHoverTone?: OptionRowTone;
   /**
    * Scale of the search field, matched to the control that opened the picker
    * so the two do not look like different widgets stacked on each other.
@@ -87,12 +97,16 @@ export interface VariablePickerProps {
 const VariableRow: React.FC<{
   variable: SmartVariable;
   tone: TrueColor;
+  optionHoverTone?: OptionRowTone;
   resolve?: SmartVariableResolver;
   onSelect: (variable: SmartVariable) => void;
-}> = ({ variable, tone, resolve, onSelect }) => {
+}> = ({ variable, tone, optionHoverTone, resolve, onSelect }) => {
   const surface = useSurfaceText();
   const trigger = getSurfaceTriggerTokens(tone);
   const resolution = resolve?.(variable);
+  // Resolved against the row's effective tone — the group hue when it names
+  // one — so `"selected"` follows the colour the badge and tab already wear.
+  const rowWash = resolveOptionRowWash({ optionHoverTone, tone });
 
   return (
     <button
@@ -104,8 +118,9 @@ const VariableRow: React.FC<{
         // wash neutral on hover. A tone wash here - tinted per group, so
         // one tab hovers green and the next purple - reads as selection
         // across a menu. The colour identity already rides the badge, the
-        // tab and the focus ring.
-        POPUP_ROW_WASH.hover,
+        // tab and the focus ring. An explicit `optionHoverTone` is the
+        // caller overruling that doctrine on purpose.
+        rowWash.hover,
         trigger.focusRing,
       )}
     >
@@ -149,6 +164,7 @@ export const VariablePicker: React.FC<VariablePickerProps> = ({
   onClose,
   resolve,
   tone = "blue",
+  optionHoverTone,
   size = "md",
   variant = "elevated",
   panelTone = "auto",
@@ -220,6 +236,7 @@ export const VariablePicker: React.FC<VariablePickerProps> = ({
                     key={variable.fullToken}
                     variable={variable}
                     tone={group.tone ?? tone}
+                    optionHoverTone={optionHoverTone}
                     resolve={resolve}
                     onSelect={onSelect}
                   />

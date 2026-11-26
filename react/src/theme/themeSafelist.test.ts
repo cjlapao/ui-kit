@@ -3,6 +3,8 @@ import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import {
   TRUE_COLORS,
+  ALERT_VARIANTS,
+  getAlertVariantTokens,
   getBadgeColorClasses,
   getBreadcrumbToneTokens,
   getAppDividerToneTokens,
@@ -18,6 +20,8 @@ import {
   getStatTileColorClasses,
   getStepperTonePalette,
   getSubItemHoverClasses,
+  getOptionRowWashClasses,
+  getOptionSelectedClasses,
   getSurfaceActiveTokens,
   getSurfaceHoverTokens,
   getSurfaceTriggerTokens,
@@ -65,6 +69,18 @@ const generatedClasses = (): Set<string> => {
       }
     }
     collect(getPanelToneStyles(tone), out);
+    // The callout family — Alert and Toast share this table, and its `solid`
+    // rim and `tonal` fill are built entirely from template literals. Walking
+    // it for the first time turned up five shapes the generator had never
+    // emitted: `border-{c}-600`, `dark:border-{c}-600`, `text-{c}-950` and the
+    // `/95` detail alpha, plus `dark:hover:text-{c}-950`, which has been
+    // missing since before this variant existed — the dismiss has been hovering
+    // to its own rest colour. A missing rim shape does not fail loudly: the
+    // border falls back to `currentColor`, so `alertRim.test.ts` would be
+    // measuring a colour the stylesheet never contained.
+    for (const variant of ALERT_VARIANTS) {
+      collect(getAlertVariantTokens(tone, variant), out);
+    }
     // Container hover, pressed and rim — every variant, and every rim kind
     // either kit may ask for. This walk is the reason the shape list is in the
     // generator at all: Panel used to build its hover string inline, outside
@@ -103,6 +119,10 @@ const generatedClasses = (): Set<string> => {
     collect(getSelectedRowTokens(tone), out);
     // ActivityFeed sub-row hover — wash and dot lift, per tone.
     collect(getSubItemHoverClasses(tone), out);
+    // The popup family's toned row washes — pointer/cursor wash and the
+    // selected triple, per tone (`optionHoverTone` / `optionSelectedTone`).
+    collect(getOptionRowWashClasses(tone), out);
+    collect(getOptionSelectedClasses(tone), out);
     for (const variant of ["solid", "soft", "outline"] as const) {
       collect(getPillColorClasses(tone, variant), out);
     }

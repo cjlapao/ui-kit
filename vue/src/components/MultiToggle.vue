@@ -57,6 +57,14 @@ export interface MultiToggleOption {
   label?: string | number | VNode;
   icon?: string | VNode;
   disabled?: boolean;
+  /**
+   * Takes the option out of the track entirely — no render, no measurement,
+   * no tab stop, skipped by keyboard navigation. The group's `modelValue` is
+   * never touched: a hidden option may stay the selected one, in which case
+   * the indicator is withdrawn (it jumps, it never slides) until the option
+   * or the selection comes back.
+   */
+  hidden?: boolean;
   width?: MultiToggleOptionWidth;
   /**
    * `"separator"` draws a vertical hairline at this position instead of a
@@ -69,6 +77,10 @@ export interface MultiToggleOption {
 /** A separator option — a hairline between groups, not a radio. */
 const isSeparatorOption = (option: MultiToggleOption): boolean =>
   option.type === "separator";
+
+/** An option taken out of the track — absent from render, maths and keys. */
+const isHiddenOption = (option: MultiToggleOption): boolean =>
+  option.hidden === true;
 
 export interface MultiToggleProps {
   options: MultiToggleOption[];
@@ -290,7 +302,10 @@ const hasCustomWidths = computed(
   () =>
     props.adaptiveWidth ||
     props.options.some(
-      (option) => !isSeparatorOption(option) && option.width !== undefined,
+      (option) =>
+        !isSeparatorOption(option) &&
+        !isHiddenOption(option) &&
+        option.width !== undefined,
     ),
 );
 const indicatorInlineStyle = ref<CSSProperties | undefined>();
@@ -336,29 +351,69 @@ const indicatorRounded = computed(() =>
 
 const optionCount = computed(() => props.options.length ?? 0);
 // Separators are not radios: they take no segment slot, no indicator maths
-// and no keyboard step — they only occupy their own padded width.
+// and no keyboard step — they only occupy their own padded width. Hidden
+// options are absent outright, so the indicator maths must count and index
+// only what actually renders: a raw `options` index desyncs the pill the
+// moment any option stops being one.
 const separatorCount = computed(() =>
   props.options.reduce(
     (count, option) => count + (isSeparatorOption(option) ? 1 : 0),
     0,
   ),
 );
+const visibleRawIndices = computed(() => {
+  const indices: number[] = [];
+  props.options.forEach((option, index) => {
+    if (!isSeparatorOption(option) && !isHiddenOption(option)) {
+      indices.push(index);
+    }
+  });
+  return indices;
+});
 const usesFreeFlowLayout = computed(
   () => separatorCount.value > 0 || props.gap !== undefined,
 );
 // A group of nothing but separators would divide by zero in the fallback pill
 // maths below; it still has to render its rules, so clamp to one.
 const segmentCount = computed(() =>
-  Math.max(1, optionCount.value - separatorCount.value),
+  Math.max(1, visibleRawIndices.value.length),
 );
-const activeIndex = computed(() =>
-  Math.max(
-    0,
+// The raw index of the selected option (-1 when the value matches nothing).
+const activeRawIndex = computed(
+  () =>
     props.options.findIndex(
       (option) =>
         !isSeparatorOption(option) && option.value === props.modelValue,
     ),
+);
+// The keyboard cursor keeps the old clamp-to-first semantics for values
+// matching nothing — an unmoved arrow key needs somewhere to start from.
+const keyboardActiveIndex = computed(() => Math.max(0, activeRawIndex.value));
+const matchedVisible = computed(() =>
+  visibleRawIndices.value.findIndex(
+    (rawIndex) => props.options[rawIndex].value === props.modelValue,
   ),
+);
+const hasVisibleActive = computed(() => matchedVisible.value !== -1);
+// The measured button the pill is positioned from: the match, or — for an
+// unmatched value — the first rendered segment, as before.
+const activeRefIndex = computed(() =>
+  hasVisibleActive.value
+    ? visibleRawIndices.value[matchedVisible.value]
+    : visibleRawIndices.value.length > 0
+      ? visibleRawIndices.value[0]
+      : activeRawIndex.value,
+);
+// The selected option exists but is hidden ⇒ the pill is withdrawn; it must
+// not freeze over the wrong segment (the old code's stale-geometry bail).
+const pillVisible = computed(
+  () =>
+    hasVisibleActive.value ||
+    (activeRawIndex.value === -1 && visibleRawIndices.value.length > 0),
+);
+// Index among rendered segments for the even-segment maths.
+const visibleActiveIndex = computed(() =>
+  hasVisibleActive.value ? matchedVisible.value : 0,
 );
 const sizeStyles = computed(() => sizeTokens[props.size] ?? sizeTokens.md);
 // `color` is the old name for `tone`.
@@ -417,22 +472,23 @@ const indicatorStyle = computed<CSSProperties>(() => {
   if (usesSegmentLayout.value) {
     return {
       width: `calc(${segmentExpression} - ${margin * 2}px)`,
-      transform: `translateX(calc(${CONTAINER_HORIZONTAL_PADDING}px + ${activeIndex.value} * (${segmentExpression}) + ${margin}px))`,
+      transform: `translateX(calc(${CONTAINER_HORIZONTAL_PADDING}px + ${visibleActiveIndex.value} * (${segmentExpression}) + ${margin}px))`,
+      "--mt-opacity": pillVisible.value ? "1" : "0",
     };
   }
 
   const widthPercent = 100 / segmentCount.value;
   return {
     width: `calc(${widthPercent}% - ${margin * 2}px)`,
-    transform: `translateX(calc(${activeIndex.value} * (100% / ${segmentCount.value}) + ${margin}px))`,
+    transform: `translateX(calc(${visibleActiveIndex.value} * (100% / ${segmentCount.value}) + ${margin}px))`,
+    "--mt-opacity": pillVisible.value ? "1" : "0",
   };
 });
 
 const updateIndicatorPosition = () => {
   const container = containerRef.value;
-  const activeButton = optionRefs[activeIndex.value];
 
-  if (!container || !activeButton) {
+  if (!container) {
     return;
   }
 
@@ -450,11 +506,27 @@ const updateIndicatorPosition = () => {
     container.clientWidth - paddingLeft - paddingRight,
   );
 
+  // The selected option is hidden (or everything is): withdraw the pill —
+  // geometry collapsed, alpha off. The old code bailed on the missing
+  // button here and left the stale pill frozen over the wrong segment.
+  if (!pillVisible.value) {
+    indicatorInlineStyle.value = getMultiToggleMotionStyle(
+      0, 0, container.clientWidth, paddingLeft, paddingRight, 0, false,
+    );
+    return;
+  }
+
+  const activeButton = optionRefs[activeRefIndex.value];
+
+  if (!activeButton) {
+    return;
+  }
+
   if (usesSegmentLayout.value) {
     const segmentWidth = containerInnerWidth / segmentCount.value;
     const inset = computeInset(segmentWidth);
     const indicatorWidth = Math.max(0, segmentWidth - inset * 2);
-    const offset = paddingLeft + activeIndex.value * segmentWidth + inset;
+    const offset = paddingLeft + visibleActiveIndex.value * segmentWidth + inset;
     indicatorInlineStyle.value = getMultiToggleMotionStyle(
       offset, indicatorWidth, container.clientWidth, paddingLeft, paddingRight, inset,
     );
@@ -493,7 +565,7 @@ const optionsSignature = computed(() =>
           : option.label !== undefined
             ? "node"
             : "";
-      return `${option.value ?? ""}:${option.type ?? ""}:${option.width ?? ""}:${labelSignature}`;
+      return `${option.value ?? ""}:${option.type ?? ""}:${option.width ?? ""}:${option.hidden ? "h" : ""}:${labelSignature}`;
     })
     .join("|"),
 );
@@ -539,6 +611,26 @@ const measureMaxWidth = () => {
 
 let resizeObserver: ResizeObserver | undefined;
 
+/**
+ * A pill appearing or vanishing is a jump, not a journey: whichever way
+ * `pillVisible` flips, that one render carries `data-mt-jump`, which kills
+ * the custom-property transition so the geometry lands instantly instead of
+ * sliding across the track (or sliding half-visible under a fade). Cleared
+ * two frames later, once the snapped geometry has been committed.
+ */
+const indicatorJump = ref(false);
+
+watch(pillVisible, (current, previous) => {
+  if (previous !== undefined && previous !== current) {
+    indicatorJump.value = true;
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        indicatorJump.value = false;
+      });
+    });
+  }
+});
+
 const handleWindowResize = () => {
   updateIndicatorPosition();
 };
@@ -583,7 +675,9 @@ watch(
   [
     layoutSignature,
     () => props.optionMaxWidth,
-    activeIndex,
+    pillVisible,
+    activeRefIndex,
+    visibleActiveIndex,
     () => props.truncateOverflow,
     shouldLockToMaxWidth,
     maxOptionWidth,
@@ -786,7 +880,9 @@ const handleKeyDown = (event: KeyboardEvent) => {
     .map((option, index) => ({ option, index }))
     .filter(
       ({ option }) =>
-        !isSeparatorOption(option) && !isOptionDisabled(option),
+        !isSeparatorOption(option) &&
+        !isHiddenOption(option) &&
+        !isOptionDisabled(option),
     );
   if (selectable.length === 0) return;
 
@@ -802,7 +898,9 @@ const handleKeyDown = (event: KeyboardEvent) => {
     return;
   }
 
-  const current = selectable.findIndex(({ index }) => index === activeIndex.value);
+  const current = selectable.findIndex(
+    ({ index }) => index === keyboardActiveIndex.value,
+  );
   // Wraps at both ends, which is what the radiogroup pattern specifies.
   commit(selectable[(current + step + selectable.length) % selectable.length]);
 };
@@ -829,7 +927,11 @@ const handleSelect = (option: MultiToggleOption) => {
     :aria-disabled="disabled"
     v-bind="restAttrs"
   >
-    <span :class="indicatorWrapperClass" :style="computedIndicatorStyle">
+    <span
+      :class="indicatorWrapperClass"
+      :style="computedIndicatorStyle"
+      :data-mt-jump="indicatorJump ? '' : undefined"
+    >
       <span :class="indicatorClass" />
     </span>
 
@@ -840,7 +942,7 @@ const handleSelect = (option: MultiToggleOption) => {
     >
       <template v-for="(option, index) in options">
         <div
-          v-if="!isSeparatorOption(option)"
+          v-if="!isSeparatorOption(option) && !isHiddenOption(option)"
           :key="`measure-${option.value}`"
           :ref="(el) => setMeasurementRef(el, index)"
           :class="
@@ -879,7 +981,7 @@ const handleSelect = (option: MultiToggleOption) => {
 
     <template v-for="(option, index) in options">
       <span
-        v-if="isSeparatorOption(option)"
+        v-if="!isHiddenOption(option) && isSeparatorOption(option)"
         :key="`separator-${index}`"
         :ref="() => { optionRefs[index] = null; }"
         role="separator"
@@ -890,7 +992,7 @@ const handleSelect = (option: MultiToggleOption) => {
         <span :class="separatorRuleClass" />
       </span>
       <TooltipWrapper
-        v-else
+        v-else-if="!isHiddenOption(option)"
         :key="option.value ?? `option-${index}`"
         :text="overflowLabels[index]"
       >

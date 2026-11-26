@@ -16,7 +16,7 @@ import Pill from "./Pill";
 import { ScrollArea } from "./ScrollArea";
 import Spinner from "./Spinner";
 import {
-  POPUP_ROW_WASH,
+  type OptionRowTone,
   type ControlSize,
   DEFAULT_GLOW_INTENSITY,
   FIELD_STATUS_CLASSES,
@@ -38,6 +38,7 @@ import {
   getSurfaceTextTokens,
   resolveGlowGradient,
   stripBorderColor,
+  resolveOptionRowWash,
 } from "../theme";
 import type { PickerTag } from "./Picker";
 
@@ -71,9 +72,6 @@ const toneTokens: Record<
   TrueColor,
   {
     triggerOpen: string;
-    optionSelectedBg: string;
-    optionSelectedText: string;
-    optionSelectedIcon: string;
     focusedBg: string;
     triggerOpenBorder: string;
     createRowIcon: string;
@@ -88,9 +86,6 @@ const toneTokens: Record<
       // was a different colour from every sibling field and was clipped by any
       // `overflow` ancestor — `Panel`'s body is `overflow-auto` by default.
       triggerOpen: `border-${c}-400 ring-2 ring-inset ring-${c}-400/60 dark:border-${c}-400`,
-      optionSelectedBg: `bg-${c}-50 dark:bg-${c}-900/20`,
-      optionSelectedText: `text-${c}-700 dark:text-${c}-300`,
-      optionSelectedIcon: `text-${c}-500 dark:text-${c}-400`,
       focusedBg: `bg-${c}-50/60 dark:bg-${c}-900/10`,
       triggerOpenBorder: `border-${c}-400 dark:border-${c}-400`,
       createRowIcon: `text-${c}-500 dark:text-${c}-400`,
@@ -101,9 +96,6 @@ const toneTokens: Record<
   TrueColor,
   {
     triggerOpen: string;
-    optionSelectedBg: string;
-    optionSelectedText: string;
-    optionSelectedIcon: string;
     focusedBg: string;
     triggerOpenBorder: string;
     createRowIcon: string;
@@ -218,6 +210,20 @@ export interface TagPickerProps {
    * Alias for `tone`, matching `Input`, `Select`, `SearchBar` and `Picker`.
    */
   color?: TrueColor;
+  /**
+   * The hue the selected tag rows wear — fill, copy and checkmark ink.
+   * Default: the field's `tone`. Focus border, ring and glow stay `tone`'s
+   * either way — this prop moves only what happens inside the popup.
+   */
+  optionSelectedTone?: TrueColor;
+  /**
+   * The hue the unchecked tag rows wear under the pointer — and under the
+   * keyboard cursor, which by definition wears the same whisper as hover.
+   * Unset keeps the neutral `POPUP_ROW_WASH` blend; `"selected"` follows the
+   * effective selected hue (`optionSelectedTone ?? tone`).
+   * @default undefined
+   */
+  optionHoverTone?: OptionRowTone;
   /** Tone of the tag pills. Falls back to `tone`. */
   itemColor?: TrueColor;
   /** The shared control scale, `xs` through `xl`. @default "md" */
@@ -318,6 +324,8 @@ const TagPicker: React.FC<TagPickerProps> = ({
   loadingMessage,
   tone,
   color,
+  optionSelectedTone,
+  optionHoverTone,
   itemColor = null,
   size = "md",
   variant = "flat",
@@ -365,6 +373,14 @@ const TagPicker: React.FC<TagPickerProps> = ({
 
   const effectiveTone = tone ?? color ?? "blue";
   const colorTokens = toneTokens[effectiveTone] ?? toneTokens.blue;
+  // The popup's row washes, resolved once (see `Picker`): the selected hue is
+  // `optionSelectedTone ?? tone`, the pointer wash the neutral blend unless
+  // `optionHoverTone` names a hue or asks for the selected one.
+  const rowWash = resolveOptionRowWash({
+    optionHoverTone,
+    optionSelectedTone,
+    tone: effectiveTone,
+  });
   // The field system, shared with Input, Select, SearchBar and Picker.
   const sizeToken = getFieldSizeTokens(size);
   // In a `FieldRow` the shared control band owns the height.
@@ -829,8 +845,8 @@ const TagPicker: React.FC<TagPickerProps> = ({
                             isSelected
                               ? isNew
                                 ? "bg-emerald-50 dark:bg-emerald-900/20"
-                                : colorTokens.optionSelectedBg
-                              : POPUP_ROW_WASH.hover,
+                                : rowWash.selected.bg
+                              : rowWash.hover,
                             // The highlight is where the KEYBOARD is, never a
                             // claim of selection - a checked row's tone wash
                             // gains an inset ring, an unchecked one the same
@@ -840,7 +856,7 @@ const TagPicker: React.FC<TagPickerProps> = ({
                               cursorByKeyboard &&
                               (isSelected
                                 ? "ring-1 ring-inset ring-neutral-400/40 dark:ring-white/25"
-                                : POPUP_ROW_WASH.cursor),
+                                : rowWash.cursor),
                           )}
                         >
                           {/* Checkmark slot */}
@@ -851,7 +867,7 @@ const TagPicker: React.FC<TagPickerProps> = ({
                                   "h-3.5 w-3.5",
                                   isNew
                                     ? "text-emerald-500 dark:text-emerald-400"
-                                    : colorTokens.optionSelectedIcon,
+                                    : rowWash.selected.icon,
                                 )}
                                 viewBox="0 0 24 24"
                                 fill="none"
@@ -875,7 +891,7 @@ const TagPicker: React.FC<TagPickerProps> = ({
                                 isSelected
                                   ? isNew
                                     ? "text-emerald-500 dark:text-emerald-400"
-                                    : colorTokens.optionSelectedIcon
+                                    : rowWash.selected.icon
                                   : "text-neutral-400 dark:text-neutral-500",
                               )}
                             >
@@ -890,7 +906,7 @@ const TagPicker: React.FC<TagPickerProps> = ({
                               isSelected
                                 ? isNew
                                   ? "text-emerald-700 dark:text-emerald-300"
-                                  : colorTokens.optionSelectedText
+                                  : rowWash.selected.text
                                 : popupText.heading,
                             )}
                           >
@@ -940,9 +956,9 @@ const TagPicker: React.FC<TagPickerProps> = ({
                       onClick={handleCreate}
                       className={classNames(
                         "flex cursor-pointer select-none items-center gap-2 border-t border-black/5 px-4 py-2.5 text-sm transition-colors dark:border-white/10",
-                        POPUP_ROW_WASH.hover,
+                        rowWash.hover,
                         focusedIndex === filtered.length &&
-                          POPUP_ROW_WASH.cursor,
+                          rowWash.cursor,
                       )}
                     >
                       <svg

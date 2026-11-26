@@ -11,14 +11,30 @@
   initial-value: 0px;
 }
 
+/* The pill's alpha. Deliberately absent from transition-property: a pill
+   appearing or vanishing (the selected option is hidden) is a jump, and an
+   overshoot easing on an alpha channel would only flicker. */
+@property --mt-opacity {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 1;
+}
+
 /* Shared segment motion; the caller selects the kit spring through custom properties. */
 .multi-toggle-indicator {
   --mt-bounded-width: clamp(0px, var(--mt-width), max(0px, calc(var(--mt-right) - var(--mt-left))));
   width: var(--mt-bounded-width);
   transform: translateX(clamp(var(--mt-left), var(--mt-offset), calc(var(--mt-right) - var(--mt-bounded-width))));
+  opacity: var(--mt-opacity, 1);
   transition-property: --mt-offset, --mt-width;
   transition-duration: var(--mt-spring-duration, 600ms);
   transition-timing-function: var(--mt-spring-easing, cubic-bezier(0.34, 1.56, 0.64, 1));
+}
+
+/* One frame of no transition, applied by the component exactly while the
+   pill appears or vanishes — geometry snaps instead of sliding cross-track. */
+.multi-toggle-indicator[data-mt-jump] {
+  transition: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

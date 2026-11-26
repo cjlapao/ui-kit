@@ -179,6 +179,12 @@ export const ActivityFeedPlayground: React.FC = () => {
   // On by default so Load more is seen doing its job: the card holds its
   // height, the rows scroll, and the tail button stays pinned under it.
   const [scroll, setScroll] = useState(true);
+  // The other height story: fill the host instead of being capped by it. The
+  // host below gains a height and the rows take whatever the header, filters
+  // and tail leave, scrolling inside the card. `maxHeight` releases its cap
+  // while this is on — a cap wins the body, so leaving it set would hide the
+  // very thing the toggle is for.
+  const [fillParent, setFillParent] = useState(false);
   // Row states ride straight to the row Panel: `active` becomes its
   // selection rim, `attention` its pulse. Marked on Ada (the current row)
   // and Watchdog (a slow query is exactly what attention is for).
@@ -343,6 +349,7 @@ export const ActivityFeedPlayground: React.FC = () => {
                     <SelectControl label="Load mode" options={[{ value: "scroll", label: "Scroll (infinite)" }, { value: "button", label: "Button" }]} value={loadMode}
                       onChange={(v) => setLoadMode(v as "scroll" | "button")} />
                     <ToggleRow label="scroll (max-h)" checked={scroll} onChange={setScroll} />
+                    <ToggleRow label="fill parent" checked={fillParent} onChange={setFillParent} />
                     <ToggleRow label="active row" checked={activeRow} onChange={setActiveRow} />
                     <ToggleRow label="attention row" checked={attentionRow} onChange={setAttentionRow} />
                     {attentionRow && (
@@ -412,7 +419,12 @@ export const ActivityFeedPlayground: React.FC = () => {
             <code>tone</code> — an item with neither only ever shows under All.
             With <strong>scroll</strong> on, <code>maxHeight</code> caps the
             body in a <code>ScrollArea</code>: Load more grows the list, the
-            card doesn't. <strong>Custom body</strong> hands every row's
+            card doesn't. <strong>Fill parent</strong> is the other way round —{" "}
+            <code>fullHeight</code> makes the card take the host's 480px, the
+            header, filters and tail keeping their size at the edges while the
+            rows scroll inside; it releases the cap above, because a{" "}
+            <code>maxHeight</code> wins the body either way.{" "}
+            <strong>Custom body</strong> hands every row's
             whole content to <code>item.body</code> — the kit keeps the
             wrapper, while each row brings a <code>Panel</code> of its own
             variant and tone. The kit's own rows are Panels too:{" "}
@@ -446,7 +458,10 @@ export const ActivityFeedPlayground: React.FC = () => {
         </div>
       }
       preview={
-        <div className="mx-auto w-full max-w-xl">
+        <div
+          className="mx-auto w-full max-w-xl"
+          style={fillParent ? { height: 480 } : undefined}
+        >
           <ActivityFeed
             title="Workspace activity"
             tag={tag ? "live" : ""}
@@ -461,7 +476,8 @@ export const ActivityFeedPlayground: React.FC = () => {
             hasMore={hasMore && items.length < 26}
             onLoadMore={loadMore}
             loadMode={loadMode}
-            maxHeight={scroll ? 280 : undefined}
+            maxHeight={scroll && !fillParent ? 280 : undefined}
+            fullHeight={fillParent}
             variant={variant}
             tone={tone}
             raisedSurface={raisedSurface}

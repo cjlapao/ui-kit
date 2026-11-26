@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import MultiToggle from "./MultiToggle";
 import { MULTI_TOGGLE_INDICATORS } from "./MultiToggle";
 import {
@@ -316,6 +316,138 @@ describe("MultiToggle overflow tooltips", () => {
     fireEvent(window, new Event("resize"));
     expect(screen.queryByRole("tooltip")).toBeNull();
     expect(screen.getAllByRole("radio").map((button) => button.tabIndex)).toEqual([0, -1, -1]);
+  });
+});
+
+describe("MultiToggle hidden options", () => {
+  const HIDEABLE = [
+    { value: "a", label: "Alpha" },
+    { value: "b", label: "Beta", hidden: true },
+    { type: "separator" as const, hidden: true },
+    { value: "c", label: "Gamma" },
+  ];
+
+  it("takes a hidden option out of the track entirely", () => {
+    // Hidden means *absent*: no radio, no rule, no tooltip — the segments
+    // simply close ranks, exactly as if the option had never been in the
+    // array. A raw index that once counted it would desync the pill.
+    const { container } = setup({ options: HIDEABLE });
+    expect(screen.getAllByRole("radio")).toHaveLength(2);
+    expect(screen.queryByRole("radio", { name: "Beta" })).toBeNull();
+    expect(container.querySelectorAll('[role="separator"]')).toHaveLength(0);
+  });
+
+  it("withdraws the pill when the selected option is hidden, value intact", () => {
+    // The old bail-out left the stale pill frozen over the wrong segment.
+    // The value is the caller's business: the group keeps it, the pill hides.
+    const { onChange } = setup({ options: HIDEABLE, value: "b" });
+    const indicator = document.querySelector<HTMLElement>(
+      ".multi-toggle-indicator",
+    )!;
+    expect(indicator.style.getPropertyValue("--mt-opacity")).toBe("0");
+    // Nothing *flipped* here — it mounted withdrawn, so no jump frame.
+    expect(indicator.hasAttribute("data-mt-jump")).toBe(false);
+    expect(onChange).not.toHaveBeenCalled();
+    const radios = screen.getAllByRole("radio");
+    expect(radios.map((r) => r.getAttribute("aria-checked"))).toEqual([
+      "false",
+      "false",
+    ]);
+  });
+
+  it("jumps the pill back in when the selected option is un-hidden", async () => {
+    const options = (hidden: boolean) => [
+      { value: "a", label: "Alpha" },
+      { value: "b", label: "Beta", hidden },
+      { value: "c", label: "Gamma" },
+    ];
+    const { rerender } = setup({ options: options(true), value: "b" });
+    const withdrawn = document.querySelector<HTMLElement>(
+      ".multi-toggle-indicator",
+    )!;
+    expect(withdrawn.style.getPropertyValue("--mt-opacity")).toBe("0");
+
+    rerender(
+      <MultiToggle options={options(false)} value="b" onChange={() => {}} />,
+    );
+    const restored = document.querySelector<HTMLElement>(
+      ".multi-toggle-indicator",
+    )!;
+    // The flip renders exactly one jump frame: geometry lands instantly…
+    expect(restored.getAttribute("data-mt-jump")).toBe("");
+    expect(restored.style.getPropertyValue("--mt-opacity")).toBe("1");
+    // …and the spring comes back two frames later for the next selection.
+    await act(async () => {
+      await new Promise((resolve) =>
+        window.requestAnimationFrame(() =>
+          window.requestAnimationFrame(resolve),
+        ),
+      );
+    });
+    expect(
+      document
+        .querySelector<HTMLElement>(".multi-toggle-indicator")!
+        .hasAttribute("data-mt-jump"),
+    ).toBe(false);
+  });
+
+  it("positions the fullWidth pill by the visible index, not the raw one", () => {
+    // Even-segment maths multiplies an index by the segment width — the raw
+    // index (1) would put the pill one segment too far right once the first
+    // option is hidden and only two remain rendered.
+    const { container } = setup({
+      options: [
+        { value: "a", label: "Alpha", hidden: true },
+        { value: "b", label: "Beta" },
+        { value: "c", label: "Gamma" },
+      ],
+      value: "b",
+      fullWidth: true,
+    });
+    const group = container.querySelector<HTMLElement>('[role="radiogroup"]')!;
+    Object.defineProperty(group, "clientWidth", {
+      configurable: true,
+      value: 308,
+    });
+    fireEvent(window, new Event("resize"));
+    const indicator = container.querySelector<HTMLElement>(
+      ".multi-toggle-indicator",
+    )!;
+    // jsdom ships no stylesheet, so the track's `px-1` computes to 0 padding:
+    // inner 308 / 2 rendered segments = 154 wide, inset 1 ⇒ offset 1px. The
+    // old raw-index maths would have landed it at 155px — one segment too far
+    // right, over the segment that closed the gap.
+    expect(indicator.style.getPropertyValue("--mt-offset")).toBe("1px");
+    expect(indicator.style.getPropertyValue("--mt-width")).toBe("152px");
+  });
+
+  it("steps the arrow keys over hidden options", () => {
+    const { onChange } = setup({ options: HIDEABLE, value: "a" });
+    fireEvent.keyDown(screen.getAllByRole("radio")[0], { key: "ArrowRight" });
+    expect(onChange).toHaveBeenCalledWith("c");
+    fireEvent.keyDown(screen.getAllByRole("radio")[0], { key: "End" });
+    expect(onChange).toHaveBeenCalledWith("c");
+    expect(onChange).not.toHaveBeenCalledWith("b");
+  });
+
+  it("keeps hidden labels out of the max-width measuring pass", () => {
+    // activeWidthStrategy="max" sizes every segment to the widest label —
+    // widest among the *rendered* ones, or a hidden long label would stretch
+    // the track around a gap where its segment used to be.
+    const { container } = setup({
+      options: [
+        { value: "a", label: "One", width: 60 },
+        { value: "b", label: "A hidden label far too long", hidden: true, width: 60 },
+        { value: "c", label: "Three" },
+      ],
+      value: "a",
+      activeWidthStrategy: "max",
+    });
+    const measuring = container.querySelector<HTMLElement>(
+      '[aria-hidden="true"]',
+    )!;
+    expect(measuring).toBeTruthy();
+    expect(measuring.querySelectorAll(":scope > div")).toHaveLength(2);
   });
 });
 

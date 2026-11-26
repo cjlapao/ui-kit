@@ -450,7 +450,25 @@ src(`@source inline("dark:bg-{COLOR}-900/40");`);
 // Alert `solid`. The fill steps one shade further out than the other variants
 // (see getAlertVariantTokens) so white/`-950` copy reaches WCAG AA on it.
 src(`@source inline("dark:text-{COLOR}-950");`);
-src(`@source inline("dark:text-{COLOR}-950/{80,90}");`);
+src(`@source inline("dark:text-{COLOR}-950/{80,90,95}");`);
+// `solid`'s dismiss lifts to full-strength ink on hover. The walk in
+// `themeSafelist.test.ts` found this one missing — the button had been
+// hovering to its rest colour, which is the quietest bug a hover can have.
+src(`@source inline("dark:hover:text-{COLOR}-950");`);
+// Alert `tonal`: an opaque tinted fill with copy at the far end of the ramp.
+// It is deliberately *not* `Panel`'s `tonal` (a translucent whisper meant to
+// sit inside content) — see the arm in `getAlertVariantTokens`.
+src(`@source inline("text-{COLOR}-950");`);
+// The two resting rims, measured in `react/src/theme/alertRim.test.ts`: a 1px
+// border is the whole contour of the card, and `solid` shipped with
+// `border-transparent`, which measures 1.000:1 against both its fill and the
+// page. `solid` takes its rim one step toward the page from the fill
+// (`-600` light / `-500` dark), `tonal` two steps out from its own pale fill
+// (`-400` / `-600`). The plain `-400` and the dark `-500` come from the lists
+// above; the three below were emitted nowhere at all — the plain `border-`
+// list stopped at `-500`, and `dark:border-` had no `-600`.
+src(`@source inline("border-{COLOR}-600");`);
+src(`@source inline("dark:border-{COLOR}-600");`);
 L("");
 
 // EmptyState's dashed rule. Drawn as an outline so it does not have to be
