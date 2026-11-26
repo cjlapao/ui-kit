@@ -53,6 +53,14 @@ jobs:
           npm ci --prefix demo
         working-directory: vue
 
+      # The react demo's index.css @imports the built package css
+      # (../../dist/index.css), so each package must be built before its demo.
+      - name: Build (react package)
+        run: npm --prefix react run build
+
+      - name: Build (vue package)
+        run: npm --prefix vue run build
+
       # --base is CI-only: the vite configs stay untouched so `npm run dev`
       # keeps serving the demos at / locally.
       - name: Build (react demo)
