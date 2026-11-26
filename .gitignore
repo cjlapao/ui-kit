@@ -81,3 +81,5 @@ tools/i18n-cli/dist
 .a11y-audit/
 .verify*
 .tmp/
+# GitHub Pages artifact (scripts/assemble-pages-site.mjs output)
+site/
