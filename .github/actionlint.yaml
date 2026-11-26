@@ -1,6 +1,7 @@
-# Intentional kill switch on the hosted release chain (release.yml, tag.yml,
-# publish.yml) — superseded by *-selfhost.yml. See
+# Intentional kill switches on the release chain — see
 # docs/superpowers/specs/2026-11-26-self-hosted-pipelines-design.md
+# (release/tag run self-hosted with the hosted files disabled; publish runs
+# hosted with the self-hosted twin disabled).
 paths:
   .github/workflows/release.yml:
     ignore:
@@ -8,6 +9,6 @@ paths:
   .github/workflows/tag.yml:
     ignore:
       - 'constant expression "false" in condition'
-  .github/workflows/publish.yml:
+  .github/workflows/publish-selfhost.yml:
     ignore:
       - 'constant expression "false" in condition'

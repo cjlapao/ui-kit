@@ -75,3 +75,17 @@ a visible audit trail of the swap. Re-enable = delete the `if:` line per job.
 - `ci.yml` — stays hosted.
 - Any change to package contents, version-bump logic, registries, or secrets.
 - Removing the hosted files (explicitly kept for re-enablement).
+
+## Amendment (2026-11-26) — publish stays hosted
+
+Same day as approval: the publish leg reverted to GitHub-hosted runners.
+
+- `publish.yml` re-enabled (all three jobs back on `ubuntu-latest`).
+- `publish-selfhost.yml` is the one now disabled via `if: ${{ false }}`;
+  delete those lines to move publishing onto the self-hosted runner later.
+- `release-selfhost.yml` / `tag-selfhost.yml` unchanged — release and tag
+  still run on the self-hosted runner, with `release.yml` / `tag.yml`
+  remaining disabled.
+
+Net live chain: **Release (self-hosted)** → PR → merge →
+**Tag release (self-hosted)** → `v<VERSION>` tag → **Publish** (hosted).

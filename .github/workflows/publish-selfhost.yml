@@ -1,5 +1,7 @@
 # .github/workflows/publish-selfhost.yml
-# Self-hosted-runner twin of publish.yml; publish.yml is disabled via `if: ${{ false }}`.
+# Self-hosted-runner twin of publish.yml. DISABLED 2026-11-26 — publishing
+# stays on GitHub-hosted runners (publish.yml). Delete the `if: ${{ false }}`
+# line under each job to switch publishing to the self-hosted runner.
 name: Publish (self-hosted)
 on:
   push:
@@ -11,6 +13,7 @@ concurrency:
 
 jobs:
   publish-react:
+    if: ${{ false }}
     runs-on: [self-hosted, linux, x64]
     permissions:
       contents: read
@@ -30,6 +33,7 @@ jobs:
       - run: npm publish --provenance --access public
 
   publish-vue:
+    if: ${{ false }}
     runs-on: [self-hosted, linux, x64]
     permissions:
       contents: read
@@ -49,6 +53,7 @@ jobs:
       - run: npm publish --provenance --access public
 
   publish-cli:
+    if: ${{ false }}
     runs-on: [self-hosted, linux, x64]
     permissions:
       contents: read
