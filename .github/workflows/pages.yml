@@ -39,6 +39,11 @@ jobs:
           cache: "npm"
           cache-dependency-path: react/package-lock.json
 
+      # Root devDependencies (date-fns, crypto-js) satisfy bare imports in
+      # common/ sources that the demos' resolver plugin walks up to reach.
+      - name: Install (root)
+        run: npm ci
+
       # The demos alias the kit *source* (../src) via file:.. deps + vite
       # aliases, so the package dirs need installing too, not just the demos.
       - name: Install (react package + demo)
