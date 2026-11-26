@@ -217,6 +217,12 @@ export const ActivityFeedPlayground: React.FC = () => {
   const [itemVariant, setItemVariant] = useState<SurfaceVariant>("none");
   const [itemTone, setItemTone] = useState<SurfaceTone>("none");
   const [itemToneFollowsCard, setItemToneFollowsCard] = useState(true);
+  // The two state hues, kept deliberately away from Item tone: the resting row
+  // can stay neutral ink while the pointer's answer and the current row wear a
+  // colour of their own. Empty is the auto each one documents — the row's own
+  // hue, and for hover the Panel's rule (the active row follows the selection).
+  const [rowHoverTone, setRowHoverTone] = useState("");
+  const [rowActiveTone, setRowActiveTone] = useState("");
   // `rounded` is the corner scale's xs step — the row's own default.
   const [itemCorner, setItemCorner] = useState<SurfaceCorner>("rounded");
   // The sub-row washes corner and pad through the kit's own scales; the
@@ -382,6 +388,10 @@ export const ActivityFeedPlayground: React.FC = () => {
                     {!itemToneFollowsCard && (
                       <SurfaceToneControl label="Item tone" value={itemTone} onChange={setItemTone} />
                     )}
+                    <SelectControl label="Row hover hue" options={[{ value: "", label: "(follow row tone)" }, ...trueColorOptions]} value={rowHoverTone}
+                      onChange={(v) => setRowHoverTone(v)} />
+                    <SelectControl label="Row active hue" options={[{ value: "", label: "(follow row hue)" }, ...trueColorOptions]} value={rowActiveTone}
+                      onChange={(v) => setRowActiveTone(v)} />
                     <SelectControl label="Controls tone" options={[{ value: "", label: "(inherit)" }, ...trueColorOptions]} value={controlsTone}
                       onChange={(v) => setControlsTone(v)} />
                     <SelectControl label="CTA variant" options={CTA_VARIANT_OPTIONS} value={ctaVariant} onChange={setCtaVariant} />
@@ -411,7 +421,16 @@ export const ActivityFeedPlayground: React.FC = () => {
             <code>rowCorner</code>, so the row
             surface can move under the card — hover wash included. Away
             from <code>none</code>, the list dividers make way for a
-            vertical gap. <strong>Active row</strong> and{" "}
+            vertical gap. <strong>Row hover hue</strong> and{" "}
+            <strong>Row active hue</strong> then split the two states off that
+            surface: leave Item variant on <code>none</code> and Item tone
+            following the card, name both, and every row stays neutral ink while
+            the pointer's wash, the current row's rim and its fill wear your
+            colour — the active row hovers in the hue its selection wears, its
+            neighbours do not, and the sub-rows under a disclosure wash in the
+            hover hue as well unless a sub brings its own <code>hoverTone</code>.
+            A row can carry <code>hoverTone</code> / <code>activeTone</code> of
+            its own to beat either. <strong>Active row</strong> and{" "}
             <strong>attention row</strong> hand the row Panel its{" "}
             <code>active</code> rim and <code>pulse</code> glow — selection
             and demand, layering with the hover and with each other — and{" "}
@@ -448,6 +467,8 @@ export const ActivityFeedPlayground: React.FC = () => {
             raisedSurface={raisedSurface}
             rowVariant={itemVariant}
             rowTone={itemToneFollowsCard ? undefined : itemTone}
+            rowHoverTone={(rowHoverTone || undefined) as TrueColor | undefined}
+            rowActiveTone={(rowActiveTone || undefined) as TrueColor | undefined}
             rowCorner={itemCorner}
             subRowCorner={subCorner}
             subRowPadding={subPadding}

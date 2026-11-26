@@ -9,7 +9,7 @@ export type { TooltipPosition, TooltipVariant };
 export interface TooltipWrapperProps {
   /** Tooltip text. When omitted no tooltip is shown but the child is rendered unchanged. */
   text?: string;
-  /** Delay in ms before the tooltip appears. @default 500 */
+  /** Delay in ms before the tooltip appears. @default 1000 */
   delay?: number;
   /**
    * Preferred side. The tooltip flips to the opposite side, then to a
@@ -29,6 +29,12 @@ export interface TooltipWrapperProps {
    * edge, intersected with the viewport so it still never leaves the screen.
    */
   boundary?: HTMLElement | null;
+  /**
+   * Suppress the tooltip — it hides immediately if visible and cannot appear
+   * while disabled. Use it while an overlapping surface the trigger owns (an
+   * open Menu popup, say) should not be covered by a floating tip.
+   */
+  disabled?: boolean;
 }
 </script>
 
@@ -74,11 +80,12 @@ import {
 defineOptions({ name: "TooltipWrapper", inheritAttrs: false });
 
 const props = withDefaults(defineProps<TooltipWrapperProps>(), {
-  delay: 500,
+  delay: 1000,
   position: "top",
   variant: "surface",
   offset: 8,
   margin: 8,
+  disabled: false,
 });
 
 const slots = useSlots();
@@ -96,15 +103,14 @@ onUnmounted(() => {
   if (timer) clearTimeout(timer);
 });
 
-// Hide immediately when text is removed while the tooltip is showing.
+// Hide immediately when the text is removed, or when suppression flips on,
+// while the tooltip is showing. The second half is the one that matters in
+// practice: a Menu popup opening under the trigger, which the floating tip
+// (teleported, z 9999) would otherwise sit on top of.
 watch(
-  () => props.text,
-  (text) => {
-    if (!text && visible.value) {
-      if (timer) clearTimeout(timer);
-      visible.value = false;
-      placement.value = null;
-    }
+  () => [props.text, props.disabled] as const,
+  ([text, disabled]) => {
+    if (!text || disabled) hide();
   },
 );
 
@@ -172,8 +178,10 @@ onUnmounted(() => {
 
 const show = (e: MouseEvent | FocusEvent) => {
   // No text → no tooltip; the child's own handlers are preserved by
-  // cloneVNode's prop merging, so they still fire.
-  if (!props.text) return;
+  // cloneVNode's prop merging, so they still fire. `disabled` blocks the tip
+  // outright, so a trigger whose own surface (an open Menu popup) occupies the
+  // space under it never gets covered by a floating box.
+  if (!props.text || props.disabled) return;
   triggerRect = (e.currentTarget as Element).getBoundingClientRect();
   placement.value = null;
   timer = setTimeout(() => {

@@ -86,6 +86,14 @@ export interface ScrollAreaProps extends React.HTMLAttributes<HTMLDivElement> {
    * behaviour (an `overscroll-contain`, say, so a wheel at the end of the
    * content does not chain to the page). */
   viewportClassName?: string;
+  /**
+   * ARIA role for the scrolling viewport. Only a caller that carries a
+   * composite-widget contract across this element needs it — the kit's
+   * `TableViewport` declares the scroller a `rowgroup`, because it groups
+   * exactly the body's rows and a focusable, role-less div owned by the
+   * surrounding `role="table"` is not allowed in the table's owned tree.
+   */
+  viewportRole?: React.AriaRole;
   /** Forwarded to the scrolling viewport, so a caller that drives the scroll
    * position programmatically — pan, zoom anchoring, scroll-into-view — gets
    * the element that scrolls, not the frame around it. */
@@ -144,6 +152,7 @@ export const ScrollArea = ({
   contentClassName,
   gutter = true,
   viewportClassName,
+  viewportRole,
   viewportRef: viewportRefProp,
   children,
   className = "",
@@ -445,6 +454,7 @@ export const ScrollArea = ({
         ref={setViewportRef}
         id={viewportId}
         data-slot="scrollarea-viewport"
+        role={viewportRole}
         tabIndex={overflow.x || overflow.y ? tabIndex : -1}
         data-overflow-x={overflow.x ? "" : undefined}
         data-overflow-y={overflow.y ? "" : undefined}
@@ -499,10 +509,18 @@ export const ScrollArea = ({
         </div>
       </div>
 
+      {/* The bars are pure chrome: scrolling itself stays completely native
+          (wheel, touch, and the keyboard all drive the real, style-hidden
+          scrollbar), and the thumbs answer pointer drags only — never the
+          keyboard. A focusable-less `role="scrollbar"` is a widget a screen
+          reader announces and the user cannot operate, and it is a role no
+          surrounding `role="table"` may own; hidden from AT (aria-hidden) the
+          affordance is unchanged for everyone who can see or grab a bar. */}
       {vertical && <div
         data-slot="scrollarea-scrollbar"
         data-orientation="vertical"
         data-state={yVisible ? "visible" : "hidden"}
+        aria-hidden="true"
         role="scrollbar"
         aria-controls={viewportId}
         aria-orientation="vertical"
@@ -537,6 +555,7 @@ export const ScrollArea = ({
           data-slot="scrollarea-scrollbar"
           data-orientation="horizontal"
           data-state={xVisible ? "visible" : "hidden"}
+          aria-hidden="true"
           role="scrollbar"
           aria-controls={viewportId}
           aria-orientation="horizontal"

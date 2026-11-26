@@ -156,6 +156,12 @@ export const DropdownButtonPage: React.FC = () => (
             "Menu width in px, or match the trigger. (The playground defaults to `trigger` to show the anchored sizing.)",
         },
         {
+          name: "width / maxWidth",
+          type: "number | string",
+          description:
+            "Pin the whole control — main button and caret together, which is the unit a caller measures. A number is px, a string rides through as a CSS length (`'100%'`, `'16rem'`). A long label then ellipsizes instead of widening the control past the row. Unset, nothing changes: no inline style, and the label keeps its natural wrapping.",
+        },
+        {
           name: "caretLabel",
           type: "string",
           default: 't("kit.dropdownbutton.toggle")',

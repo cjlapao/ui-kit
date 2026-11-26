@@ -13,9 +13,9 @@ export default function Delay() {
           Delay: 500ms
         </Button>
       </Tooltip>
-      <Tooltip text="Keep hovering a full second before I appear." delay={1000}>
+      <Tooltip text="The kit default — a full second of patience." delay={1000}>
         <Button variant="outline" color="blue">
-          Delay: 1000ms
+          Delay: 1000ms (default)
         </Button>
       </Tooltip>
     </>

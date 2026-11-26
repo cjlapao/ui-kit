@@ -185,6 +185,13 @@ export const IconButtonPage: React.FC = () => (
           description: "Styled tooltip; setting it drops the native title.",
         },
         {
+          name: "tooltipDelay / tooltipDisabled",
+          type: "number / boolean",
+          default: "1000 / false",
+          description:
+            "How long the pointer rests before the tip appears, and a way to keep it away while a surface you own — an open popup, say — occupies the space the tip would float in. Same vocabulary as Button.",
+        },
+        {
           name: "glass / vibrancy / glassOpacity / specularMode",
           type: "boolean / GlassVibrancy / GlassOpacity / SpecularMode",
           default:

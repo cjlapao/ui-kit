@@ -301,9 +301,22 @@ describe("SplitView — surfaceTone auto", () => {
         surfaceTone="auto"
       />,
     );
+    // The root wears `getSurfaceVariantClasses("tonal", "violet")`: the
+    // palette's tonal fill — `{c}-200/60` light since the stronger-shade
+    // retune — spelled through the transparency helper as the shared
+    // `--ui-surface-color`/`--ui-surface-alpha` fill, with `tonalBorder`'s
+    // `{c}-300` edge.
     expect(container.firstElementChild!.className).toContain(
-      "bg-violet-100/80",
+      "[--ui-surface-color:var(--color-violet-200)]",
     );
+    expect(container.firstElementChild!.className).toContain(
+      "[--ui-surface-alpha:60%]",
+    );
+    expect(container.firstElementChild!.className).toContain(
+      "border-violet-300",
+    );
+    // The list pane's divider takes the accent too, at the outline-grade
+    // step (`tonePalette.outlineBorder`).
     expect(container.innerHTML).toContain("border-violet-200");
   });
 });

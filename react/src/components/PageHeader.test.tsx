@@ -82,7 +82,10 @@ describe("PageHeader — floating variants", () => {
   it("floating renders the detached card — paired gutter by default, rim, shadow", () => {
     const root = renderHeader({ variant: "floating" });
     // Pairs with the floating menu: its m-2 above and right, flush below
-    // and left.
+    // and left. The rim, shadow and fill are read straight from
+    // `getSidebarSurfaceTokens("floating")` — the very token the floating
+    // SideMenu renders, so the card can never drift from the menu — and
+    // the light hairline is that token's retuned `/60` (dark keeps `/80`).
     expect(root.className).toContain("mt-2");
     expect(root.className).toContain("mr-2");
     expect(root.className).toContain("mb-0");
@@ -90,7 +93,7 @@ describe("PageHeader — floating variants", () => {
     expect(root.className).toContain("rounded-2xl");
     expect(root.className).toContain("shadow-xl");
     expect(root.className).toContain("border");
-    expect(root.className).toContain("border-neutral-200/80");
+    expect(root.className).toContain("border-neutral-200/60");
     expect(root.className).toContain("dark:border-neutral-700/80");
     expect(root.className).toContain("bg-white");
     expect(root.className).toContain("dark:bg-neutral-900");

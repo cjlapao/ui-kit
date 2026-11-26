@@ -184,7 +184,8 @@ describe("MultiToggle overflow tooltips", () => {
     window.dispatchEvent(new Event("resize"));
     await nextTick();
     await radios(w)[0].trigger("focus");
-    await new Promise((resolve) => setTimeout(resolve, 550));
+    // The overflow tip inherits the kit's 1s default delay.
+    await new Promise((resolve) => setTimeout(resolve, 1050));
     await nextTick();
     expect(document.querySelector('[role="tooltip"]')?.textContent).toContain("Alpha");
     Object.defineProperty(label, "clientWidth", { configurable: true, value: 240 });

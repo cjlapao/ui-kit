@@ -171,6 +171,56 @@ function NestedActionExample() {
   );
 }
 
+/* ------------------------------------------------------------------ *
+ * 4. Trigger width — a pinned trigger keeps its box. The title and
+ *    subtitle ellipsize inside it while the icon, pill and caret hold
+ *    their ground, so a column of pickers stays on one edge.
+ * ------------------------------------------------------------------ */
+
+const WIDTH_ITEMS: MenuItem[] = [
+  { id: "sonnet-5-5", label: "Sonnet 5.5", description: "Most efficient for simpler tasks" },
+  { id: "opus-5-5", label: "Opus 5.5", description: "The most capable model for long research runs" },
+  { id: "haiku-5-5", label: "Haiku 5.5", description: "Fastest responses" },
+];
+
+function TriggerWidthExample() {
+  return (
+    <div className="flex flex-wrap items-end gap-4">
+      {/* Pinned: the long title and subtitle clip, the pill keeps its room. */}
+      <MenuButton
+        icon="Brain"
+        title="Sonnet 5.5 — most efficient for simpler tasks"
+        subtitle="Free plan · 3 agents running in this workspace"
+        pill={{ label: "Pro", tone: "green" }}
+        width={190}
+        selectedKey="sonnet-5-5"
+        items={WIDTH_ITEMS}
+      />
+      {/* Content-sized but capped at 15rem. */}
+      <MenuButton
+        icon="Gauge"
+        title="Opus 5.5"
+        subtitle="The most capable model for long research runs"
+        maxWidth={240}
+        selectedKey="opus-5-5"
+        items={WIDTH_ITEMS}
+      />
+      {/* Fills its narrow column, with the popup floored at the trigger. */}
+      <div className="w-44">
+        <MenuButton
+          icon="Rocket"
+          title="Haiku 5.5"
+          subtitle="Fastest responses"
+          width="100%"
+          menuWidth="trigger"
+          selectedKey="haiku-5-5"
+          items={WIDTH_ITEMS}
+        />
+      </div>
+    </div>
+  );
+}
+
 export default function MenuButtonExamples() {
   return (
     <div className="flex flex-col gap-10">
@@ -188,6 +238,11 @@ export default function MenuButtonExamples() {
         <h3 className="text-sm font-semibold">Deeply nested actions + edge collision</h3>
         <p className="text-xs text-neutral-500">Two tier levels deep with menu checkboxes (left); bottom-right trigger (right) — the popup flips up and scrolls inside the viewport space cap.</p>
         <NestedActionExample />
+      </section>
+      <section className="flex flex-col gap-2">
+        <h3 className="text-sm font-semibold">Trigger width</h3>
+        <p className="text-xs text-neutral-500">A trigger pinned to 190 px, a content-sized one capped at 240 px, and one filling its 11rem column with the popup floored to the trigger. Long titles and subtitles ellipsize; the icon, pill and caret never get shoved outside the box.</p>
+        <TriggerWidthExample />
       </section>
     </div>
   );

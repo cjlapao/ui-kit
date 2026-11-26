@@ -40,6 +40,24 @@ describe("Tooltip", () => {
     expect(tip!.textContent).toContain("Explain");
   });
 
+  it("waits a full second before appearing by default", async () => {
+    // Same 1s default as the React kit: a pointer crossing the page should not
+    // summon a tip by accident.
+    vi.useFakeTimers();
+    const w = mount(Tooltip, {
+      props: { text: "Explain" },
+      slots: { default: () => h("span", "label") },
+      attachTo: document.body,
+    });
+    await w.get("div[tabindex]").trigger("mouseenter");
+    await vi.advanceTimersByTimeAsync(999);
+    await w.vm.$nextTick();
+    expect(document.querySelector('[role="tooltip"]')).toBeNull();
+    await vi.advanceTimersByTimeAsync(1);
+    await w.vm.$nextTick();
+    expect(document.querySelector('[role="tooltip"]')).not.toBeNull();
+  });
+
   it("opens on keyboard focus, not only on hover", async () => {
     vi.useFakeTimers();
     const w = mountTip();

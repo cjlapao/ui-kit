@@ -13,7 +13,7 @@ export { TOOLTIP_VARIANTS } from "../../../common/tooltip/tokens";
 export interface TooltipProps {
   /** Text shown in the tooltip. When omitted the component renders children as-is. */
   text?: string;
-  /** How long to wait (ms) before showing the tooltip. @default 500 */
+  /** How long to wait (ms) before showing the tooltip. @default 1000 */
   delay?: number;
   /**
    * Preferred side. The tooltip flips when there is no room, so this is a
@@ -50,7 +50,7 @@ export interface TooltipProps {
  */
 const Tooltip: React.FC<TooltipProps> = ({
   text,
-  delay = 500,
+  delay = 1000,
   position = "top",
   variant = "surface",
   offset,

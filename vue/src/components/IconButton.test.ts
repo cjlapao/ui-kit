@@ -2,12 +2,15 @@ import { describe, it, expect, vi } from "vitest";
 import { mount } from "@vue/test-utils";
 import IconButton from "./IconButton.vue";
 
-// Mock TooltipWrapper — renders children directly (no teleport).
+// Mock TooltipWrapper — renders children directly (no teleport). `delay` and
+// `disabled` are echoed onto the wrapper so the prop contract is observable
+// without a timer.
 vi.mock("./TooltipWrapper.vue", () => ({
   default: {
     name: "TooltipWrapperMock",
-    props: ["text", "position"],
-    template: "<div><slot /></div>",
+    props: ["text", "position", "delay", "disabled"],
+    template:
+      '<div :data-tooltip-delay="delay" :data-tooltip-disabled="disabled"><slot /></div>',
   },
 }));
 
@@ -308,5 +311,44 @@ describe("IconButton — glass variant", () => {
     const btn = wrapper.find("button");
     expect(btn.classes()).toContain("backdrop-blur-sm");
     expect(btn.classes()).toContain("bg-teal-200/30");
+  });
+});
+
+describe("IconButton — tooltip timing", () => {
+  const mountIcon = (props: Record<string, unknown> = {}) =>
+    mount(IconButton, {
+      props: { icon: "Search", srLabel: "Search", tooltip: "Search files", ...props },
+    });
+
+  // The mock echoes the wrapper's props onto its root; an unset binding means
+  // Vue omits the attribute altogether, which is exactly what "leave it to the
+  // wrapper's own default" looks like from the outside.
+  const echoed = (wrapper: ReturnType<typeof mountIcon>) =>
+    wrapper.find("div").attributes();
+
+  it("forwards tooltipDelay and tooltipDisabled to the wrapper", () => {
+    const attrs = echoed(mountIcon({ tooltipDelay: 250, tooltipDisabled: true }));
+    expect(attrs["data-tooltip-delay"]).toBe("250");
+    expect(attrs["data-tooltip-disabled"]).toBe("true");
+  });
+
+  it("forwards neither when the caller does not set them", () => {
+    // An explicit 0 would reach `setTimeout` and pop the tip instantly, so the
+    // delay really has to stay absent. `disabled` is the one prop Vue coerces:
+    // an unset boolean arrives as `false`, which is exactly what
+    // TooltipWrapper's own `disabled: false` default means, so the two are
+    // equivalent — it just must not be `true`.
+    const attrs = echoed(mountIcon());
+    expect(attrs["data-tooltip-delay"]).toBeUndefined();
+    expect(attrs["data-tooltip-disabled"]).not.toBe("true");
+  });
+
+  it("keeps the tooltip props off the button element", () => {
+    const w = mountIcon({ tooltipDelay: 250, tooltipDisabled: true });
+    const names = w
+      .find("button")
+      .element.getAttributeNames()
+      .map((name) => name.toLowerCase());
+    expect(names.filter((name) => name.includes("tooltip"))).toEqual([]);
   });
 });

@@ -7,12 +7,13 @@ import {
   getControlSizeTokens,
 } from "../theme/Theme";
 
-// Mock TooltipWrapper — renders children directly (no teleport).
+// Mock TooltipWrapper — renders children directly (no teleport). `delay` is
+// echoed onto the wrapper so the prop contract is observable without a timer.
 vi.mock("./TooltipWrapper.vue", () => ({
   default: {
     name: "TooltipWrapperMock",
-    props: ["text", "position"],
-    template: "<div><slot /></div>",
+    props: ["text", "position", "delay"],
+    template: '<div :data-tooltip-delay="delay"><slot /></div>',
   },
 }));
 
@@ -354,14 +355,23 @@ describe("Button — bug regressions", () => {
 });
 
 describe("Button — variant/tone matrix (every variant × every tone)", () => {
+  // Green's tinted-fill text is -800, not -700: green-700 on the green-100
+  // hover/active tint measured 4.497:1 (0.003 under WCAG AA). The theme's
+  // `lightText` exception in common/theme/Theme.ts — which this kit re-exports
+  // through vue/src/theme/Theme.ts, so both kits read one table — and the
+  // contrast gate (react/src/theme/contrast.test.ts) are the source of truth.
+  // `link`/`clear` sit on the page background, where -700 passes, so they keep
+  // it deliberately.
+  const lightText = (c: string) =>
+    c === "green" ? "text-green-800" : `text-${c}-700`;
   const signatures: Record<string, (c: string) => string[]> = {
     solid: (c) => [`bg-${c}-700`, "text-white"],
-    soft: (c) => [`bg-${c}-50`, `text-${c}-700`, `ring-${c}-200`],
-    outline: (c) => [`border-${c}-200`, `text-${c}-700`],
-    ghost: (c) => [`text-${c}-700`, `hover:bg-${c}-100`],
+    soft: (c) => [`bg-${c}-50`, lightText(c), `ring-${c}-200`],
+    outline: (c) => [`border-${c}-200`, lightText(c)],
+    ghost: (c) => [lightText(c), `hover:bg-${c}-100`],
     link: (c) => [`text-${c}-700`, "hover:underline"],
     clear: (c) => [`text-${c}-700`, `hover:text-${c}-800`],
-    icon: (c) => [`bg-${c}-50`, `text-${c}-700`],
+    icon: (c) => [`bg-${c}-50`, lightText(c)],
     glass: (_c) => ["backdrop-blur-sm"],
   };
 
@@ -447,6 +457,41 @@ describe("Button — icon colour", () => {
     const span = wrapper.find('span[style*="color"]');
     expect(span.exists()).toBe(true);
     expect(span.attributes("style")).toMatch(/color:\s*red/);
+    wrapper.unmount();
+  });
+});
+
+describe("Button — tooltip delay", () => {
+  it("forwards tooltipDelay to the tooltip", () => {
+    const wrapper = mount(Button, {
+      props: { tooltip: "Ship it", tooltipDelay: 250 },
+      slots: { default: "Go" },
+    });
+    expect(wrapper.find("div").attributes("data-tooltip-delay")).toBe("250");
+    wrapper.unmount();
+  });
+
+  it("leaves the delay unset so the tooltip keeps its own default", () => {
+    const wrapper = mount(Button, {
+      props: { tooltip: "Ship it" },
+      slots: { default: "Go" },
+    });
+    expect(wrapper.find("div").attributes("data-tooltip-delay")).toBeUndefined();
+    wrapper.unmount();
+  });
+
+  it("keeps tooltipDelay off the button element", () => {
+    const wrapper = mount(Button, {
+      props: { tooltip: "Ship it", tooltipDelay: 250 },
+      slots: { default: "Go" },
+    });
+    expect(wrapper.find("button").attributes("tooltiptelay")).toBeUndefined();
+    expect(
+      wrapper
+        .find("button")
+        .html()
+        .includes("tooltip"),
+    ).toBe(false);
     wrapper.unmount();
   });
 });

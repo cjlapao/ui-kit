@@ -101,6 +101,12 @@ describe("MenuButton", () => {
     act(() => {
       vi.advanceTimersByTime(500);
     });
+    // Half a second is too twitchy for a trigger this wide — the kit default
+    // is a full second.
+    expect(document.querySelector('[role="tooltip"]')).toBeNull();
+    act(() => {
+      vi.advanceTimersByTime(500);
+    });
     expect(document.querySelector('[role="tooltip"]')).not.toBeNull();
     fireEvent.click(trigger);
     expect(screen.getByRole("menu")).toBeInTheDocument();
@@ -112,10 +118,70 @@ describe("MenuButton", () => {
     expect(screen.queryByRole("menu")).toBeNull();
     fireEvent.mouseEnter(trigger);
     act(() => {
-      vi.advanceTimersByTime(500);
+      vi.advanceTimersByTime(1000);
     });
     expect(document.querySelector('[role="tooltip"]')).not.toBeNull();
     vi.useRealTimers();
+  });
+  it("tooltipDelay retunes the trigger tip", () => {
+    // The prop rides Button's vocabulary through to the real tooltip, so a
+    // dense picker can answer faster than the kit's 1s default.
+    vi.useFakeTimers();
+    render(
+      <MenuButton tooltip="Pick a model" tooltipDelay={100} title="Model" items={items} />,
+    );
+    const trigger = screen.getByRole("button", { name: /Model/ });
+    fireEvent.mouseEnter(trigger);
+    act(() => {
+      vi.advanceTimersByTime(99);
+    });
+    expect(document.querySelector('[role="tooltip"]')).toBeNull();
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+    expect(document.querySelector('[role="tooltip"]')).not.toBeNull();
+    vi.useRealTimers();
+  });
+  describe("trigger width", () => {
+    it("pins the trigger and keeps the ellipsis chain intact", () => {
+      render(
+        <MenuButton
+          title="Sonnet 5.5 — most efficient for simpler tasks"
+          subtitle="Free plan · 3 agents"
+          width={220}
+          items={items}
+        />,
+      );
+      const trigger = screen.getByRole("button", { name: /Sonnet 5.5/ });
+      expect(trigger.style.width).toBe("220px");
+      // The shrink chain an ellipsis depends on: the column has to be allowed
+      // to drop below its content width, and every line has to clip rather
+      // than push the box wider.
+      const column = trigger.querySelector("span")!;
+      expect(column).toHaveClass("min-w-0");
+      const lines = Array.from(column.children) as HTMLElement[];
+      expect(lines).toHaveLength(2);
+      for (const line of lines) expect(line).toHaveClass("truncate");
+    });
+
+    it("maxWidth caps a content-sized trigger, and a CSS length passes through", () => {
+      render(<MenuButton title="Model" maxWidth="16rem" items={items} />);
+      expect(screen.getByRole("button", { name: /Model/ }).style.maxWidth).toBe("16rem");
+    });
+
+    it("keeps the caller's own style keys while the width props win", () => {
+      render(<MenuButton title="Model" width={200} style={{ marginTop: 4 }} items={items} />);
+      const trigger = screen.getByRole("button", { name: /Model/ });
+      expect(trigger.style.marginTop).toBe("4px");
+      expect(trigger.style.width).toBe("200px");
+    });
+
+    it("never leaks the width props onto the DOM as attributes", () => {
+      render(<MenuButton title="Model" width={200} maxWidth={300} items={items} />);
+      const trigger = screen.getByRole("button", { name: /Model/ });
+      expect(trigger.hasAttribute("width")).toBe(false);
+      expect(trigger.hasAttribute("maxwidth")).toBe(false);
+    });
   });
   it("menuMaxWidth sets the popup growth cap next to the width floor", () => {
     render(<MenuButton title="Model" open menuWidth={300} menuMaxWidth={460} items={items} />);

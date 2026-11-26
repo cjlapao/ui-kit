@@ -22,6 +22,7 @@ export function MenuButtonPlayground() {
   const [withTooltip, setWithTooltip] = useState(true);
   const [pillTone, setPillTone] = useState<TrueColor>("neutral");
   const [caret, setCaret] = useState(true);
+  const [triggerWidth, setTriggerWidth] = useState("auto");
   // Button
   const [variant, setVariant] = useState<ButtonVariant>("outline");
   const [color, setColor] = useState<TrueColor>("neutral");
@@ -72,6 +73,8 @@ export function MenuButtonPlayground() {
       {withPill && <Control label="Pill tone"><ColorSwatches selectable size="sm" value={pillTone} onSelect={setPillTone} defaultExpanded /></Control>}
       <ToggleRow label="Caret" checked={caret} onChange={setCaret} />
       <ToggleRow label="Trigger tooltip" checked={withTooltip} onChange={setWithTooltip} />
+      <SelectControl label="Trigger width" options={[{ value: "auto", label: "Auto (content)" }, { value: "160", label: "160 px" }, { value: "220", label: "220 px" }, { value: "fill", label: "100% of the row" }]} value={triggerWidth} onChange={setTriggerWidth} />
+      <p className="px-1 text-[11px] leading-snug text-neutral-500">A pinned width clips the title and subtitle with an ellipsis — the icon, pill and caret keep their room.</p>
     </> },
     { id: "button", title: "Button", defaultOpen: true, controls: <>
       <SelectControl label="Variant" options={buttonVariantOptions} value={variant} onChange={v => setVariant(v as ButtonVariant)} />
@@ -107,6 +110,7 @@ export function MenuButtonPlayground() {
         pill={withPill ? { label: "Pro", tone: pillTone } : undefined}
         tooltip={withTooltip ? "Switch models and effort" : undefined}
         caret={caret}
+        width={triggerWidth === "auto" ? undefined : triggerWidth === "fill" ? "100%" : Number(triggerWidth)}
         variant={variant}
         color={color}
         size={size}

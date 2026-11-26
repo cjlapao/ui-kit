@@ -20,6 +20,20 @@ describe('DiagramFlow', () => {
     const mixed: DiagramFlowGraph = { ...graph, connections: graph.connections.map(edge => edge.id === 'bc' ? { ...edge, connectorStyle: 'arrow' } : edge) };
     const { container, rerender } = render(<DiagramFlow graph={mixed} onChange={vi.fn()} />);
     expect(container.querySelectorAll('[data-diagram-terminal]')).toHaveLength(2);
+    const rings = [...container.querySelectorAll<HTMLElement>('[data-diagram-terminal]')];
+    const dots = [...container.querySelectorAll<SVGCircleElement>('[data-diagram-terminal-dot]')];
+    expect(dots).toHaveLength(2);
+    const nodeA = container.querySelector<HTMLElement>('[data-diagram-node="a"]')!;
+    const nodeB = container.querySelector<HTMLElement>('[data-diagram-node="b"]')!;
+    expect(nodeA.style.maskImage).toMatch(/terminal-mask/);
+    expect(nodeB.style.maskImage).toMatch(/terminal-mask/);
+    const masks = container.querySelectorAll('mask');
+    expect(masks[0].querySelectorAll('rect[fill="black"]')).toHaveLength(1);
+    expect(masks[1].querySelectorAll('rect[fill="black"]')).toHaveLength(1);
+    for (let i = 0; i < 2; i++) {
+      expect(Number(dots[i].getAttribute('cx'))).toBe(parseFloat(rings[i].style.left) + 7);
+      expect(Number(dots[i].getAttribute('cy'))).toBe(parseFloat(rings[i].style.top) + 7);
+    }
     const ab = screen.getByRole('button', { name: 'success connection from A to B' }).parentElement!;
     const bc = screen.getByRole('button', { name: /success connection from B to C/ }).parentElement!;
     expect(ab.querySelector('path[marker-end]')).toBeNull();
@@ -29,6 +43,40 @@ describe('DiagramFlow', () => {
     rerender(<DiagramFlow graph={graph} onChange={vi.fn()} connectorStyle="arrow" />);
     expect(container.querySelectorAll('[data-diagram-terminal]')).toHaveLength(0);
     expect(container.querySelectorAll('path[marker-end]')).toHaveLength(2);
+  });
+  it('shares node hover with its terminal and contrasts a matching dot', () => {
+    const tinted: DiagramFlowGraph = { ...graph, nodes: graph.nodes.map(node => node.id === 'a' ? { ...node, tone: 'emerald' } : node) };
+    const { container } = render(<DiagramFlow graph={tinted} onChange={vi.fn()} />);
+    const node = container.querySelector<HTMLElement>('[data-diagram-node="a"]')!;
+    const terminal = container.querySelector<HTMLElement>('[data-diagram-terminal="source"]')!;
+    const dot = container.querySelector<SVGCircleElement>('[data-diagram-terminal-dot="source"]')!;
+    expect(terminal).not.toHaveAttribute('data-hovered');
+    fireEvent.pointerEnter(node);
+    expect(terminal).toHaveAttribute('data-hovered', 'true');
+    expect(terminal).toHaveAttribute('data-tinted', 'true');
+    expect(dot).toHaveAttribute('data-contrast', 'true');
+    expect(dot).toHaveAttribute('data-outcome', 'success');
+    fireEvent.pointerLeave(node);
+    expect(terminal).not.toHaveAttribute('data-hovered');
+    expect(dot).not.toHaveAttribute('data-contrast');
+  });
+  it('paints the neutral hover over the terminal and cuts only the node border', () => {
+    const { container } = render(<DiagramFlow graph={graph} onChange={vi.fn()} />);
+    const node = container.querySelector<HTMLElement>('[data-diagram-node="b"]')!;
+    const terminal = container.querySelector<HTMLElement>('[data-diagram-terminal="target"]')!;
+    const overlay = terminal.querySelector<HTMLElement>('[data-terminal-hover-overlay]')!;
+    const mask = container.querySelectorAll('mask')[1];
+    for (const notch of mask.querySelectorAll('rect[fill="black"]')) {
+      expect(Math.min(Number(notch.getAttribute('width')), Number(notch.getAttribute('height')))).toBe(1);
+    }
+    expect(overlay).toBeTruthy();
+    expect(terminal.style.zIndex).toBe('0');
+    expect(terminal.compareDocumentPosition(node) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(terminal).not.toHaveAttribute('data-hovered');
+    fireEvent.pointerEnter(node);
+    expect(terminal).toHaveAttribute('data-hovered', 'true');
+    expect(terminal).not.toHaveAttribute('data-tinted');
+    expect(container.querySelector('style')!.textContent).toContain('data-terminal-hover-overlay');
   });
   it('routes a straight connection between top-aligned nodes with different heights', () => {
     const uneven: DiagramFlowGraph = { nodes: [{ id: 'a', title: 'A', position: { x: 0, y: 0 }, height: 80 }, { id: 'b', title: 'B', position: { x: 260, y: 0 }, height: 100 }], connections: [{ id: 'ab', sourceId: 'a', targetId: 'b', outcome: 'success' }] };
@@ -337,6 +385,28 @@ describe('DiagramFlow connection interactions', () => {
     fireEvent.pointerCancel(port, { pointerId: 9 });
     fireEvent.pointerUp(port, { pointerId: 9, clientX: 300, clientY: 400 });
     expect(onChange).not.toHaveBeenCalled();
+  });
+  it('switches hover handles immediately between nodes', () => {
+    render(<DiagramFlow graph={graph} onChange={vi.fn()} />);
+    const a = screen.getByRole('button', { name: 'A pending' });
+    const b = screen.getByRole('button', { name: 'B pending' });
+    const aPort = screen.getByRole('button', { name: 'Connect from A, right' });
+    const bPort = screen.getByRole('button', { name: 'Connect from B, left' });
+    fireEvent.pointerEnter(a);
+    expect(aPort.style.opacity).toBe('1');
+    expect(aPort.className).not.toContain('transition-opacity');
+    fireEvent.pointerEnter(b);
+    expect(aPort.style.opacity).toBe('0');
+    expect(bPort.style.opacity).toBe('1');
+    fireEvent.pointerLeave(b);
+    expect(bPort.style.opacity).toBe('0');
+  });
+  it('clears terminal hover when the diagram is disabled', () => {
+    const { container, rerender } = render(<DiagramFlow graph={graph} onChange={vi.fn()} />);
+    fireEvent.pointerEnter(screen.getByRole('button', { name: 'A pending' }));
+    expect(container.querySelector('[data-diagram-terminal="source"]')).toHaveAttribute('data-hovered', 'true');
+    rerender(<DiagramFlow graph={graph} onChange={vi.fn()} disabled />);
+    expect(container.querySelector('[data-diagram-terminal="source"]')).not.toHaveAttribute('data-hovered');
   });
   it('reveals neutral ports on hover and hides them in read-only mode', () => {
     const { rerender } = render(<DiagramFlow graph={graph} onChange={vi.fn()} />);

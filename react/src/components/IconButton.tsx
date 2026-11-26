@@ -76,6 +76,13 @@ export interface IconButtonProps
   tooltip?: string;
   /** Position of the tooltip relative to the button. Defaults to 'top'. */
   tooltipPosition?: TooltipPosition;
+  /** Milliseconds the pointer must rest on the button before the tip appears.
+   * Defaults to the tooltip default of 1000. */
+  tooltipDelay?: number;
+  /** Keep the tooltip suppressed — hides a visible tip and blocks new ones.
+   * Pass it while a surface you own (an open popup, say) occupies the space the
+   * tip would float in. */
+  tooltipDisabled?: boolean;
   /** When true, applies glass styling (fill + vibrancy + optional specular overlay). */
   glass?: boolean;
   /** Backdrop vibrancy level for glass surfaces. */
@@ -112,6 +119,8 @@ const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
       disabled,
       tooltip,
       tooltipPosition,
+      tooltipDelay,
+      tooltipDisabled,
       ...rest
     },
     ref,
@@ -271,7 +280,12 @@ const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
 
     if (tooltip) {
       return (
-        <TooltipWrapper text={tooltip} position={tooltipPosition}>
+        <TooltipWrapper
+          text={tooltip}
+          position={tooltipPosition}
+          delay={tooltipDelay}
+          disabled={tooltipDisabled}
+        >
           {button}
         </TooltipWrapper>
       );

@@ -10,15 +10,33 @@ import {
 } from "../theme/Theme";
 import { iconAccentRing } from "../theme/ButtonTypes";
 
+// Stays a pass-through (`<>{children}</>`, no element of its own) so the
+// styling assertions in this file keep seeing the bare button as the
+// container's first child; the props are parked here for the forwarding test.
+const tooltipSeen = vi.hoisted(() => ({
+  props: null as null | {
+    text?: string;
+    position?: string;
+    delay?: number;
+    disabled?: boolean;
+  },
+}));
+
 // Mock the IconContext so useIconRenderer doesn't throw
 vi.mock("./TooltipWrapper", () => ({
   default: ({
     children,
+    ...rest
   }: {
     children: React.ReactNode;
     text?: string;
     position?: string;
-  }) => <>{children}</>,
+    delay?: number;
+    disabled?: boolean;
+  }) => {
+    tooltipSeen.props = rest;
+    return <>{children}</>;
+  },
 }));
 
 vi.mock("../contexts/IconContext", () => ({
@@ -488,5 +506,34 @@ describe("Button — icon colour", () => {
     const span = container.querySelector<HTMLElement>('span[style*="color"]');
     expect(span).not.toBeNull();
     expect(span!.style.color).toBe("rgb(255, 0, 170)");
+  });
+});
+
+describe("Button — tooltip delay", () => {
+  it("forwards tooltipDelay to the tooltip", () => {
+    render(
+      <Button tooltip="Ship it" tooltipDelay={250}>
+        Go
+      </Button>,
+    );
+    expect(tooltipSeen.props?.text).toBe("Ship it");
+    expect(tooltipSeen.props?.delay).toBe(250);
+  });
+
+  it("leaves the delay unset so the tooltip keeps its own default", () => {
+    render(<Button tooltip="Ship it">Go</Button>);
+    expect(tooltipSeen.props?.delay).toBeUndefined();
+  });
+
+  it("keeps the tooltip props off the button element", () => {
+    const { container } = render(
+      <Button tooltip="Ship it" tooltipDelay={250}>
+        Go
+      </Button>,
+    );
+    const names = Array.from(container.querySelector("button")!.attributes).map(
+      (attr) => attr.name,
+    );
+    expect(names.filter((name) => name.startsWith("tooltip"))).toEqual([]);
   });
 });

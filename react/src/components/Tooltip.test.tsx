@@ -41,6 +41,25 @@ describe("Tooltip", () => {
     expect(container.contains(tip)).toBe(false);
   });
 
+  it("waits a full second before appearing by default", () => {
+    // A tip that fires on the first twitch of a pointer crossing the page
+    // mostly gets read by accident; a second of patience reads as intentional.
+    vi.useFakeTimers();
+    const { container } = render(
+      <Tooltip text="Explain">label</Tooltip>,
+    );
+    const trigger = container.firstElementChild as HTMLElement;
+    fireEvent.mouseEnter(trigger);
+    act(() => {
+      vi.advanceTimersByTime(999);
+    });
+    expect(document.querySelector('[role="tooltip"]')).toBeNull();
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+    expect(document.querySelector('[role="tooltip"]')).not.toBeNull();
+  });
+
   it("opens on keyboard focus, not only on hover", () => {
     // The wrapper is a plain div, so without a tab stop a keyboard user could
     // never surface the tooltip.

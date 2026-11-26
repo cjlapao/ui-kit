@@ -30,7 +30,7 @@ export const ActivityFeedPage: React.FC = () => (
       <div className="max-w-3xl text-sm leading-6 text-neutral-500 dark:text-neutral-400">
         <p>
           Props are <code>title</code>, <code>items</code>{" "}
-          (<code>{`{ id, title, description?, code?, actor?, timestamp, tone?, category?, count?, body?, actions?, onClick?, active?, attention?, attentionTone?, subItems?, defaultExpanded?, expanded? }`}</code>),{" "}
+          (<code>{`{ id, title, description?, code?, actor?, timestamp, tone?, category?, count?, body?, actions?, onClick?, active?, attention?, attentionTone?, hoverTone?, activeTone?, subItems?, defaultExpanded?, expanded? }`}</code>),{" "}
           where <code>body</code> — a node in React, a VNode in Vue — replaces
           the row's entire content (dot, text and timestamp all stop being
           drawn) while the feed keeps drawing the row itself — a{" "}
@@ -41,7 +41,15 @@ export const ActivityFeedPage: React.FC = () => (
           while <code>rowVariant</code> / <code>rowTone</code> /
           <code>rowCorner</code> set that row Panel's surface (default{" "}
           <code>"none"</code>, the card's own tone, and the corner scale's
-          xs step, <code>"rounded"</code>) — <code>subRowCorner</code> and{" "}
+          xs step, <code>"rounded"</code>) — while <code>rowHoverTone</code> and{" "}
+          <code>rowActiveTone</code> split the two <em>states</em> off that
+          surface, so a neutral feed can hover and select in colours of its
+          own: <code>rowHoverTone</code> is the hue every row's wash,{" "}
+          pressed step and sub-row wash wear, <code>rowActiveTone</code> the hue
+          the chosen row's rim and fill wear (and the hue it hovers in — its
+          neighbours keep hovering in their own), a row beating either with its
+          own <code>hoverTone</code> / <code>activeTone</code> —{" "}
+          <code>subRowCorner</code> and{" "}
           <code>subRowPadding</code> dial the sub-row washes, resting on the
           corner scale's sm step (<code>"rounded-sm"</code>) and the padding
           ladder's <code>"md"</code> rung, with bleed, row gap, the column's
@@ -51,7 +59,8 @@ export const ActivityFeedPage: React.FC = () => (
           <code>attentionTone</code> the Panel's own hue override (the row{" "}
           <code>borderColor</code>: <code>borderColor ?? tone</code>, blue
           floor), shared by rim and glow so a selected-and-pulsing row always
-          agrees,{" "}
+          agrees, until the row is given a selection hue of its own — at which
+          point the glow keeps the hue you named for urgency,{" "}
           <code>subItems</code> with <code>defaultExpanded</code> /{" "}
           <code>expanded</code> / <code>onToggle</code> (the{" "}
           <code>toggle(id, expanded)</code> event in Vue) — InfoRow's

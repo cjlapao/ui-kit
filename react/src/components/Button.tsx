@@ -83,6 +83,11 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   tooltip?: string;
   /** Position of the tooltip relative to the button. Defaults to 'top'. */
   tooltipPosition?: TooltipPosition;
+  /** Milliseconds the pointer must rest on the button before the tip appears.
+   * Defaults to the tooltip default of 1000; lower it for a dense toolbar where
+   * the tip is the only place the full label lives, raise it where a stray
+   * hover is common. */
+  tooltipDelay?: number;
   /** Keep the tooltip suppressed — hides a visible tip and blocks new ones.
    * MenuButton sets this while its menu is open so the tip never floats over
    * menu rows; pass it yourself while a surface you own is open. */
@@ -130,6 +135,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       onClick,
       tooltip,
       tooltipPosition,
+      tooltipDelay,
       tooltipDisabled,
       type = "button",
       ...props
@@ -304,7 +310,12 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 
     if (tooltip) {
       return (
-        <TooltipWrapper text={tooltip} position={tooltipPosition} disabled={tooltipDisabled}>
+        <TooltipWrapper
+          text={tooltip}
+          position={tooltipPosition}
+          delay={tooltipDelay}
+          disabled={tooltipDisabled}
+        >
           {button}
         </TooltipWrapper>
       );

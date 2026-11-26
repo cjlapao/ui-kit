@@ -47,6 +47,8 @@ export const DropdownButtonPlayground: React.FC = () => {
   const [size, setSize] = useState<ButtonSize>("md");
   const [color, setColor] = useState<TrueColor>("blue");
   const [menuWidth, setMenuWidth] = useState<MenuWidthChoice>("trigger");
+  const [triggerWidth, setTriggerWidth] = useState("auto");
+  const [longLabel, setLongLabel] = useState(false);
   const [split, setSplit] = useState(true);
   const [fullWidth, setFullWidth] = useState(false);
   const [disabled, setDisabled] = useState(false);
@@ -103,7 +105,28 @@ export const DropdownButtonPlayground: React.FC = () => {
                       value={menuWidth}
                       onChange={(v) => setMenuWidth(v as MenuWidthChoice)}
                     />
+                    <SelectControl
+                      label="Trigger width"
+                      options={[
+                        { value: "auto", label: "Auto (content)" },
+                        { value: "160", label: "160 px" },
+                        { value: "220", label: "220 px" },
+                        { value: "fill", label: "100% of the row" },
+                      ]}
+                      value={triggerWidth}
+                      onChange={setTriggerWidth}
+                    />
+                    <p className="px-1 text-[11px] leading-snug text-neutral-500">
+                      A pinned width covers main button <em>and</em> caret — the
+                      caret keeps its room, the label takes the ellipsis. Flip on{" "}
+                      <strong>Long label</strong> to see it.
+                    </p>
                     <div className="grid grid-cols-2 gap-2">
+                      <ToggleRow
+                        label="Long label"
+                        checked={longLabel}
+                        onChange={setLongLabel}
+                      />
                       <ToggleRow
                         label="Split trigger"
                         checked={split}
@@ -157,7 +180,11 @@ export const DropdownButtonPlayground: React.FC = () => {
         <div className="flex w-full flex-col gap-3">
           <Panel variant={glassPanel ? "glass" : "elevated"} padding="md">
             <DropdownButton
-              label="Deploy"
+              label={
+                longLabel
+                  ? "Deploy to the production cluster"
+                  : "Deploy"
+              }
               options={emptyMenu ? [] : DEPLOY_OPTIONS}
               variant={variant}
               color={color}
@@ -165,6 +192,13 @@ export const DropdownButtonPlayground: React.FC = () => {
               disabled={disabled}
               fullWidth={fullWidth}
               split={split}
+              width={
+                triggerWidth === "auto"
+                  ? undefined
+                  : triggerWidth === "fill"
+                    ? "100%"
+                    : Number(triggerWidth)
+              }
               menuWidth={
                 menuWidth === "trigger" ? "trigger" : Number(menuWidth)
               }

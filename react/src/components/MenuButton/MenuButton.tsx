@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import Button from "../Button";
 import Pill from "../Pill";
 import Menu from "../Menu";
+import { cssLength, hasCssLength } from "../../../../common/utils/cssLength";
 import type { MenuButtonPillConfig, MenuButtonProps } from "./types";
 
 export type { MenuButtonPillConfig, MenuButtonProps } from "./types";
@@ -32,6 +33,8 @@ export function MenuButton({
   pill,
   caret = true,
   caretIcon = "ArrowDown",
+  width,
+  maxWidth,
   items,
   selectedKey,
   washSelected,
@@ -71,8 +74,26 @@ export function MenuButton({
   // menu's open state keeps that correct even for the uncontrolled menu.
   const [mirrorOpen, setMirrorOpen] = useState(defaultOpen ?? false);
   const isOpen = open ?? mirrorOpen;
+  // `width`/`maxWidth` sit on top of a caller's own `style`. The text column
+  // already carries `min-w-0` and each line `truncate`, so the narrower box
+  // clips the title with an ellipsis instead of shoving the icon, pill and
+  // caret outside — a picker pinned to 12rem stays a picker pinned to 12rem.
+  const triggerStyle =
+    !hasCssLength(width, maxWidth)
+      ? buttonProps.style
+      : {
+          ...buttonProps.style,
+          width: cssLength(width),
+          maxWidth: cssLength(maxWidth),
+        };
   const trigger = (
-    <Button {...buttonProps} tooltipDisabled={isOpen || buttonProps.tooltipDisabled} leadingIcon={icon} trailingIcon={caret ? caretIcon : undefined}>
+    <Button
+      {...buttonProps}
+      style={triggerStyle}
+      tooltipDisabled={isOpen || buttonProps.tooltipDisabled}
+      leadingIcon={icon}
+      trailingIcon={caret ? caretIcon : undefined}
+    >
       <span className="flex min-w-0 flex-col items-start leading-tight">
         <span className="w-full min-w-0 truncate font-semibold">{title}</span>
         {subtitle != null && (

@@ -7,7 +7,7 @@ export type { TooltipPosition, TooltipVariant };
 export interface TooltipProps {
   /** Text shown in the tooltip. When omitted the component renders children as-is. */
   text?: string;
-  /** How long to wait (ms) before showing the tooltip. @default 500 */
+  /** How long to wait (ms) before showing the tooltip. @default 1000 */
   delay?: number;
   /**
    * Preferred side. The tooltip flips when there is no room, so this is a
@@ -27,6 +27,10 @@ export interface TooltipProps {
   boundary?: HTMLElement | null;
   /** Extra classes applied to the outer wrapper element. */
   wrapperClassName?: string;
+  /** Keep the tooltip suppressed — hides a visible tip and blocks new ones.
+   * Use it while a surface the trigger owns (an open Menu popup, say) should
+   * not be covered by the floating tip. */
+  disabled?: boolean;
 }
 </script>
 
@@ -49,7 +53,7 @@ import TooltipWrapper from "./TooltipWrapper.vue";
 defineOptions({ name: "Tooltip" });
 
 withDefaults(defineProps<TooltipProps>(), {
-  delay: 500,
+  delay: 1000,
   position: "top",
   variant: "surface",
 });
@@ -72,6 +76,7 @@ const wrapperClass = (extra?: string) =>
     :offset="offset"
     :margin="margin"
     :boundary="boundary"
+    :disabled="disabled"
   >
     <!-- `tabindex` so the focus path TooltipWrapper offers is reachable: the
          wrapper is a plain div, so without it a keyboard user can never

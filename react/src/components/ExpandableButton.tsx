@@ -209,7 +209,7 @@ const ExpandableButton = forwardRef<HTMLButtonElement, ExpandableButtonProps>(
       glassOpacity = "clear",
       specularMode = "none",
       expandOn = "hover",
-      collapseDelay = 150,
+      collapseDelay = 500,
       expanded,
       defaultExpanded = false,
       onExpandedChange,

@@ -11,14 +11,32 @@ vi.mock("../contexts/IconContext", () => ({
   useIconRenderer: () => vi.fn((icon) => icon),
 }));
 
+// Captures the tooltip props the button hands over while still rendering its
+// children unchanged, so the rest of this file — which mounts icons with and
+// without a tip — sees exactly what it saw before.
+const tooltipSeen = vi.hoisted(() => ({
+  props: null as null | {
+    text?: string;
+    position?: string;
+    delay?: number;
+    disabled?: boolean;
+  },
+}));
+
 vi.mock("./TooltipWrapper", () => ({
   default: ({
     children,
+    ...rest
   }: {
     children: React.ReactNode;
     text?: string;
     position?: string;
-  }) => <>{children}</>,
+    delay?: number;
+    disabled?: boolean;
+  }) => {
+    tooltipSeen.props = rest;
+    return <>{children}</>;
+  },
 }));
 
 describe("IconButton — glass variant", () => {
@@ -497,5 +515,50 @@ describe("IconButton — active state", () => {
       getButtonActiveClasses("icon", "blue").split(" ")[0],
     );
     expect(button.className).toContain("backdrop-blur-sm");
+  });
+});
+
+describe("IconButton — tooltip timing", () => {
+  it("forwards tooltipDelay and tooltipDisabled to the wrapper", () => {
+    // Button has had this vocabulary forever; the icon-only sibling was the
+    // gap — a dense toolbar of icon buttons wants the same retune.
+    render(
+      <IconButton
+        icon="Send"
+        srLabel="Send"
+        tooltip="Send now"
+        tooltipDelay={250}
+        tooltipDisabled
+      />,
+    );
+    expect(tooltipSeen.props).toMatchObject({
+      text: "Send now",
+      delay: 250,
+      disabled: true,
+    });
+  });
+
+  it("leaves both undefined when the caller does not set them", () => {
+    // `undefined` has to reach the wrapper so it keeps its own 1s default
+    // rather than getting an explicit 0 (an instant tip).
+    render(<IconButton icon="Send" srLabel="Send" tooltip="Send now" />);
+    expect(tooltipSeen.props?.delay).toBeUndefined();
+    expect(tooltipSeen.props?.disabled).toBeUndefined();
+  });
+
+  it("keeps the tooltip props off the button element", () => {
+    render(
+      <IconButton
+        icon="Send"
+        srLabel="Send"
+        tooltip="Send now"
+        tooltipDelay={250}
+        tooltipDisabled
+      />,
+    );
+    const names = Array.from(screen.getByRole("button").attributes).map((a) =>
+      a.name.toLowerCase(),
+    );
+    expect(names.filter((n) => n.includes("tooltip"))).toEqual([]);
   });
 });

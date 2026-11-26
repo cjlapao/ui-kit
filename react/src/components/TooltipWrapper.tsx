@@ -22,7 +22,7 @@ import {
 export interface TooltipWrapperProps {
   /** Tooltip text. When omitted no tooltip is shown but the child is rendered unchanged. */
   text?: string;
-  /** Delay in ms before the tooltip appears. @default 500 */
+  /** Delay in ms before the tooltip appears. @default 1000 */
   delay?: number;
   /**
    * Preferred side. The tooltip flips to the opposite side, then to a
@@ -70,7 +70,7 @@ export interface TooltipWrapperProps {
  */
 const TooltipWrapper: React.FC<TooltipWrapperProps> = ({
   text,
-  delay = 500,
+  delay = 1000,
   position = "top",
   variant = "surface",
   offset = 8,

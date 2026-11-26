@@ -31,6 +31,15 @@ export interface MenuButtonProps
   caret?: boolean;
   /** Caret glyph. @default "ArrowDown" */
   caretIcon?: string | React.ReactElement;
+  /** CSS width of the trigger — a number is px, a string is any CSS length
+   * (`"12rem"`, `"100%"`). Applied as an inline style on top of any `style` you
+   * pass, so a column of pickers lines up on one edge: the stacked title and
+   * subtitle ellipsize rather than pushing the icon, pill and caret outside the
+   * box, which is what keeps a fixed-width trigger from growing on a long name. */
+  width?: number | string;
+  /** Cap on a content-sized trigger — a number is px. Long titles ellipsize at
+   * this width instead of widening the trigger past the row it belongs to. */
+  maxWidth?: number | string;
   // ---- menu vocabulary (passed through to Menu) ----
   /** Menu tree — rows carry icons, labels, descriptions, badges, sub-items. */
   items: MenuItem[];

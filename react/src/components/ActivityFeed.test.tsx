@@ -1,7 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import { getButtonColorClasses, getSurfaceCornerClass, getSurfaceVariantClasses } from "../theme";
-import ActivityFeed, { type ActivityFeedItem, type ActivityFeedProps } from "./ActivityFeed";
+import ActivityFeed, {
+  type ActivityFeedItem,
+  type ActivityFeedProps,
+  type ActivityFeedSubItem,
+} from "./ActivityFeed";
 import { SUB_ROW_PADDING } from "../../../common/theme/nestedPanel";
 
 const items: ActivityFeedItem[] = [
@@ -243,6 +247,196 @@ describe("ActivityFeed", () => {
       expect(container.querySelector('[role="radiogroup"]')!.outerHTML).toContain("rose");
       expect(screen.getByRole("button", { name: /Load more/ }).className).toContain(
         getButtonColorClasses("outline", "blue").split(" ")[0],
+      );
+    });
+  });
+
+  /**
+   * The two state hues. The point of each: a row may rest in neutral ink and
+   * still answer the pointer, and still be the current one, in a colour the
+   * caller names — with `rowVariant` and `rowTone` untouched. The hue chains
+   * live in `Panel`; what these tests lock is that the feed *reaches* them,
+   * that a row beats the feed, and that the follow belongs to the state and
+   * not to the hue.
+   */
+  describe("row hover and selection hues", () => {
+    const tokens = (el: HTMLElement) => el.className.split(/\s+/);
+    const rows = (container: HTMLElement) =>
+      Array.from(container.querySelectorAll<HTMLElement>("li > section"));
+    // Hover classes only exist on a row that can be hovered, so every row here
+    // carries the card action — `isHoverable` follows `onClick`.
+    const row = (id: string, extra: Partial<ActivityFeedItem> = {}): ActivityFeedItem => ({
+      id,
+      title: `row ${id}`,
+      timestamp: "now",
+      onClick: () => {},
+      ...extra,
+    });
+    const subRow = (container: HTMLElement) =>
+      container.querySelector<HTMLElement>('[role="region"] .pl-5 > div')!;
+    /**
+     * A row's states are painted through the theme's `--ui-surface-color` /
+     * `--ui-surface-alpha` pair (a plain `hover:bg-*` left outside that call
+     * would fight `ui-surface-fill` for `background-color`), and the rim is the
+     * shared `outline-{hue}-{step}` token. So a hue is read off the variable or
+     * the rim, and the *step* is left out of the assertion: which rung the
+     * pointer lands on is the theme's measured business, not the feed's, and
+     * `themeSafelist.test.ts` is what proves the class exists at all.
+     */
+    const hueIn = (cls: string) => cls.match(/--color-([a-z]+)-/)?.[1] ?? null;
+    const pointerHues = (el: HTMLElement) =>
+      [...new Set(tokens(el).filter((c) => /^(dark:)?hover:\[--ui-surface-color:/.test(c)).map(hueIn))];
+    const pressedHues = (el: HTMLElement) =>
+      [...new Set(tokens(el).filter((c) => /^(dark:)?active:\[--ui-surface-color:/.test(c)).map(hueIn))];
+    /** The hue the chosen state's fill wears — the resting pair, no variant. */
+    const fillHues = (el: HTMLElement) =>
+      [...new Set(tokens(el).filter((c) => /^(dark:)?\[--ui-surface-color:/.test(c)).map(hueIn))];
+    /** The hue the chosen state's 2px inset rim wears. */
+    const rimHue = (el: HTMLElement) =>
+      tokens(el)
+        .map((c) => c.match(/^outline-([a-z]+)-\d+$/)?.[1])
+        .find((h): h is string => typeof h === "string") ?? null;
+
+    it("hovers a neutral row in the hue the feed names", () => {
+      const { container } = render(<ActivityFeed items={[row("a")]} rowHoverTone="cyan" />);
+      const section = rows(container)[0]!;
+      expect(pointerHues(section)).toEqual(["cyan"]);
+      expect(pressedHues(section)).toEqual(["cyan"]);
+      // The resting surface is untouched: no hue, no fill — `rowTone` never
+      // moved, which is the whole point of asking for a hover hue alone.
+      expect(fillHues(section)).toEqual([]);
+    });
+
+    it("names no hue and keeps the neutral veil, exactly as before", () => {
+      const { container } = render(<ActivityFeed items={[row("a")]} />);
+      const section = rows(container)[0]!;
+      expect(pointerHues(section)).toEqual([]);
+      // The untinted answer is the veil Panel lays down for a hueless surface;
+      // it is an overlay child, not the row's own class.
+      expect(container.innerHTML).toContain("group-hover:bg-black/[0.045]");
+    });
+
+    it("prefers a row's own hover hue to the feed's", () => {
+      const { container } = render(
+        <ActivityFeed items={[row("a", { hoverTone: "lime" })]} rowHoverTone="cyan" />,
+      );
+      expect(pointerHues(rows(container)[0]!)).toEqual(["lime"]);
+    });
+
+    it("dresses the chosen row's rim and fill in the hue the feed names", () => {
+      const { container } = render(
+        <ActivityFeed items={[row("a", { active: true })]} rowActiveTone="amber" />,
+      );
+      const chosen = rows(container)[0]!;
+      expect(chosen.getAttribute("data-active")).toBe("true");
+      expect(rimHue(chosen)).toBe("amber");
+      expect(tokens(chosen)).toEqual(
+        expect.arrayContaining(["outline-2", "-outline-offset-2", "dark:outline-amber-400"]),
+      );
+      expect(fillHues(chosen)).toEqual(["amber"]);
+    });
+
+    it("prefers a row's own active hue to the feed's", () => {
+      const { container } = render(
+        <ActivityFeed
+          items={[row("a", { active: true, activeTone: "emerald" })]}
+          rowActiveTone="amber"
+        />,
+      );
+      const chosen = rows(container)[0]!;
+      expect(rimHue(chosen)).toBe("emerald");
+      expect(fillHues(chosen)).toEqual(["emerald"]);
+    });
+
+    it("follows the selection into the hover for the chosen row alone", () => {
+      const { container } = render(
+        <ActivityFeed items={[row("a", { active: true }), row("b")]} rowActiveTone="amber" />,
+      );
+      const [chosen, neighbour] = rows(container);
+      // The chosen row previews what it already is…
+      expect(pointerHues(chosen!)).toEqual(["amber"]);
+      // …and the gate holds: a hue is not a state, so the neighbour the feed
+      // handed the same `activeTone` never wears it. The rule lives in Panel
+      // (`active ? activeTone : undefined`); this is the feed's lock on it, so
+      // a future tidy-up cannot fold the follow back onto the hue.
+      expect(pointerHues(neighbour!)).toEqual([]);
+    });
+
+    it("lets an explicit hover hue outrank the follow", () => {
+      const { container } = render(
+        <ActivityFeed
+          items={[row("a", { active: true, hoverTone: "lime" })]}
+          rowActiveTone="amber"
+        />,
+      );
+      const chosen = rows(container)[0]!;
+      expect(pointerHues(chosen)).toEqual(["lime"]);
+      expect(rimHue(chosen)).toBe("amber");
+    });
+
+    it("keeps the attention glow in its own hue once the selection has one", () => {
+      const { container } = render(
+        <ActivityFeed
+          items={[
+            row("a", { active: true, attention: true, attentionTone: "rose" }),
+          ]}
+          rowActiveTone="cyan"
+        />,
+      );
+      const chosen = rows(container)[0]!;
+      // Two states, two messages, two hues — which is what `pulseTone` exists
+      // to license. Without it the glow would ride `activeHue` and the
+      // selection hue would have repainted the urgency call.
+      expect(chosen.className).toContain("panel-pulse");
+      expect(rimHue(chosen)).toBe("cyan");
+      expect(chosen.style.getPropertyValue("--panel-glow")).toBe("var(--color-rose-500)");
+      expect(chosen.style.getPropertyValue("--panel-glow-dark")).toBe("var(--color-rose-300)");
+    });
+
+    it("keeps a pulsing row's glow out of a selection hue it never holds", () => {
+      // The gate has a second half. Panel's `activeHue` feeds the glow as well
+      // as the rim, and *that* chain is not gated on `active` — so handing the
+      // feed's selection hue to every row painted every urgency call in it
+      // (found in the browser, not in jsdom: a hue is only seen where it is
+      // painted). The hue belongs to the row that holds the state.
+      const { container } = render(
+        <ActivityFeed
+          items={[row("a", { active: true }), row("b", { attention: true })]}
+          rowActiveTone="amber"
+        />,
+      );
+      const [chosen, pulsing] = rows(container);
+      expect(rimHue(chosen!)).toBe("amber");
+      expect(pulsing!.className).toContain("panel-pulse");
+      // Unnamed attention keeps the hue its own tone gives it — the neutral
+      // card's blue floor — rather than the colour of somebody else's state.
+      expect(pulsing!.style.getPropertyValue("--panel-glow")).toContain("blue");
+      expect(pulsing!.style.getPropertyValue("--panel-glow")).not.toContain("amber");
+    });
+
+    it("walks the hover hue down into the sub-rows, under every closer call", () => {
+      const renderFeed = (sub: ActivityFeedSubItem, parent: Partial<ActivityFeedItem> = {}) =>
+        render(
+          <ActivityFeed
+            items={[{ id: "p", title: "parent", timestamp: "now", subItems: [sub], ...parent }]}
+            rowHoverTone="cyan"
+          />,
+        );
+      // The feed's hue reaches past the disclosure.
+      expect(tokens(subRow(renderFeed({ title: "sub" }).container))).toEqual(
+        expect.arrayContaining(["hover:bg-cyan-500/15", "dark:hover:bg-cyan-500/20"]),
+      );
+      // The parent row's hue sits above it…
+      expect(tokens(subRow(renderFeed({ title: "sub" }, { hoverTone: "lime" }).container))).toContain(
+        "hover:bg-lime-500/15",
+      );
+      // …and the sub's own hue beats both.
+      const own = subRow(
+        renderFeed({ title: "sub", hoverTone: "amber" }, { hoverTone: "lime" }).container,
+      );
+      expect(tokens(own)).toContain("hover:bg-amber-500/15");
+      expect(tokens(own.querySelector<HTMLElement>("span:first-child")!)).toContain(
+        "group-hover:bg-amber-500",
       );
     });
   });

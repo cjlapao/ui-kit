@@ -17,6 +17,16 @@ const pointer = (button: HTMLButtonElement) => {
   surface.releasePointerCapture = vi.fn();
   fireEvent.pointerDown(button, { button: 0, pointerId: 1, clientX: node.x + node.width, clientY: node.y + node.height / 2 });
 };
+// A card is a role="button" named by its own body, so a custom body control
+// shares the card's accessible name. The decorative ScrollArea bars used to pad
+// that name with "Vertical scroll"/"Horizontal scroll" and keep the two apart;
+// they are aria-hidden now (they are chrome, not an operable widget), so the
+// name collides. The control is a real <button>, the card a <div> — select on
+// the element, which is what "embedded control" means in these tests.
+const bodyControls = (container: HTMLElement, name: string) =>
+  Array.from(container.querySelectorAll<HTMLButtonElement>('button')).filter(
+    (el) => el.textContent?.trim() === name,
+  );
 
 describe('ConnectionFlow edit geometry', () => {
   it('switches directions with a stable corner boundary', () => {
@@ -86,11 +96,11 @@ describe('ConnectionFlow editing', () => {
   });
   it('does not start an edge-band drag over an embedded control', () => {
     const action = vi.fn();
-    const { container, getByRole } = render(<ConnectionFlow nodes={nodes} editMode
+    const { container } = render(<ConnectionFlow nodes={nodes} editMode
       renderNode={() => <button onClick={action}>Action</button>} />);
     const surface = container.querySelector<HTMLElement>('[data-flow-editor]')!;
     surface.setPointerCapture = vi.fn();
-    const button = getByRole('button', { name: 'Action' });
+    const [button] = bodyControls(container, 'Action');
     fireEvent.pointerDown(button, { button: 0, pointerId: 7, clientX: node.x + node.width - 5, clientY: node.y + 20 });
     fireEvent.click(button);
     expect(surface.setPointerCapture).not.toHaveBeenCalled();
@@ -260,10 +270,10 @@ describe('ConnectionFlow editing', () => {
     expect(fireEvent.wheel(sideButton(container), { deltaY: 100 })).toBe(true);
   });
   it('ignores disabled cards and leaves custom body controls available', () => {
-    const { container, getAllByRole } = render(<ConnectionFlow nodes={[...nodes, { id: 'disabled', disabled: true }]} editMode
+    const { container } = render(<ConnectionFlow nodes={[...nodes, { id: 'disabled', disabled: true }]} editMode
       renderNode={() => <button type="button">Inner action</button>} />);
     expect(container.querySelector('[data-flow-edit-source="disabled"]')).toBeNull();
-    fireEvent.pointerMove(getAllByRole('button', { name: 'Inner action' })[0], { clientX: node.x, clientY: node.y });
+    fireEvent.pointerMove(bodyControls(container, 'Inner action')[0], { clientX: node.x, clientY: node.y });
     expect(container.querySelector('[data-flow-ghost-port]')).toBeNull();
   });
 });

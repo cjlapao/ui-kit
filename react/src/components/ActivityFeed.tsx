@@ -66,14 +66,34 @@ export interface ActivityFeedItem {
    */
   attention?: boolean;
   /**
-   * Overrides the hue that attention wears — the Panel's own override,
-   * handed to the row Panel's `borderColor`: `borderColor ?? tone` with the
-   * kit's blue as floor, and the selection rim shares the hue, so an active
-   * and pulsing row always agrees. Unset follows the row's tone. On bordered
-   * row variants the hairline follows the override too, as it does on any
-   * Panel given a `borderColor`.
+   * Overrides the hue that attention wears — the Panel's own override, handed
+   * to the row Panel's `pulseTone` and, as before, its `borderColor`: on
+   * bordered row variants the hairline follows the override too, as it does on
+   * any Panel given a `borderColor`. Unset follows the row's tone, and the
+   * selection rim shares the hue, so an active and pulsing row says both things
+   * in one colour. It stops sharing only when the row was *also* given a hue of
+   * its own for selection (`activeTone` or the feed's `rowActiveTone`): demand
+   * and selection are two messages, and a caller who named both meant it.
    */
   attentionTone?: TrueColor;
+  /**
+   * The hue this row wears under the pointer — its own answer to being
+   * approached, whatever surface it rests on. Beats the feed's `rowHoverTone`;
+   * unset follows it, and with neither the row hovers in its own surface hue
+   * (`rowTone ?? the card's`), exactly as it always did. Only the hue is
+   * yours: the depth of the step stays the theme's, measured against the row's
+   * fill. Never the dot — `tone` is what colours that.
+   */
+  hoverTone?: TrueColor;
+  /**
+   * The hue this row wears when it is the current one — the selection rim and
+   * the tinted fill that comes with it. Beats the feed's `rowActiveTone`;
+   * unset follows it, and with neither the selection takes the row's own hue
+   * (`borderColor ?? tone`, the kit's blue as floor). The hue of *this* row's
+   * state, not of the feed: `attentionTone` still owns the glow, so one row
+   * can say *current* in a colour and *look here* in another.
+   */
+  activeTone?: TrueColor;
   /**
    * Replaces the row's entire content. Set and the dot, actor, title,
    * description, code and timestamp all stop being drawn — the node you
@@ -149,8 +169,11 @@ export interface ActivityFeedSubItem {
   tone?: TrueColor;
   /**
    * The hue the sub-row wears under the pointer: a toned row wash and a dot
-   * lifted to full strength. Unset inherits the tone the dot resolves to, so
-   * every template sub-row is hoverable in its own colour by default.
+   * lifted to full strength. The chain runs `sub.hoverTone`, then the parent
+   * row's `hoverTone`, then the feed's `rowHoverTone`, then the tone the dot
+   * resolves to — so a sub-row is hoverable in its own colour with nothing
+   * named, and a feed that names one hue paints every interaction in the card
+   * with it, disclosure included.
    */
   hoverTone?: TrueColor;
   /**
@@ -331,6 +354,31 @@ export interface ActivityFeedProps
    */
   rowTone?: SurfaceTone;
   /**
+   * The hue every row's hover wash, pressed step and rim ignition wear —
+   * handed to each row Panel's `hoverColor`, so only the hue is yours: the
+   * depth of the step stays the theme's, measured against the row's own fill.
+   * Unset, a row hovers in its surface hue (`rowTone ?? the card's`) and the
+   * row that is `active` hovers in the hue its selection wears — the follow
+   * belongs to the state, not to the hue, so naming this never paints the
+   * whole feed in the colour of a state one row holds. Also the wash default
+   * for the sub-rows under a disclosure, below a sub's own `hoverTone` and its
+   * parent row's.
+   */
+  rowHoverTone?: TrueColor;
+  /**
+   * The hue every row's chosen state wears — the 2px inset rim and the
+   * tone-tinted fill that comes with it — handed to each row Panel's
+   * `activeTone`. Unset follows the row's own hue (`borderColor ?? tone`, the
+   * kit's blue as floor), so a feed that names nothing selects exactly as it
+   * does today. What it is for: a `rowVariant="none"` card whose rows stay
+   * neutral ink while the current row says *this one* in a colour of your
+   * choosing — selection without repainting the surface. An `active` row also
+   * hovers in it; its neighbours do not, and neither does any other row's
+   * state: the hue goes to the row that holds the selection, so a pulsing row
+   * nobody picked keeps the hue its own tone gives it.
+   */
+  rowActiveTone?: TrueColor;
+  /**
    * The corner every template row's Panel wears.
    * @default "rounded" — the corner scale's xs step
    */
@@ -460,6 +508,8 @@ const FeedRow = ({
   item,
   rowVariant,
   rowTone,
+  rowHoverTone,
+  rowActiveTone,
   rowCorner,
   subRowCorner,
   subRowPadding,
@@ -472,6 +522,10 @@ const FeedRow = ({
   rowVariant: SurfaceVariant;
   /** Unset rows follow the card's own surface tone. */
   rowTone?: SurfaceTone;
+  /** The feed's hover hue; `item.hoverTone` beats it. */
+  rowHoverTone?: TrueColor;
+  /** The feed's selection hue; `item.activeTone` beats it. */
+  rowActiveTone?: TrueColor;
   rowCorner: SurfaceCorner;
   /** The corner every sub-row wash wears. */
   subRowCorner: SurfaceCorner;
@@ -492,6 +546,14 @@ const FeedRow = ({
   // The dot ladder's floor, the row's standing rule: neutral cards keep
   // neutral dots.
   const dotFloor = cardAccent === "neutral" ? "neutral" : cardAccent;
+  // The two state hues, resolved once per row: the row's own ask, else the
+  // feed's, else nothing at all — and *nothing* is not a hue. Left undefined
+  // the row Panel keeps its own chains (the neutral hover veil for an untinted
+  // surface, `borderColor ?? tone` with the blue floor for the selection),
+  // which is what makes a feed that names no hue render byte-identical to the
+  // feed that could not name one.
+  const hoverHue = item.hoverTone ?? rowHoverTone;
+  const activeHue = item.activeTone ?? rowActiveTone;
   const chevron = hasSubs ? (
     rowIsToggle ? (
       <span
@@ -541,7 +603,20 @@ const FeedRow = ({
       padding="xs"
       onClick={item.onClick ?? (hasSubs ? onToggle : undefined)}
       active={item.active}
+      // The hue belongs to the row that holds the state, so it is handed over
+      // only when this row is the current one. Panel's `activeHue` — which now
+      // prefers `activeTone` — also feeds the pulse glow, and *that* chain is
+      // not gated on `active`: passing the feed's selection hue to every row
+      // would reach into the urgency call of rows nobody selected, the same
+      // "a hue is not a state" error the hover follow already avoids.
+      activeTone={item.active ? activeHue : undefined}
+      hoverColor={hoverHue}
       pulse={item.attention}
+      // And the urgency hue stays the caller's urgency hue once the current
+      // row has a selection hue of its own: naming both meant two messages,
+      // two hues. With nothing named both still resolve to the same hue the
+      // rim wears, exactly as before.
+      pulseTone={item.attentionTone}
       borderColor={item.attentionTone}
       {...(rowIsToggle
         ? { "aria-expanded": open, "aria-controls": contentId }
@@ -595,15 +670,19 @@ const FeedRow = ({
               {subItems?.map((sub, index) => {
                 // The tone ladder ends here; the dot then steps one off the
                 // parent's in both themes, and the hover hue is the sub's
-                // `hoverTone` or the tone the dot resolved to — so every
-                // template sub-row washes by default. The wrapper is the
+                // `hoverTone`, its parent row's, the feed's `rowHoverTone`, or
+                // the tone the dot resolved to — the parent's hue walks down
+                // one level, the same way the dot's does — so every template
+                // sub-row washes by default. The wrapper is the
                 // `group` the dot's hover reads from; negative margins let
                 // the wash breathe into the column's gap without moving the
                 // row. The resting fill is the nested panels' own depth step
                 // — one step off whatever surface the row nestles on — so
                 // each sub reads as its own row, not flat ink.
                 const subTone = sub.tone ?? item.tone ?? dotFloor;
-                const hover = getSubItemHoverClasses(sub.hoverTone ?? subTone);
+                const hover = getSubItemHoverClasses(
+                  sub.hoverTone ?? item.hoverTone ?? rowHoverTone ?? subTone,
+                );
                 const wash = classNames(
                   "group flex items-start gap-3 transition-colors duration-200 motion-reduce:transition-none",
                   SUB_ROW_PADDING[subRowPadding].row,
@@ -715,6 +794,8 @@ export const ActivityFeed = ({
   corner,
   rowVariant = "none",
   rowTone,
+  rowHoverTone,
+  rowActiveTone,
   rowCorner = "rounded",
   subRowCorner = "rounded-sm",
   subRowPadding = "md",
@@ -893,6 +974,8 @@ export const ActivityFeed = ({
               item={item}
               rowVariant={rowVariant}
               rowTone={rowTone}
+              rowHoverTone={rowHoverTone}
+              rowActiveTone={rowActiveTone}
               rowCorner={rowCorner}
               subRowCorner={subRowCorner}
               subRowPadding={subRowPadding}

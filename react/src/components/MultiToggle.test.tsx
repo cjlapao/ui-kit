@@ -310,7 +310,8 @@ describe("MultiToggle overflow tooltips", () => {
     Object.defineProperty(label, "clientWidth", { configurable: true, value: 80 });
     fireEvent(window, new Event("resize"));
     fireEvent.focus(screen.getAllByRole("radio")[0]);
-    expect(await screen.findByRole("tooltip")).toHaveTextContent("Alpha");
+    // The tip waits the kit's 1s default, so the query has to outlast it.
+    expect(await screen.findByRole("tooltip", undefined, { timeout: 1500 })).toHaveTextContent("Alpha");
     Object.defineProperty(label, "clientWidth", { configurable: true, value: 240 });
     fireEvent(window, new Event("resize"));
     expect(screen.queryByRole("tooltip")).toBeNull();

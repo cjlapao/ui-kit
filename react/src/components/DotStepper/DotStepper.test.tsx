@@ -36,7 +36,8 @@ describe("DotStepper", () => {
     render(<DotStepper steps={[{ title: <strong>Build</strong>, tooltip: "Build project" }]} onStepSelect={onStepSelect} />);
     const button = screen.getByRole("button", { name: "Build project, step 1 of 1, active" });
     fireEvent.focus(button);
-    expect(await screen.findByRole("tooltip")).toHaveTextContent("Build project");
+    // The tip now waits the kit's 1s default, so the query has to outlast it.
+    expect(await screen.findByRole("tooltip", undefined, { timeout: 1500 })).toHaveTextContent("Build project");
     fireEvent.click(button);
     expect(onStepSelect).toHaveBeenCalledWith(expect.objectContaining({ tooltip: "Build project" }), 0);
   });
@@ -77,7 +78,7 @@ describe("DotStepper", () => {
     expect(select).not.toHaveBeenCalled();
     expect(screen.queryByText("Details")).toBeNull();
     fireEvent.mouseEnter(active);
-    expect(await screen.findByRole("tooltip")).toHaveTextContent("Step 5");
+    expect(await screen.findByRole("tooltip", undefined, { timeout: 1500 })).toHaveTextContent("Step 5");
   });
   it("stays button-free when read-only is also disabled", () => {
     render(<DotStepper steps={steps} currentIndex={4} readOnly disabled />);

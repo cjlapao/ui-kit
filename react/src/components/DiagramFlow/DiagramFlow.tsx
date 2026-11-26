@@ -10,7 +10,7 @@ import DiagramFlowControls from './DiagramFlowControls';
 import { placeDiagramCaptions } from './captions';
 import ConnectionFlowNodeBody from '../ConnectionFlow/ConnectionFlowNodeBody';
 import { DEFAULT_LAYOUT_OPTIONS, NODE_METRICS, dotTiming, measureNode, nodeTone, routeLength, type ConnectionFlowItemProgress, type ConnectionFlowNode, type ConnectionFlowProgressType, type LaidOutNode } from '../../connectionFlow';
-import type { ControlSize } from '../../theme/Theme';
+import { getSurfaceHoverTokens, type ControlSize, type SurfaceTone, type SurfaceVariant } from '../../theme/Theme';
 import { useKitT } from '../../i18n';
 import { DIAGRAM_SIDES, alignedDiagramPorts, freeDiagramPort, nearestDiagramSide, type DiagramPort } from './ports';
 import { applyDiagramFlowOperation, validateDiagramFlow, type DiagramFlowConnection, type DiagramFlowConnectorStyle, type DiagramFlowGraph, type DiagramFlowNode, type DiagramFlowOperation, type DiagramFlowOutcome, type DiagramFlowPanelProps } from './model';
@@ -59,6 +59,15 @@ export interface DiagramFlowProps extends Omit<PanelProps, 'children' | 'onChang
 const WIDTH = 180, HEIGHT = 76;
 const STATUS_KEYS = { pending: 'kit.diagramFlow.statusPending', running: 'kit.diagramFlow.statusRunning', succeeded: 'kit.diagramFlow.statusSucceeded', failed: 'kit.diagramFlow.statusFailed', skipped: 'kit.diagramFlow.statusSkipped' } as const;
 const SIDE_KEYS = { top: 'kit.diagramFlow.top', right: 'kit.diagramFlow.right', bottom: 'kit.diagramFlow.bottom', left: 'kit.diagramFlow.left' } as const;
+/** Convert the Panel's hover token into a CSS color for a terminal surface. */
+function terminalHoverColors(variant: SurfaceVariant, tone: SurfaceTone, kind: 'wash' | 'rim' = 'wash') {
+  const prefix = kind === 'wash' ? 'bg' : 'border';
+  const colors = getSurfaceHoverTokens(variant, tone)[kind].match(new RegExp(`${prefix}-([a-z]+)-(\\d+)(?:\\/(\\d+))?`, 'g')) ?? [];
+  return colors.map(value => {
+    const match = new RegExp(`^${prefix}-([a-z]+)-(\\d+)(?:\\/(\\d+))?$`).exec(value);
+    return match ? { color: `var(--color-${match[1]}-${match[2]})`, alpha: `${match[3] ?? 100}%`, paint: `color-mix(in srgb, var(--color-${match[1]}-${match[2]}) ${match[3] ?? 100}%, transparent)` } : undefined;
+  });
+}
 const ENDPOINT_KEYS = { source: 'kit.diagramFlow.source', target: 'kit.diagramFlow.target' } as const;
 
 /** Controlled diagram editor; the application owns execution and persistence. */
@@ -74,7 +83,7 @@ export default function DiagramFlow({ graph, onChange, onConnectionEdit, onNodeE
   const sequence = useRef(0);
   const [selected, setSelected] = useState<string | null>(null);
   const [selectedEdge, setSelectedEdge] = useState<string | null>(null);
-  const [hoveredNode, setHoveredNode] = useState<string | null>(null);
+  const hoveredNode = useRef<string | null>(null);
   const [connecting, setConnecting] = useState<ConnectionGesture | null>(null);
   const [connectionDrag, setConnectionDrag] = useState<PointerConnection | null>(null);
   const connectionDragRef = useRef<PointerConnection | null>(null);
@@ -97,6 +106,29 @@ export default function DiagramFlow({ graph, onChange, onConnectionEdit, onNodeE
   const [notice, setNotice] = useState('');
   const locked = !!surfaceProps.disabled || !!surfaceProps.loading;
   const editDisabled = readOnly || locked;
+  // Hover changes only decoration. Updating it directly avoids reconciling
+  // every node and connector on pointer movement through a large diagram.
+  const setHoveredNode = (id: string | null, force = false) => {
+    if (!force && hoveredNode.current === id) return;
+    hoveredNode.current = id;
+    const activeDrag = connectionDragRef.current;
+    canvas.current?.querySelectorAll<HTMLElement | SVGElement>('[data-diagram-terminal-node], [data-diagram-terminal-dot-node], [data-diagram-port-node]').forEach(element => {
+      const terminalNode = element.getAttribute('data-diagram-terminal-node');
+      const dotNode = element.getAttribute('data-diagram-terminal-dot-node');
+      const portNode = element.getAttribute('data-diagram-port-node');
+      if (terminalNode !== null) { if (terminalNode === id && element.hasAttribute('data-hover-enabled')) element.setAttribute('data-hovered', 'true'); else element.removeAttribute('data-hovered'); }
+      if (dotNode !== null) { if (dotNode === id && element.hasAttribute('data-contrast-enabled')) element.setAttribute('data-contrast', 'true'); else element.removeAttribute('data-contrast'); }
+      if (portNode !== null) {
+        const isHovered = portNode === id;
+        const isDragSource = activeDrag?.gesture.kind === 'create' && activeDrag.gesture.sourceId === portNode;
+        element.style.opacity = isHovered || isDragSource ? '1' : '0';
+        element.style.pointerEvents = isHovered ? 'auto' : 'none';
+      }
+    });
+  };
+  useLayoutEffect(() => {
+    if (hoveredNode.current !== null) setHoveredNode(hoveredNode.current, true);
+  });
   useEffect(() => {
     if (lastGraph.current !== graph) {
       if (expectedGraph.current !== graph) setHistory({ past: [], future: [] });
@@ -151,7 +183,7 @@ export default function DiagramFlow({ graph, onChange, onConnectionEdit, onNodeE
     return () => view.removeEventListener('wheel', wheel);
   }, [locked]);
   useEffect(() => {
-    if (locked) { pan.current = null; setPanning(false); }
+    if (locked) { pan.current = null; setPanning(false); setHoveredNode(null); }
   }, [locked]);
   const errors = useMemo(() => validateDiagramFlow(graph), [graph]);
   const layoutOptions = useMemo(() => ({ ...DEFAULT_LAYOUT_OPTIONS, metrics: NODE_METRICS[size], itemProgress, maxVisibleItems }), [size, itemProgress, maxVisibleItems]);
@@ -273,6 +305,16 @@ export default function DiagramFlow({ graph, onChange, onConnectionEdit, onNodeE
     const hops = routeCrossings(laidOut.map(({ edge, route }) => ({ id: edge.id, points: route.points, style: 'orthogonal' as const })), { cornerRadius: 8 });
     return laidOut.map(item => ({ ...item, route: { ...item.route, d: hops.get(item.edge.id) ?? item.route.d } }));
   }, [nodes, byId, graph.connections, offsetX, offsetY, nodePanelProps, sizePreview, expanded, layoutOptions]);
+  const bulbPorts = useMemo(() => {
+    const map = new Map<string, DiagramPort[]>();
+    for (const { edge, fromPort, toPort } of routes) {
+      if ((edge.connectorStyle ?? connectorStyle) !== 'bulb') continue;
+      map.set(edge.sourceId, [...(map.get(edge.sourceId) ?? []), fromPort]);
+      map.set(edge.targetId, [...(map.get(edge.targetId) ?? []), toPort]);
+    }
+    return map;
+  }, [routes, connectorStyle]);
+  const maskId = (index: number) => `${uid}-terminal-mask-${index}`;
   const dotGroups = useMemo(() => {
     const groups = new Map<string, typeof routes>();
     for (const route of routes) if (animated && route.edge.animated) groups.set(route.edge.sourceId, [...(groups.get(route.edge.sourceId) ?? []), route]);
@@ -407,7 +449,7 @@ export default function DiagramFlow({ graph, onChange, onConnectionEdit, onNodeE
     requestAnimationFrame(() => { view.scrollLeft = Math.max(0, (minX + maxX) * next / 2 - view.clientWidth / 2); view.scrollTop = Math.max(0, (minY + maxY) * next / 2 - view.clientHeight / 2); });
   };
   return <Panel {...surfaceProps} ref={root} aria-label={surfaceProps['aria-label'] ?? t('kit.diagramFlow.name')} data-diagram-flow variant={variant} tone={tone} padding={padding} clickable={false} scrollable={false} className={`overflow-hidden ${className ?? ''}`} style={style}>
-    <style>{`[data-diagram-flow]{--diagram-caption-fill:var(--color-neutral-100,#f5f5f5);--diagram-caption-text:var(--color-neutral-700,#404040)} .dark [data-diagram-flow]{--diagram-caption-fill:var(--color-neutral-800,#262626);--diagram-caption-text:var(--color-neutral-100,#f5f5f5)}`}</style>
+    <style>{`[data-diagram-flow]{--diagram-caption-fill:var(--color-neutral-100,#f5f5f5);--diagram-caption-text:var(--color-neutral-700,#404040)} .dark [data-diagram-flow]{--diagram-caption-fill:var(--color-neutral-800,#262626);--diagram-caption-text:var(--color-neutral-100,#f5f5f5)} [data-diagram-terminal][data-hovered][data-tinted]{--ui-surface-color:var(--terminal-light-color);--ui-surface-alpha:var(--terminal-light-alpha)} [data-diagram-terminal][data-hovered][data-tinted]:not(.ui-surface-fill){background-color:var(--terminal-hover-light)} [data-diagram-terminal][data-hovered][data-hover-rim]{border-color:var(--terminal-rim-light)} .dark [data-diagram-terminal][data-hovered][data-hover-rim]{border-color:var(--terminal-rim-dark)} .dark [data-diagram-terminal][data-hovered][data-tinted]{--ui-surface-color:var(--terminal-dark-color);--ui-surface-alpha:var(--terminal-dark-alpha)} .dark [data-diagram-terminal][data-hovered][data-tinted]:not(.ui-surface-fill){background-color:var(--terminal-hover-dark)} [data-diagram-terminal][data-hovered]:not([data-tinted]) [data-terminal-hover-overlay]{background-color:rgb(0 0 0 / .045)} .dark [data-diagram-terminal][data-hovered]:not([data-tinted]) [data-terminal-hover-overlay]{background-color:rgb(255 255 255 / .1)} [data-diagram-terminal-dot][data-contrast][data-outcome=success]{fill:#065f46} .dark [data-diagram-terminal-dot][data-contrast][data-outcome=success]{fill:#a7f3d0} [data-diagram-terminal-dot][data-contrast][data-outcome=failure]{fill:#9f1239} .dark [data-diagram-terminal-dot][data-contrast][data-outcome=failure]{fill:#fecdd3} [data-diagram-terminal-dot][data-contrast][data-outcome=unknown]{fill:#1e293b} .dark [data-diagram-terminal-dot][data-contrast][data-outcome=unknown]{fill:#e2e8f0}`}</style>
     <div role="status" className="min-h-6 px-3 text-xs text-neutral-500">{errors.length ? t('kit.diagramFlow.invalid', { errors: errors.join('; ') }) : notice || (routes.length < graph.connections.length ? t('kit.diagramFlow.unroutable') : connecting ? t('kit.diagramFlow.chooseTarget') : t('kit.diagramFlow.instructions'))}</div>
     <div className="relative"><ScrollArea viewportRef={viewport} gutter={false} contentClassName="block" style={{ height }}><div style={{ width: canvasWidth * zoom, height: canvasHeightWithCaptions * zoom, position: 'relative' }}>
       <div ref={canvas} style={{ position: 'absolute', width: canvasWidth, height: canvasHeightWithCaptions, transform: `scale(${zoom})`, transformOrigin: 'top left' }}>
@@ -434,26 +476,46 @@ export default function DiagramFlow({ graph, onChange, onConnectionEdit, onNodeE
           {previewPath && <path data-diagram-connection-preview d={previewPath} stroke="#3b82f6" strokeWidth="2" strokeDasharray="5 4" fill="none" pointerEvents="none" />}
           {createPreview && <rect data-diagram-create-preview x={createPreview.node.position.x + offsetX} y={createPreview.node.position.y + offsetY} width={createPreview.size.width} height={createPreview.size.height} rx={12} fill={createPreview.blocked ? '#f43f5e' : '#3b82f6'} fillOpacity="0.1" stroke={createPreview.blocked ? '#f43f5e' : '#3b82f6'} strokeWidth={2} strokeDasharray="6 5" pointerEvents="none" />}
         </svg>
-        {nodes.map(node => { const panel = { variant: 'outlined' as const, padding: 'sm' as const, ...nodePanelProps, ...(node.tone ? { tone: node.tone } : {}), ...node.panelProps }; const dimensions = nodeSize(node); const flowNode: ConnectionFlowNode = node; const stepperReadOnly = node.dotStepper?.readOnly ?? !(node.dotStepper?.onStepSelect || node.dotStepper?.renderActiveContent); const hasControls = (!!node.dotStepper && !stepperReadOnly) || (node.items?.length ?? 0) > (node.maxItems ?? maxVisibleItems) || expanded.has(node.id); const laid: LaidOutNode = { id: node.id, node: flowNode, outline: '', x: node.position.x, y: node.position.y, ...dimensions, anchorY: dimensions.height / 2, column: 0, depth: 0, tone: nodeTone(flowNode), scrollable: true }; return <Panel key={node.id} {...panel} disabled={nodeDisabled(node)} clickable={hasControls ? false : panel.clickable} role={hasControls ? 'group' : undefined} tabIndex={hasControls ? (nodeDisabled(node) ? -1 : 0) : undefined} data-diagram-node={node.id} aria-label={t('kit.diagramFlow.nodeLabel', { title: node.title, status: t(STATUS_KEYS[node.status ?? 'pending']), join: node.join === 'all' ? `, ${t(node.joinReady ? 'kit.diagramFlow.joinReady' : 'kit.diagramFlow.joinWaiting').toLocaleLowerCase()}` : '' })} aria-pressed={hasControls ? undefined : selected === node.id} active={!!panel.active || selected === node.id || dropTarget?.node.id === node.id} onPointerEnter={() => setHoveredNode(node.id)} onPointerLeave={event => { if (!(event.relatedTarget instanceof Element) || event.relatedTarget.getAttribute('data-diagram-port-node') !== node.id) setHoveredNode(null); }} onFocus={() => setHoveredNode(node.id)} onBlur={event => { if (!(event.relatedTarget instanceof Element) || event.relatedTarget.getAttribute('data-diagram-port-node') !== node.id) setHoveredNode(null); }} onClick={() => activateNode(node)} onDoubleClick={() => { if (!locked) onNodeEdit?.(node); }}
+        <svg aria-hidden="true" width="0" height="0" style={{ position: 'absolute', pointerEvents: 'none' }}><defs>
+          {nodes.map((node, index) => { const ports = bulbPorts.get(node.id); if (!ports?.length) return null; const box = nodeBox(node); return <mask key={node.id} id={maskId(index)} maskUnits="userSpaceOnUse" x={0} y={0} width={box.width} height={box.height}>
+            <rect width={box.width} height={box.height} fill="white" />
+            {ports.map((port, i) => { const x = port.x - box.x, y = port.y - box.y; return <rect key={i} fill="black" x={port.side === 'right' ? box.width - 1 : port.side === 'left' ? 0 : x - 7} y={port.side === 'bottom' ? box.height - 1 : port.side === 'top' ? 0 : y - 7} width={port.side === 'left' || port.side === 'right' ? 1 : 14} height={port.side === 'top' || port.side === 'bottom' ? 1 : 14} />; })}
+          </mask>; })}
+        </defs></svg>
+        {routes.flatMap(({ edge, fromPort, toPort }) => (edge.connectorStyle ?? connectorStyle) !== 'bulb' ? [] : ([{ port: fromPort, node: byId.get(edge.sourceId), endpoint: 'source' }, { port: toPort, node: byId.get(edge.targetId), endpoint: 'target' }] as const).map(({ port, node, endpoint }) => {
+          if (!node) return null;
+          const panel = { variant: 'outlined' as const, ...nodePanelProps, ...(node.tone ? { tone: node.tone } : {}), ...node.panelProps };
+          const hoverEnabled = panel.hoverable !== false && !nodeDisabled(node);
+          const hovered = hoveredNode.current === node.id && hoverEnabled;
+          const hue = panel.hoverColor ?? (selected === node.id ? panel.activeTone : undefined) ?? (panel.tone === 'none' ? undefined : panel.tone);
+          const [light, dark] = terminalHoverColors(panel.variant, hue ?? 'none');
+          const [rimLight, rimDark] = terminalHoverColors(panel.variant, hue ?? 'none', 'rim');
+          return <Panel key={`${edge.id}-${endpoint}`} data-diagram-terminal={endpoint} data-diagram-terminal-node={node.id} data-hover-enabled={hoverEnabled || undefined} data-hovered={hovered || undefined} data-tinted={hue ? true : undefined} data-hover-rim={rimLight && rimDark ? true : undefined} aria-hidden="true" variant={panel.variant} tone={panel.tone} active={!!panel.active || selected === node.id || dropTarget?.node.id === node.id} activeTone={panel.activeTone} borderColor={panel.borderColor} backgroundColor={panel.backgroundColor} transparency={panel.transparency} glassOpacity={panel.glassOpacity} vibrancy={panel.vibrancy} specularMode={panel.specularMode} raisedSurface={panel.raisedSurface} padding="none" clickable={false} hoverable={false} className="!rounded-full transition-colors duration-200" style={{ position: 'absolute', left: port.x - 7, top: port.y - 7, width: 14, height: 14, pointerEvents: 'none', zIndex: 0, borderRadius: '50%', '--terminal-hover-light': light?.paint, '--terminal-hover-dark': dark?.paint, '--terminal-light-color': light?.color, '--terminal-light-alpha': light?.alpha, '--terminal-dark-color': dark?.color, '--terminal-dark-alpha': dark?.alpha, '--terminal-rim-light': rimLight?.paint, '--terminal-rim-dark': rimDark?.paint } as React.CSSProperties}><span data-terminal-hover-overlay aria-hidden="true" className="transition-colors duration-200" style={{ position: 'absolute', inset: 0, borderRadius: 'inherit', pointerEvents: 'none' }} /></Panel>;
+        }))}
+        {nodes.map((node, index) => { const panel = { variant: 'outlined' as const, padding: 'sm' as const, ...nodePanelProps, ...(node.tone ? { tone: node.tone } : {}), ...node.panelProps }; const dimensions = nodeSize(node); const flowNode: ConnectionFlowNode = node; const stepperReadOnly = node.dotStepper?.readOnly ?? !(node.dotStepper?.onStepSelect || node.dotStepper?.renderActiveContent); const hasControls = (!!node.dotStepper && !stepperReadOnly) || (node.items?.length ?? 0) > (node.maxItems ?? maxVisibleItems) || expanded.has(node.id); const laid: LaidOutNode = { id: node.id, node: flowNode, outline: '', x: node.position.x, y: node.position.y, ...dimensions, anchorY: dimensions.height / 2, column: 0, depth: 0, tone: nodeTone(flowNode), scrollable: true }; return <Panel key={node.id} {...panel} disabled={nodeDisabled(node)} clickable={hasControls ? false : panel.clickable} role={hasControls ? 'group' : undefined} tabIndex={hasControls ? (nodeDisabled(node) ? -1 : 0) : undefined} data-diagram-node={node.id} aria-label={t('kit.diagramFlow.nodeLabel', { title: node.title, status: t(STATUS_KEYS[node.status ?? 'pending']), join: node.join === 'all' ? `, ${t(node.joinReady ? 'kit.diagramFlow.joinReady' : 'kit.diagramFlow.joinWaiting').toLocaleLowerCase()}` : '' })} aria-pressed={hasControls ? undefined : selected === node.id} active={!!panel.active || selected === node.id || dropTarget?.node.id === node.id} onPointerEnter={() => setHoveredNode(node.id)} onPointerLeave={event => { if (!(event.relatedTarget instanceof Element) || event.relatedTarget.getAttribute('data-diagram-port-node') !== node.id) setHoveredNode(null); }} onFocus={() => setHoveredNode(node.id)} onBlur={event => { if (!(event.relatedTarget instanceof Element) || event.relatedTarget.getAttribute('data-diagram-port-node') !== node.id) setHoveredNode(null); }} onClick={() => activateNode(node)} onDoubleClick={() => { if (!locked) onNodeEdit?.(node); }}
           onPointerDown={event => { if (editDisabled || connecting || event.button !== 0 || (event.target instanceof Element && event.target.closest('button, a, input, select, textarea, [data-no-drag]'))) return; event.currentTarget.setPointerCapture(event.pointerId); drag.current = { id: node.id, x: event.clientX, y: event.clientY, original: node.position, moved: false }; }}
           onPointerMove={event => { const d = drag.current; if (!d || d.id !== node.id) return; const dx = (event.clientX - d.x) / zoom, dy = (event.clientY - d.y) / zoom; if (Math.hypot(dx, dy) < 4 && !d.moved) return; d.moved = true; setPreview({ id: node.id, x: snap(d.original.x + dx), y: snap(d.original.y + dy) }); }}
           onPointerUp={event => { const d = drag.current; drag.current = null; if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId); if (d?.moved) { suppressClick.current = true; setTimeout(() => { suppressClick.current = false; }, 0); move(node.id, { x: snap(d.original.x + (event.clientX - d.x) / zoom), y: snap(d.original.y + (event.clientY - d.y) / zoom) }); } setPreview(null); }}
           onKeyDown={event => { if (event.target !== event.currentTarget) return; if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); return; } if (editDisabled || connecting) return; const delta: Record<string, [number, number]> = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }; const direction = delta[event.key]; if (direction) { event.preventDefault(); move(node.id, { x: snap(node.position.x + direction[0] * spacing), y: snap(node.position.y + direction[1] * spacing) }); } }}
           onPointerCancel={() => { drag.current = null; setPreview(null); }}
           className={`text-left ${dropTarget?.node.id === node.id ? 'ring-4 ring-blue-400/60 ring-offset-2' : ''} ${panel.className ?? ''}`}
-          style={{ ...panel.style, position: 'absolute', left: node.position.x + offsetX, top: node.position.y + offsetY, ...nodeSize(node), touchAction: 'none' }}>
+          style={{ ...panel.style, position: 'absolute', left: node.position.x + offsetX, top: node.position.y + offsetY, ...nodeSize(node), ...(bulbPorts.has(node.id) ? { maskImage: `url(#${maskId(index)})`, WebkitMaskImage: `url(#${maskId(index)})` } : {}), touchAction: 'none' }}>
           {hasControls && <button type="button" disabled={nodeDisabled(node)} className="sr-only focus:not-sr-only" onClick={event => { event.stopPropagation(); activateNode(node); }}>{t('kit.diagramFlow.selectNode', { title: node.title })}</button>}
           <div className="flex h-full min-h-0 gap-2 overflow-y-auto">
             <div className="min-w-0 flex-1"><ConnectionFlowNodeBody node={laid} metrics={NODE_METRICS[size]} options={layoutOptions} scrollable expanded={expanded} moreLabel={count => t('kit.diagramFlow.more', { count })} lessLabel={t('kit.diagramFlow.less')} onToggleExpanded={id => setExpanded(current => { const next = new Set(current); if (next.has(id)) next.delete(id); else next.add(id); return next; })} showProgress={(node.progressType ?? progressType) === 'bar'} />{node.dotStepper && <div data-no-drag data-diagram-stepper={node.id} className="mt-2 max-w-full overflow-x-auto"><DotStepper variant="none" {...node.dotStepper} readOnly={stepperReadOnly} aria-label={node.dotStepper['aria-label'] ?? t('kit.diagramFlow.nodeSteps', { title: node.title })} /></div>}{node.join === 'all' && <span className="text-xs text-neutral-500">{t(node.joinReady ? 'kit.diagramFlow.joinReady' : 'kit.diagramFlow.joinWaiting')}</span>}</div>
             {(node.progressType ?? progressType) === 'spinner' && node.progress !== undefined && <ProgressSpinner size="xs" color={nodeTone(flowNode)} value={node.progress * 100} showValue={false} />}
           </div>
         </Panel>; })}
-        {routes.flatMap(({ edge, fromPort, toPort }) => (edge.connectorStyle ?? connectorStyle) !== 'bulb' ? [] : ([{ port: fromPort, node: byId.get(edge.sourceId), endpoint: 'source' }, { port: toPort, node: byId.get(edge.targetId), endpoint: 'target' }] as const).map(({ port, node, endpoint }) => {
-          if (!node) return null;
-          const panel = { variant: 'outlined' as const, ...nodePanelProps, ...(node.tone ? { tone: node.tone } : {}), ...node.panelProps };
-          const color = edge.outcome === 'failure' ? '#fb7185' : edge.outcome === 'success' ? '#10b981' : '#94a3b8';
-          return <Panel key={`${edge.id}-${endpoint}`} data-diagram-terminal={endpoint} aria-hidden="true" variant={panel.variant} tone={panel.tone} transparency={panel.transparency} glassOpacity={panel.glassOpacity} vibrancy={panel.vibrancy} specularMode={panel.specularMode} raisedSurface={panel.raisedSurface} padding="none" clickable={false} hoverable={false} className="!rounded-full" style={{ position: 'absolute', left: port.x - 7, top: port.y - 7, width: 14, height: 14, pointerEvents: 'none', zIndex: 10, borderRadius: '50%' }}><span style={{ position: 'absolute', left: 4, top: 4, width: 6, height: 6, borderRadius: '50%', background: color }} /></Panel>;
-        }))}
+        <svg aria-hidden="true" className="pointer-events-none absolute inset-0 z-10 h-full w-full" style={{ overflow: 'visible' }}>
+          {routes.flatMap(({ edge, fromPort, toPort }) => (edge.connectorStyle ?? connectorStyle) !== 'bulb' ? [] : [fromPort, toPort].map((port, i) => {
+            const node = byId.get(i ? edge.targetId : edge.sourceId);
+            const panel = node ? { ...nodePanelProps, ...(node.tone ? { tone: node.tone } : {}), ...node.panelProps } : undefined;
+            const hue = panel?.hoverColor ?? (node && selected === node.id ? panel?.activeTone : undefined) ?? panel?.tone;
+            const contrastEnabled = !!node && panel?.hoverable !== false && !nodeDisabled(node) && (edge.outcome === 'success' ? hue === 'emerald' || hue === 'green' : edge.outcome === 'failure' ? hue === 'rose' || hue === 'red' : hue === 'slate' || hue === 'gray');
+            const matching = contrastEnabled && hoveredNode.current === node?.id;
+            return <circle key={`${edge.id}-${i}`} data-diagram-terminal-dot={i ? 'target' : 'source'} data-diagram-terminal-dot-node={node?.id} data-contrast-enabled={contrastEnabled || undefined} data-contrast={matching || undefined} data-outcome={edge.outcome} cx={port.x} cy={port.y} r={3} fill={edge.outcome === 'failure' ? '#fb7185' : edge.outcome === 'success' ? '#10b981' : '#94a3b8'} />;
+          }))}
+        </svg>
         {!editDisabled && selectedNode && !nodeDisabled(selectedNode) && (() => { const size = nodeSize(selectedNode); return <button type="button" data-diagram-resize={selectedNode.id} aria-label={t('kit.diagramFlow.resize', { title: selectedNode.title })} title={t('kit.diagramFlow.resizeHint')} className="absolute z-20 flex items-end justify-end rounded-sm border border-blue-500 bg-white text-blue-600 shadow focus-visible:outline focus-visible:outline-2 dark:bg-neutral-900" style={{ left: selectedNode.position.x + offsetX + size.width - 10, top: selectedNode.position.y + offsetY + size.height - 10, width: 20, height: 20, cursor: 'nwse-resize', touchAction: 'none' }}
           onPointerDown={event => { if (event.button !== 0) return; event.stopPropagation(); event.currentTarget.setPointerCapture(event.pointerId); resize.current = { id: selectedNode.id, pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, ...size }; }}
           onPointerMove={event => { const r = resize.current; if (!r || r.pointerId !== event.pointerId) return; setSizePreview({ id: r.id, width: Math.max(120, snap(r.width + (event.clientX - r.startX) / zoom)), height: Math.max(60, snap(r.height + (event.clientY - r.startY) / zoom)) }); }}
@@ -462,7 +524,7 @@ export default function DiagramFlow({ graph, onChange, onConnectionEdit, onNodeE
           onKeyDown={event => { const directions: Record<string, [number, number]> = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }; const delta = directions[event.key]; if (delta) { event.preventDefault(); resizeNode(selectedNode.id, size.width + delta[0] * spacing, size.height + delta[1] * spacing); } }}>
           <span aria-hidden="true" className="text-xs leading-none">◢</span></button>; })()}
         {dropTarget && <svg aria-hidden="true" className="pointer-events-none absolute inset-0 z-10 h-full w-full" style={{ overflow: 'visible' }}>{dropTarget.choices.map(port => <circle key={port.side} data-diagram-drop-side={port.side} cx={port.x} cy={port.y} r={port.side === dropTarget.port.side ? 8 : 5} fill={port.side === dropTarget.port.side ? '#3b82f6' : '#fff'} stroke="#3b82f6" strokeWidth="2" />)}</svg>}
-        {!editDisabled && nodes.filter(node => !nodeDisabled(node)).flatMap(node => portsFor(node).map(port => <button key={`${node.id}-${port.side}`} type="button" data-diagram-port={port.side} data-diagram-port-node={node.id} aria-label={t('kit.diagramFlow.portLabel', { title: node.title, side: t(SIDE_KEYS[port.side]) })} title={t('kit.diagramFlow.portLabel', { title: node.title, side: t(SIDE_KEYS[port.side]) })} {...handleGesture({ kind: 'create', sourceId: node.id, outcome: 'unknown', side: port.side })} onPointerEnter={() => setHoveredNode(node.id)} onPointerLeave={event => { if (!(event.relatedTarget instanceof Element) || (event.relatedTarget.getAttribute('data-diagram-node') !== node.id && event.relatedTarget.getAttribute('data-diagram-port-node') !== node.id)) setHoveredNode(null); }} onFocus={() => setHoveredNode(node.id)} onBlur={event => { if (!(event.relatedTarget instanceof Element) || (event.relatedTarget.getAttribute('data-diagram-node') !== node.id && event.relatedTarget.getAttribute('data-diagram-port-node') !== node.id)) setHoveredNode(null); }} className="absolute rounded-full border-2 border-white bg-slate-500 shadow-md transition-opacity hover:bg-blue-500 focus-visible:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-400" style={{ left: port.x - 8, top: port.y - 8, width: 16, height: 16, touchAction: 'none', opacity: hoveredNode === node.id || connectionDrag?.gesture.kind === 'create' && connectionDrag.gesture.sourceId === node.id ? 1 : 0, pointerEvents: hoveredNode === node.id ? 'auto' : 'none' }} />))}
+        {!editDisabled && nodes.filter(node => !nodeDisabled(node)).flatMap(node => portsFor(node).map(port => <button key={`${node.id}-${port.side}`} type="button" data-diagram-port={port.side} data-diagram-port-node={node.id} aria-label={t('kit.diagramFlow.portLabel', { title: node.title, side: t(SIDE_KEYS[port.side]) })} title={t('kit.diagramFlow.portLabel', { title: node.title, side: t(SIDE_KEYS[port.side]) })} {...handleGesture({ kind: 'create', sourceId: node.id, outcome: 'unknown', side: port.side })} onPointerEnter={() => setHoveredNode(node.id)} onPointerLeave={event => { if (!(event.relatedTarget instanceof Element) || (event.relatedTarget.getAttribute('data-diagram-node') !== node.id && event.relatedTarget.getAttribute('data-diagram-port-node') !== node.id)) setHoveredNode(null); }} onFocus={() => setHoveredNode(node.id)} onBlur={event => { if (!(event.relatedTarget instanceof Element) || (event.relatedTarget.getAttribute('data-diagram-node') !== node.id && event.relatedTarget.getAttribute('data-diagram-port-node') !== node.id)) setHoveredNode(null); }} className="absolute rounded-full border-2 border-white bg-slate-500 shadow-md hover:bg-blue-500 focus-visible:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-400" style={{ left: port.x - 8, top: port.y - 8, width: 16, height: 16, touchAction: 'none', opacity: hoveredNode.current === node.id || connectionDrag?.gesture.kind === 'create' && connectionDrag.gesture.sourceId === node.id ? 1 : 0, pointerEvents: hoveredNode.current === node.id ? 'auto' : 'none' }} />))}
         {!editDisabled && routes.filter(({ edge }) => edge.id === selectedEdge).flatMap(({ edge, route }) => (['source', 'target'] as const).map((endpoint, i) => { const point = i ? route.points[route.points.length - 1] : route.points[0]; return <button key={`${edge.id}-${endpoint}`} type="button" data-diagram-endpoint={endpoint} aria-label={t('kit.diagramFlow.endpointLabel', { endpoint: t(ENDPOINT_KEYS[endpoint]), outcome: t(`kit.diagramFlow.${edge.outcome}`).toLocaleLowerCase(), source: byId.get(edge.sourceId)?.title ?? edge.sourceId, target: byId.get(edge.targetId)?.title ?? edge.targetId })} title={t('kit.diagramFlow.endpointTitle', { endpoint: t(ENDPOINT_KEYS[endpoint]) })} {...handleGesture({ kind: 'reconnect', edgeId: edge.id, endpoint })} className="absolute rounded-full border-2 border-blue-600 bg-white shadow focus-visible:outline focus-visible:outline-2" style={{ left: point.x - 9, top: point.y - 9, width: 18, height: 18, touchAction: 'none' }} />; }))}
       </div>
     </div></ScrollArea>

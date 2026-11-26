@@ -10,6 +10,27 @@ import type { TraceGraphHandle, TraceGraphProps } from "./types";
 const EMPTY: readonly string[] = [];
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
 const neutralView: TraceGraphViewport = { x: 0, y: 0, zoom: 1 };
+/**
+ * Catalog keys for the built-in copy. Spelled out as literals — the previous
+ * `t(`kit.traceGraph.${key}`)` composition was invisible to the
+ * catalog-consistency scanner (react/src/i18n/catalog-consistency.test.ts),
+ * which reads the source for `"kit.…"` strings and reported every one of
+ * these keys as dead. The map keeps the runtime behaviour identical, pins the
+ * keys to the `labels` prop surface, and keeps the dead-key gate honest.
+ */
+const LABEL_KEYS = {
+  fit: "kit.traceGraph.fit",
+  zoomIn: "kit.traceGraph.zoomIn",
+  zoomOut: "kit.traceGraph.zoomOut",
+  search: "kit.traceGraph.search",
+  follow: "kit.traceGraph.follow",
+  resume: "kit.traceGraph.resume",
+  pause: "kit.traceGraph.pause",
+  details: "kit.traceGraph.details",
+  close: "kit.traceGraph.close",
+  empty: "kit.traceGraph.empty",
+  help: "kit.traceGraph.help",
+} as const satisfies Record<keyof NonNullable<TraceGraphProps["labels"]>, string>;
 
 export const TraceGraph = forwardRef<TraceGraphHandle, TraceGraphProps>(function TraceGraph({
   nodes, edges, layout = "dependency", height = 480, activeNodeIds, activeEdgeIds,
@@ -21,7 +42,7 @@ export const TraceGraph = forwardRef<TraceGraphHandle, TraceGraphProps>(function
   tone = "none", variant = "outlined", corner = "auto", padding = "none", loading = false, disabled = false, ...panelProps
 }, ref) {
   const t = useKitT(), helpId = useId();
-  const copy = (key: keyof NonNullable<TraceGraphProps["labels"]>) => labels?.[key] ?? t(`kit.traceGraph.${key}`);
+  const copy = (key: keyof NonNullable<TraceGraphProps["labels"]>) => labels?.[key] ?? t(LABEL_KEYS[key]);
   const hostRef = useRef<HTMLDivElement>(null), canvasRef = useRef<HTMLCanvasElement>(null), textRef = useRef<HTMLCanvasElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const focusDetails = useRef(false);

@@ -28,7 +28,7 @@ export const TooltipPage: React.FC = () => (
       </h2>
       <ExampleCard
         title="Basic"
-        description="Wrap a trigger and pass the hint text. The tooltip shows after a 500ms hover delay."
+        description="Wrap a trigger and pass the hint text. The tooltip shows after a 1s hover delay."
         code={basicCode}
         filename="Basic.tsx"
       >

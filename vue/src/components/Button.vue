@@ -63,6 +63,13 @@ export interface ButtonProps {
   tooltip?: string;
   /** Position of the tooltip relative to the button. Defaults to 'top'. */
   tooltipPosition?: TooltipPosition;
+  /** Milliseconds the pointer must rest on the button before the tip appears.
+   * Defaults to the tooltip default of 1000. */
+  tooltipDelay?: number;
+  /** Keep the tooltip suppressed — hides a visible tip and blocks new ones.
+   * DropdownButton sets this while its menu is open so the tip never floats
+   * over menu rows; pass it yourself while a surface you own is open. */
+  tooltipDisabled?: boolean;
 }
 
 // `disabled:opacity-50` is applied conditionally rather than living here:
@@ -287,7 +294,7 @@ const buttonBindings = computed(() => {
     button is written once instead of duplicated in tooltip/non-tooltip
     branches (the duplication is how the two drift apart).
   -->
-  <TooltipWrapper :text="tooltip" :position="tooltipPosition">
+  <TooltipWrapper :text="tooltip" :position="tooltipPosition" :delay="tooltipDelay" :disabled="tooltipDisabled">
     <button ref="el" v-bind="buttonBindings">
       <div
         v-if="specularOverlayClasses"

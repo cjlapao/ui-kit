@@ -90,6 +90,12 @@ export function TableViewport({ children, fullHeight, maxHeight, viewportRef, on
       </div>
       <ScrollArea
         className="min-h-0 min-w-0 flex-1"
+        // The body scroller groups exactly the table's rows, so it is their
+        // rowgroup — a focusable, role-less div would be a child the
+        // `role="table"` above is not allowed to own (axe
+        // aria-required-children), and the region is keyboard-tabbable
+        // whenever the rows overflow.
+        viewportRole="rowgroup"
         style={{
           flexBasis: fullHeight ? 0 : "auto",
           maxHeight: maxHeight != null

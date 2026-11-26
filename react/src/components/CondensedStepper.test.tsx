@@ -651,12 +651,19 @@ describe("CondensedStepper", () => {
     ).toContain("bg-emerald-500");
     // tonal is the kit's tone tint, not a white slab: the same fill a
     // Pill or Badge wears at the same variant (the helper's own palette,
-    // never a bgClass override stomping it).
+    // never a bgClass override stomping it). That palette fill is
+    // `{c}-200/60` light / `{c}-500/15` dark — the stronger-shade tonal
+    // retune, pinned for every tone in `surfaceTransparency.test.tsx` —
+    // which the transparency helper carries as the shared
+    // `--ui-surface-color`/`--ui-surface-alpha` fill; the edge is
+    // `tonalBorder`'s `{c}-300` hairline, never outlined's `{c}-200`.
     const { container: tonal } = strip({ variant: "tonal" });
     const tonalPill = tonal.querySelector(".cs-pill")!;
-    expect(tonalPill.className).toContain("[--ui-surface-color:var(--color-blue-100)]");
+    expect(tonalPill.className).toContain("[--ui-surface-color:var(--color-blue-200)]");
+    expect(tonalPill.className).toContain("[--ui-surface-alpha:60%]");
     expect(tonalPill.className).toContain("dark:[--ui-surface-color:var(--color-blue-500)]");
     expect(tonalPill.className).toContain("ui-surface-transparency-none");
+    expect(tonalPill.className).toContain("border-blue-300");
     expect(tonalPill.className).not.toContain("border-blue-200");
     // glass is the *Pill's* recipe, not Panel's: blur proportionate to
     // a pill, the 65% frosted fill that carries a label, vibrancy, and

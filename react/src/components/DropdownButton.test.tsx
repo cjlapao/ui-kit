@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, act } from "@testing-library/react";
 import DropdownButton, { type DropdownButtonOption } from "./DropdownButton";
 
 vi.mock("../contexts/IconContext", () => ({
@@ -233,5 +233,88 @@ describe("DropdownButton", () => {
       />,
     );
     expect(screen.getByTestId("primary")).toHaveAttribute("title", "Ship it");
+  });
+
+  it("keeps the trigger tooltip out of the way while the menu is open", () => {
+    vi.useFakeTimers();
+    const { container } = render(
+      <DropdownButton label="Deploy" options={OPTIONS} tooltip="Ship it" />,
+    );
+    const trigger = screen.getByRole("button", { name: "Deploy" });
+    fireEvent.mouseEnter(trigger);
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+    expect(document.querySelector('[role="tooltip"]')).not.toBeNull();
+    fireEvent.click(caret(container)!);
+    expect(screen.getByRole("menu")).toBeInTheDocument();
+    // The popup opens right under the trigger; a tip still floating there
+    // (portal, z 9999) would sit on top of the rows.
+    expect(document.querySelector('[role="tooltip"]')).toBeNull();
+    // Closing brings it back on the next hover.
+    fireEvent.click(caret(container)!);
+    expect(screen.queryByRole("menu")).toBeNull();
+    fireEvent.mouseEnter(trigger);
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+    expect(document.querySelector('[role="tooltip"]')).not.toBeNull();
+    vi.useRealTimers();
+  });
+});
+
+describe("DropdownButton — trigger width", () => {
+  afterEach(cleanup);
+
+  it("pins the control and lets the label ellipsize", () => {
+    // The width lives on the container, because the control is two buttons:
+    // pinning only the main one would leave the caret outside the number the
+    // caller asked for (and `menuWidth="trigger"` measures this same element).
+    const { container } = render(
+      <DropdownButton
+        label="Deploy to the production cluster"
+        options={OPTIONS}
+        width={220}
+      />,
+    );
+    const control = container.firstElementChild as HTMLElement;
+    expect(control.style.width).toBe("220px");
+    const main = screen.getByRole("button", { name: /Deploy/ });
+    expect(main).toHaveClass("min-w-0");
+    const label = main.querySelector("span")!;
+    expect(label).toHaveClass("min-w-0");
+    expect(label).toHaveClass("truncate");
+  });
+
+  it("leaves the control's DOM alone when no width is given", () => {
+    // The shrink chain is an opt-in cost: an unsized control renders exactly
+    // what it rendered before, span-free and style-free.
+    const { container } = render(<DropdownButton label="Deploy" options={OPTIONS} />);
+    const control = container.firstElementChild as HTMLElement;
+    expect(control.getAttribute("style")).toBeNull();
+    const main = screen.getByRole("button", { name: "Deploy" });
+    expect(main).not.toHaveClass("min-w-0");
+    expect(main.querySelector("span.truncate")).toBeNull();
+  });
+
+  it("maxWidth caps a content-sized control and a CSS length rides through", () => {
+    const { container } = render(
+      <DropdownButton label="Deploy" options={OPTIONS} maxWidth="16rem" />,
+    );
+    expect((container.firstElementChild as HTMLElement).style.maxWidth).toBe(
+      "16rem",
+    );
+  });
+
+  it("never reaches the DOM as an HTML width attribute", () => {
+    // A bare `width` used to fall through to `<button width="220">`, which the
+    // browser ignores — the silent no-op these props replace.
+    render(
+      <DropdownButton label="Deploy" options={OPTIONS} width={200} maxWidth={300} />,
+    );
+    for (const button of screen.getAllByRole("button")) {
+      expect(button.hasAttribute("width")).toBe(false);
+      expect(button.hasAttribute("maxwidth")).toBe(false);
+    }
   });
 });
