@@ -1,12 +1,15 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
-import DiagramFlow from './DiagramFlow';
+import DiagramFlowComponent, { type DiagramFlowProps } from './DiagramFlow';
 import { applyDiagramFlowOperation, validateDiagramFlow, type DiagramFlowGraph } from './model';
 import { alignedDiagramPorts, freeDiagramPort } from './ports';
 import { placeDiagramCaptions } from './captions';
 import { routeCrossings } from './router';
 import { I18nProvider } from '../../i18n/I18nContext';
+
+// Existing interaction tests exercise edit mode explicitly.
+function DiagramFlow(props: DiagramFlowProps) { return <DiagramFlowComponent readOnly={false} autoCreate={false} {...props} />; }
 
 const graph: DiagramFlowGraph = {
   nodes: [{ id: 'a', title: 'A', position: { x: 0, y: 0 } }, { id: 'b', title: 'B', position: { x: 260, y: 0 } }, { id: 'c', title: 'C', position: { x: 520, y: 0 }, join: 'all' }],
@@ -16,6 +19,64 @@ function Editor() { const [value, setValue] = useState(graph); return <><Diagram
 const current = () => JSON.parse(screen.getByTestId('graph').textContent!) as DiagramFlowGraph;
 
 describe('DiagramFlow', () => {
+  it('opens and closes the optional inspector in read-only mode', () => {
+    const onNodeClick = vi.fn();
+    const { container, rerender } = render(<DiagramFlowComponent graph={graph} onChange={vi.fn()} onNodeClick={onNodeClick} />);
+    fireEvent.click(container.querySelector('[data-diagram-node="a"]')!);
+    expect(container.querySelector('aside')).toBeNull();
+    rerender(<DiagramFlowComponent graph={graph} onChange={vi.fn()} onNodeClick={onNodeClick} inspector />);
+    expect(screen.getByRole('heading', { name: 'A' })).toBeInTheDocument();
+    expect(container.querySelector('[data-diagram-flow]')?.contains(container.querySelector('aside'))).toBe(false);
+    fireEvent.click(container.querySelector('[data-diagram-node="b"]')!);
+    expect(screen.getByRole('heading', { name: 'B' })).toBeInTheDocument();
+    expect(onNodeClick).toHaveBeenCalledTimes(2);
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    expect(container.querySelector('aside')).toHaveAttribute('aria-hidden', 'true');
+  });
+  it('updates a node from custom inspector content through onChange and respects read-only', () => {
+    const onChange = vi.fn();
+    const body: NonNullable<DiagramFlowProps['renderInspectorBody']> = (node, helpers) => <button onClick={() => helpers.updateNode({ title: 'Changed' })}>{helpers.readOnly ? 'Locked' : `Edit ${node.title}`}</button>;
+    const { container, rerender } = render(<DiagramFlow graph={graph} onChange={onChange} inspector renderInspectorBody={body} />);
+    fireEvent.click(container.querySelector('[data-diagram-node="a"]')!);
+    fireEvent.click(screen.getByRole('button', { name: 'Edit A' }));
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ nodes: expect.arrayContaining([expect.objectContaining({ id: 'a', title: 'Changed' })]) }), expect.objectContaining({ type: 'update-node' }));
+    onChange.mockClear();
+    rerender(<DiagramFlow graph={graph} onChange={onChange} inspector readOnly renderInspectorBody={body} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Locked' }));
+    expect(onChange).not.toHaveBeenCalled();
+  });
+  it('defaults to read-only with no visible instruction banner', () => {
+    const { container } = render(<DiagramFlowComponent graph={graph} onChange={vi.fn()} />);
+    expect(container.querySelector('[data-diagram-controls]')).toHaveAttribute('data-mode', 'read-only');
+    expect(screen.queryByRole('button', { name: 'Add step' })).toBeNull();
+    expect(screen.getByRole('status')).toHaveClass('sr-only');
+    expect(container.querySelector('[data-slot="scrollarea-viewport"]')).toBeTruthy();
+  });
+  it('renders interactive custom node bodies without selecting or dragging the node', () => {
+    const action = vi.fn(), onNodeClick = vi.fn();
+    const withBody: DiagramFlowGraph = { ...graph, nodes: graph.nodes.map(node => node.id === 'a' ? { ...node, height: 160, body: <button type="button" onClick={action}>Run check</button> } : node) };
+    const { container } = render(<DiagramFlow graph={withBody} onChange={vi.fn()} onNodeClick={onNodeClick} />);
+    const node = container.querySelector<HTMLElement>('[data-diagram-node="a"]')!;
+    const body = container.querySelector('[data-diagram-node-body="a"]')!;
+    expect(node).toHaveAttribute('role', 'group');
+    expect(node.style.height).toBe('160px');
+    expect(body).toHaveAttribute('data-no-drag');
+    fireEvent.click(screen.getByRole('button', { name: 'Run check' }));
+    expect(action).toHaveBeenCalledOnce();
+    expect(onNodeClick).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Select A' }));
+    expect(onNodeClick).toHaveBeenCalledOnce();
+  });
+  it('supports a per-node body renderer with fallback and explicit suppression', () => {
+    const withBody: DiagramFlowGraph = { ...graph, nodes: graph.nodes.map(node => ({ ...node, body: `Body for ${node.id}` })) };
+    const { rerender } = render(<DiagramFlow graph={withBody} onChange={vi.fn()} renderNodeBody={node => node.id === 'a' ? <span>Custom {node.title}</span> : node.id === 'b' ? null : undefined} />);
+    expect(screen.getByText('Custom A')).toBeTruthy();
+    expect(screen.queryByText('Body for a')).toBeNull();
+    expect(screen.queryByText('Body for b')).toBeNull();
+    expect(screen.getByText('Body for c')).toBeTruthy();
+    rerender(<DiagramFlow graph={withBody} onChange={vi.fn()} readOnly />);
+    expect(screen.getByText('Body for a')).toBeTruthy();
+  });
   it('defaults to bulb terminals and supports diagram and per-connection arrow styles', () => {
     const mixed: DiagramFlowGraph = { ...graph, connections: graph.connections.map(edge => edge.id === 'bc' ? { ...edge, connectorStyle: 'arrow' } : edge) };
     const { container, rerender } = render(<DiagramFlow graph={mixed} onChange={vi.fn()} />);
@@ -139,11 +200,24 @@ describe('DiagramFlow', () => {
     const view = container.querySelector<HTMLDivElement>('[data-slot="scrollarea-viewport"]')!;
     view.getBoundingClientRect = () => ({ left: 10, top: 20, right: 410, bottom: 320, width: 400, height: 300, x: 10, y: 20, toJSON: () => ({}) });
     view.scrollLeft = 100; view.scrollTop = 80;
+    expect(view).toHaveClass('!overflow-hidden');
     expect(fireEvent.wheel(view, { deltaY: -100, clientX: 110, clientY: 70 })).toBe(true);
+    expect(view.scrollLeft).toBe(100); expect(view.scrollTop).toBe(80);
     expect(screen.getByLabelText('Zoom')).toHaveTextContent('100%');
     expect(fireEvent.wheel(view, { deltaY: -100, clientX: 110, clientY: 70, ctrlKey: true })).toBe(false);
     expect(screen.getByLabelText('Zoom')).toHaveTextContent('200%');
     expect(view.scrollLeft).toBe(300); expect(view.scrollTop).toBe(210);
+  });
+  it('keeps keyboard panning on the focused viewport', () => {
+    const { container } = render(<DiagramFlowComponent graph={graph} onChange={vi.fn()} />);
+    const view = container.querySelector<HTMLDivElement>('[data-slot="scrollarea-viewport"]')!;
+    view.scrollTop = 80; view.scrollLeft = 100;
+    fireEvent.keyDown(view, { key: 'ArrowDown' });
+    fireEvent.keyDown(view, { key: 'ArrowRight' });
+    expect(view.scrollTop).toBe(120);
+    expect(view.scrollLeft).toBe(140);
+    fireEvent.keyDown(view, { key: 'Home' });
+    expect(view.scrollTop).toBe(0);
   });
   it('leaves wheel zoom inactive while disabled', () => {
     const { container } = render(<DiagramFlow graph={graph} onChange={vi.fn()} disabled />);
@@ -299,11 +373,16 @@ describe('DiagramFlow', () => {
   });
   it('renders a node DotStepper with application-owned progress and automatic space', () => {
     const initial: DiagramFlowGraph = { ...graph, nodes: [{ ...graph.nodes[0], dotStepper: { currentIndex: 1, tone: 'violet', steps: [{ id: 'first', title: 'Prepare' }, { id: 'second', title: 'Build' }, { id: 'third', title: 'Deploy' }] } }, ...graph.nodes.slice(1)] };
-    const { container } = render(<DiagramFlow graph={initial} onChange={vi.fn()} />);
-    expect(screen.getByRole('group', { name: 'A steps' })).toBeTruthy();
+    const { container, rerender } = render(<DiagramFlow graph={initial} onChange={vi.fn()} />);
+    const stepper = screen.getByRole('group', { name: 'A steps' });
+    expect(stepper).toHaveStyle({ width: '100%' });
+    expect(stepper.querySelector('.justify-between')).toBeTruthy();
     expect(screen.getByRole('img', { name: 'Build, step 2 of 3, active' })).toBeTruthy();
     expect(container.querySelector('[data-diagram-stepper="a"] [data-dot-status="active"]')).toHaveClass('bg-violet-500');
     expect(Number.parseFloat(screen.getByRole('button', { name: 'A pending' }).style.height)).toBeGreaterThan(76);
+    const compact = { ...initial, nodes: initial.nodes.map(node => node.id === 'a' && node.dotStepper ? { ...node, dotStepper: { ...node.dotStepper, fullWidth: false } } : node) };
+    rerender(<DiagramFlow graph={compact} onChange={vi.fn()} />);
+    expect(screen.getByRole('group', { name: 'A steps' })).toHaveStyle({ width: 'max-content' });
   });
   it('allows interactive step selection without selecting or dragging the node', () => {
     const onStepSelect = vi.fn(), onNodeClick = vi.fn();
@@ -331,7 +410,7 @@ describe('DiagramFlow', () => {
 describe('DiagramFlow connection interactions', () => {
   it('creates one connected node from an empty-space drop when enabled and supports undo', () => {
     const onConnect = vi.fn(), onNodeCreate = vi.fn();
-    function App() { const [value, setValue] = useState(graph); return <><DiagramFlow graph={value} onChange={setValue} onConnect={onConnect} onNodeCreate={onNodeCreate} autoCreate /><output data-testid="graph">{JSON.stringify(value)}</output></>; }
+    function App() { const [value, setValue] = useState(graph); return <><DiagramFlowComponent graph={value} onChange={setValue} onConnect={onConnect} onNodeCreate={onNodeCreate} readOnly={false} /><output data-testid="graph">{JSON.stringify(value)}</output></>; }
     const { container } = render(<App />);
     const port = screen.getByRole('button', { name: 'Connect from A, bottom' });
     port.setPointerCapture = vi.fn(); port.hasPointerCapture = vi.fn(() => true); port.releasePointerCapture = vi.fn();

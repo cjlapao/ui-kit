@@ -10,5 +10,5 @@ const initial: DiagramFlowGraph = {
 };
 export default function Basics() {
   const [graph, setGraph] = useState(initial);
-  return <DiagramFlow graph={graph} onChange={setGraph} autoCreate variant="outlined" tone="blue" height={360} />;
+  return <DiagramFlow graph={graph} onChange={setGraph} readOnly={false} variant="outlined" tone="blue" height={360} />;
 }

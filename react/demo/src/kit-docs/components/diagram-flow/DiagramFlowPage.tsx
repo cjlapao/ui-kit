@@ -9,6 +9,8 @@ import { PropsTable, A11ySection, A11yTopic, KeyboardSupportTable, C } from '../
 import { ExampleCard } from '../../shared/ExampleCard';
 import Basics from './examples/Basics';
 import basicsCode from './examples/Basics.tsx?raw';
+import CustomBody from './examples/CustomBody';
+import customBodyCode from './examples/CustomBody.tsx?raw';
 
 const initial: DiagramFlowGraph = {
   nodes: [
@@ -42,8 +44,9 @@ const initial: DiagramFlowGraph = {
 export default function DiagramFlowPage() {
   const [graph, setGraph] = useState(initial);
   const [lastAction, setLastAction] = useState('');
-  const [readOnly, setReadOnly] = useState(false);
-  const [autoCreate, setAutoCreate] = useState(false);
+  const [readOnly, setReadOnly] = useState(true);
+  const [autoCreate, setAutoCreate] = useState(true);
+  const [inspector, setInspector] = useState(true);
   const [animated, setAnimated] = useState(true);
   const [connectorStyle, setConnectorStyle] = useState<DiagramFlowConnectorStyle>('bulb');
   const [variant, setVariant] = useState<SurfaceVariant>('outlined');
@@ -88,12 +91,13 @@ export default function DiagramFlowPage() {
         <SurfaceToneControl label="Node tone" value={panel.tone ?? 'none'} onChange={value => setPanel(current => ({ ...current, tone: value }))} />
         <SelectControl label="Node padding" value={panel.padding ?? 'sm'} options={['none', 'xs', 'sm', 'md', 'lg', 'xl'].map(value => ({ label: value, value }))} onChange={value => setPanel(current => ({ ...current, padding: value as DiagramFlowPanelProps['padding'] }))} />
         <SelectControl label="Connector style" value={connectorStyle} options={[{ label: 'Bulb', value: 'bulb' }, { label: 'Arrow', value: 'arrow' }]} onChange={value => setConnectorStyle(value as DiagramFlowConnectorStyle)} />
+        <ToggleRow label="Node inspector" checked={inspector} onChange={setInspector} />
         <ToggleRow label="Read only" checked={readOnly} onChange={setReadOnly} />
         <ToggleRow label="Auto-create nodes" checked={autoCreate} onChange={setAutoCreate} />
         <ToggleRow label="Animate connections" checked={animated} onChange={setAnimated} />
       </> },
     ]} />} preview={<div className="w-full min-w-0 space-y-3">
-      <DiagramFlow graph={graph} onChange={setGraph} height={620} connectorStyle={connectorStyle} gridSize={gridSize} grid={showGrid ? grid : false} nodePanelProps={panel} readOnly={readOnly} autoCreate={autoCreate} animated={animated} variant={variant} tone={tone} corner={corner} glassOpacity={opacity} vibrancy={vibrancy} raisedSurface={raisedSurface} padding={padding} disabled={disabled} loading={loading}
+      <DiagramFlow graph={graph} onChange={setGraph} inspector={inspector} renderInspectorBody={(node, helpers) => <label className="block border-t border-neutral-300 pt-3 text-xs dark:border-neutral-700">Step title<input className="mt-2 w-full rounded border border-neutral-300 bg-transparent px-2 py-1 text-sm dark:border-neutral-700" value={node.title} disabled={helpers.readOnly} onChange={event => helpers.updateNode({ title: event.target.value })} /><span className="mt-2 block text-neutral-500">{helpers.readOnly ? 'Enable editing to change properties.' : 'Changes are saved to the controlled graph.'}</span></label>} height={620} connectorStyle={connectorStyle} gridSize={gridSize} grid={showGrid ? grid : false} nodePanelProps={panel} readOnly={readOnly} autoCreate={autoCreate} animated={animated} variant={variant} tone={tone} corner={corner} glassOpacity={opacity} vibrancy={vibrancy} raisedSurface={raisedSurface} padding={padding} disabled={disabled} loading={loading}
         onNodeClick={node => setLastAction(`Selected ${node.title}`)}
         onConnectionClick={edge => setLastAction(`Selected ${edge.outcome} connection`)}
         onConnect={edge => setLastAction(`Connected ${edge.sourceId} to ${edge.targetId}`)}
@@ -104,15 +108,20 @@ export default function DiagramFlowPage() {
       <button type="button" className="rounded border px-3 py-1 text-sm" onClick={() => setGraph(initial)}>Reset diagram</button>
     </div>} />
     <section className="flex flex-col gap-5"><h2 className="text-xs font-semibold uppercase tracking-widest text-neutral-400 dark:text-neutral-500">Examples</h2>
-      <ExampleCard title="Controlled editing" description="The application owns the graph. Enable auto-create to add a connected node by dropping a connector in empty space." code={basicsCode} filename="Basics.tsx"><Basics /></ExampleCard>
+      <ExampleCard title="Controlled editing" description="The application owns the graph. Enable editing to add a connected node by dropping a connector in empty space." code={basicsCode} filename="Basics.tsx"><Basics /></ExampleCard>
+      <ExampleCard title="Custom node content" description="Append application content and interactive controls inside a node. Give the node enough height for its custom body." code={customBodyCode} filename="CustomBody.tsx"><CustomBody /></ExampleCard>
     </section>
     <PropsTable props={[
       { name: 'graph / onChange', type: 'DiagramFlowGraph / (graph, operation) => void', description: 'Controlled nodes and connections. Each edit emits a validated graph and an atomic operation; the application persists the result.' },
       { name: 'variant / tone / corner / padding', type: 'PanelProps', default: 'outlined / none / Panel default / none', description: 'The outer canvas is a Panel. Surface options, including glass opacity, vibrancy, raisedSurface, loading and disabled, are forwarded to it. DiagramFlow owns the content, click behavior and scrolling; height and size configure the diagram.' },
       { name: 'connectorStyle / connection.connectorStyle', type: '"bulb" | "arrow"', default: 'bulb', description: 'Choose ConnectionFlow-style terminals or arrowheads. Individual connections can override the diagram default.' },
       { name: 'grid', type: 'boolean | DiagramFlowGridProps', default: 'true', description: 'Show or customize the GridBackground pattern, color, dot radius, opacity and fade. Lattice spacing always follows gridSize and scales with the diagram.' },
+      { name: 'inspector / inspectorTitle / inspectorWidth / inspectorStackBelow', type: 'boolean / ReactNode / number / number', default: 'false / Inspector / 280 / 320', description: 'Show an animated node inspector on selection. It stacks below the diagram on narrow containers; width is clamped to 180–480 pixels.' },
+      { name: 'inspectorVariant / inspectorTone', type: 'Panel variant / surface tone / auto', default: 'auto / auto', description: 'Inspector surface styling; auto inherits the diagram surface.' },
+      { name: 'renderInspectorBody / renderInspectorActions', type: '(node, helpers) => ReactNode', description: 'Replace the inspector body or footer. Helpers expose readOnly, updateNode(patch), close() and centerOnNode(). Updates use onChange and undo history; enable editing to apply them.' },
+      { name: 'renderNodeBody', type: '(node: DiagramFlowNode) => ReactNode', description: 'Append custom content to a node. Return undefined to use node.body; return null to suppress it. Interactive descendants receive their own events. Reserve space with node.height.' },
       { name: 'nodePanelProps / node.panelProps / node.tone', type: 'DiagramFlowPanelProps / DiagramFlowPanelProps / TrueColor', description: 'Set shared node Panel options and override them per node. DiagramFlow owns interaction and positioning handlers.' },
-      { name: 'readOnly / autoCreate', type: 'boolean / boolean', default: 'false / false', description: 'Read-only disables editing. Auto-create adds one node and connection when a connector is dropped in clear space.' },
+      { name: 'readOnly / autoCreate', type: 'boolean / boolean', default: 'true / true', description: 'Read-only disables editing. With editing enabled, auto-create adds one node and connection when a connector is dropped in clear space.' },
       { name: 'onNodeClick / onConnectionClick / onNodeCreate / onConnect / onReconnect', type: 'callbacks', description: 'Report node and connection selection, node creation, new connections and endpoint changes. Changes also flow through onChange.' },
       { name: 'onNodeEdit / onConnectionEdit', type: 'callbacks', description: 'Request an application-owned editor on double-click.' },
       { name: 'height / gridSize / node.width / node.height', type: 'number', default: '560 / 20 / 180 / measured', description: 'Viewport height and snap spacing; nodes can also specify width and height in canvas pixels.' },
@@ -120,16 +129,36 @@ export default function DiagramFlowPage() {
       { name: 'node.dotStepper', type: 'DotStepperProps', description: 'Optional per-node DotStepper. Steps and current state are application-owned; onStepSelect enables interactive dots.' },
       { name: 'animated / dotSpeed / dotInterval / connection.animated', type: 'boolean / number / number / boolean', default: 'true / 120 / 700 / false', description: 'Animate application-marked active connections. Horizontal lines hop over vertical lines at crossings; dots follow the same paths.' },
     ]} />
+    <PropsTable title="Node API" props={[
+      { name: 'id / title', type: 'string', description: 'Stable unique node ID and visible title. Titles also label the node for assistive technology.' },
+      { name: 'position / width / height', type: '{ x: number; y: number } / number / number', description: 'Canvas coordinates and dimensions. Position is required; width defaults to 180 and height is estimated from built-in content. Set height for custom content.' },
+      { name: 'subtitle / description / icon', type: 'string', description: 'Optional text and icon rendered with the standard node content.' },
+      { name: 'body', type: 'ReactNode', description: 'Optional application content appended below standard content. It can contain interactive controls. JSX is not JSON-serializable; use renderNodeBody with node.data for persisted graphs.' },
+      { name: 'tone / panelProps / active', type: 'TrueColor / DiagramFlowPanelProps / boolean', description: 'Individual node tone and Panel options override shared nodePanelProps. active describes application state.' },
+      { name: 'status / progress / progressType', type: 'DiagramFlowStatus / number / ConnectionFlowProgressType', description: 'Application-provided state and progress from 0 to 1, displayed as a bar or spinner.' },
+      { name: 'items / itemProgress / maxItems', type: 'ConnectionFlowNodeItem[] / ConnectionFlowItemProgress / number', description: 'Optional substeps and their progress display. maxItems controls how many rows appear before expansion.' },
+      { name: 'dotStepper', type: 'DotStepperProps', description: 'Optional per-node stepper. It fills the node width by default; set fullWidth to false for compact layout. The application owns its steps, active index and selection callback.' },
+      { name: 'parentId / join / joinReady', type: 'string / "all" / boolean', description: 'Parent relationship and application-reported join state. DiagramFlow does not execute conditions or infer readiness.' },
+      { name: 'data', type: 'unknown', description: 'Application-owned data passed to callbacks and renderNodeBody.' },
+    ]} />
+    <PropsTable title="Connection API" props={[
+      { name: 'id / sourceId / targetId', type: 'string', description: 'Unique connection ID and IDs of its source and target nodes.' },
+      { name: 'outcome / connectorStyle', type: 'DiagramFlowOutcome / DiagramFlowConnectorStyle', description: 'Unknown, success or failure path; optionally override the diagram terminal style.' },
+      { name: 'fromSide / toSide', type: 'DiagramFlowSide', description: 'Optional attachment sides. The router allocates available ports and routes around nodes.' },
+      { name: 'label / conditionLabel / condition / satisfied', type: 'string / string / unknown / boolean', description: 'Visible label and application-owned condition and join state. DiagramFlow does not evaluate conditions.' },
+      { name: 'animated / data', type: 'boolean / unknown', description: 'Opt into travelling dots and attach application-owned data.' },
+    ]} />
     <A11ySection>
       <A11yTopic title="Keyboard and screen readers"><KeyboardSupportTable bindings={[
         { keys: ['Tab'], action: 'Move through node, connection and control actions.' },
         { keys: ['Enter'], action: 'Select the focused node or connection; Space also selects.' },
-        { keys: ['Arrow keys'], action: 'Move the focused node, or resize it when its resize handle is focused.' },
+        { keys: ['Arrow keys'], action: 'Pan the focused viewport, move the focused node, or resize it when its resize handle is focused.' },
+        { keys: ['Page Up / Page Down / Home / End'], action: 'Scroll the focused viewport vertically.' },
         { keys: ['Delete'], action: 'Remove the focused connection in edit mode; Backspace also works.' },
         { keys: ['Escape'], action: 'Cancel a gesture and clear selection.' },
       ]} /></A11yTopic>
-      <A11yTopic title="Pointer and motion"><p>Scroll both axes with ScrollArea, drag empty space to pan, or use Ctrl + mouse wheel to zoom around the pointer. Drag a node or its resize handle; drag a connector to an existing node or, when enabled, to empty space. Animated dots honor reduced motion.</p></A11yTopic>
-      <A11yTopic title="Internationalization and layout"><p>Controls, status, actions and accessible labels use <C>kit.diagramFlow.*</C> in the five built-in catalogs. Node titles, conditions and DotStepper step names come from the application. Canvas coordinates remain left-to-right; provide positions appropriate for the locale.</p></A11yTopic>
+      <A11yTopic title="Pointer and motion"><p>Drag empty space or use the scrollbars to pan. An unmodified mouse wheel scrolls the page; Ctrl + mouse wheel zooms around the pointer. Drag a node or its resize handle; drag a connector to an existing node or, when enabled, to empty space. Animated dots honor reduced motion.</p></A11yTopic>
+      <A11yTopic title="Internationalization and layout"><p>Controls, status, actions and accessible labels use <C>kit.diagramFlow.*</C> and <C>kit.networkGraph.*</C> in the five built-in catalogs. Node titles, conditions, custom body content and DotStepper step names come from the application. Canvas coordinates remain left-to-right; provide positions appropriate for the locale.</p></A11yTopic>
     </A11ySection>
   </div>;
 }

@@ -15,6 +15,8 @@ export interface DotStepperStep extends StepperStep {
 
 export interface DotStepperProps extends Pick<PanelProps, "variant" | "tone" | "padding" | "glassOpacity" | "transparency" | "vibrancy" | "specularMode" | "raisedSurface" | "className" | "style"> {
   steps: DotStepperStep[];
+  /** Fill the available width and distribute dots evenly. @default false */
+  fullWidth?: boolean;
   /** Zero-based. currentStepId takes precedence. */
   currentIndex?: number;
   currentStepId?: string;
@@ -66,7 +68,7 @@ function ActivePopover({ trigger, content, options }: { trigger: React.ReactElem
 }
 
 /** A table-row-sized view of workflow progress, with no automatic advancement. */
-export function DotStepper({ steps, currentIndex, currentStepId, maxVisible = 5, size = "sm", corner = "full", tone: surfaceTone = "none", variant = "tonal", padding = "none", doneColor = "emerald", nextColor = "neutral", errorColor = "rose", animated = true, disabled = false, readOnly = false, onStepSelect, renderActiveContent, popoverProps, className, style, "aria-label": label = "Workflow progress", ...surface }: DotStepperProps) {
+export function DotStepper({ steps, fullWidth = false, currentIndex, currentStepId, maxVisible = 5, size = "sm", corner = "full", tone: surfaceTone = "none", variant = "tonal", padding = "none", doneColor = "emerald", nextColor = "neutral", errorColor = "rose", animated = true, disabled = false, readOnly = false, onStepSelect, renderActiveContent, popoverProps, className, style, "aria-label": label = "Workflow progress", ...surface }: DotStepperProps) {
   const tone = getSurfaceAccentColor(surfaceTone);
   const plan = planDotSteps(steps, currentIndex, currentStepId, maxVisible);
   const density = sizes[size];
@@ -78,8 +80,8 @@ export function DotStepper({ steps, currentIndex, currentStepId, maxVisible = 5,
       </span>
     </span>
   </TooltipWrapper>;
-  return <Panel {...surface} role="group" aria-label={label} aria-disabled={disabled || undefined} variant={variant} tone={surfaceTone} corner={corner === "full" ? "none" : corner} padding="none" className={classNames("align-middle", disabled && "opacity-50", className)} style={{ width: "max-content", overflow: "visible", ...(corner === "full" ? { borderRadius: 9999 } : {}), ...style }}>
-    <div className={classNames("flex w-max items-center", density.gap, getCompactSurfacePaddingClass(padding))}>
+  return <Panel {...surface} role="group" aria-label={label} aria-disabled={disabled || undefined} variant={variant} tone={surfaceTone} corner={corner === "full" ? "none" : corner} padding="none" className={classNames("align-middle", disabled && "opacity-50", className)} style={{ width: fullWidth ? "100%" : "max-content", overflow: "visible", ...(corner === "full" ? { borderRadius: 9999 } : {}), ...style }}>
+    <div className={classNames("flex items-center", fullWidth ? "w-full min-w-max justify-between" : "w-max", density.gap, getCompactSurfacePaddingClass(padding))}>
       {overflow("before", plan.before)}
       {plan.indices.map(index => {
         const step = steps[index];

@@ -5,6 +5,16 @@ import DotStepper from "./DotStepper";
 const steps = Array.from({ length: 10 }, (_, index) => ({ id: `s${index}`, title: `Step ${index + 1}` }));
 
 describe("DotStepper", () => {
+  it("can distribute steps across the available width while keeping compact as the default", () => {
+    const { rerender } = render(<DotStepper steps={steps} currentIndex={4} />);
+    const group = screen.getByRole("group", { name: "Workflow progress" });
+    expect(group).toHaveStyle({ width: "max-content" });
+    rerender(<DotStepper steps={steps} currentIndex={4} fullWidth />);
+    expect(group).toHaveStyle({ width: "100%" });
+    expect(group.querySelector(".justify-between")).toBeTruthy();
+    expect(screen.getAllByRole("button")).toHaveLength(5);
+    expect(screen.getByRole("img", { name: "2 more steps before" })).toBeTruthy();
+  });
   it("shows five step buttons plus both overflow indicators and one active pulse", () => {
     const { container } = render(<DotStepper steps={steps} currentIndex={4} />);
     expect(screen.getAllByRole("button")).toHaveLength(5);

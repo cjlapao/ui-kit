@@ -1,7 +1,9 @@
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import type { PointerEvent as ReactPointerEvent } from 'react';
+import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react';
 import { routeBetween, routePolyline, routeCrossings, type Box, type PortSide } from './router';
 import Panel, { type PanelProps } from '../Panel';
+import Button from '../Button';
+import '../NetworkGraph/network-graph.css';
 import ScrollArea from '../ScrollArea';
 import GridBackground, { type GridBackgroundProps } from '../GridBackground';
 import ProgressSpinner from '../ProgressSpinner';
@@ -17,11 +19,22 @@ import { applyDiagramFlowOperation, validateDiagramFlow, type DiagramFlowConnect
 
 export type DiagramFlowGridProps = Pick<GridBackgroundProps, 'pattern' | 'lineColor' | 'dotSize' | 'opacity' | 'fade' | 'fadeStart'>;
 
+export interface DiagramFlowInspectorHelpers {
+  /** True when changes are disabled, including on individually disabled nodes. */
+  readOnly: boolean;
+  /** Apply a validated node update through onChange and the undo history. */
+  updateNode: (patch: Partial<Omit<DiagramFlowNode, 'id'>>) => boolean;
+  close: () => void;
+  centerOnNode: () => void;
+}
+
 export interface DiagramFlowProps extends Omit<PanelProps, 'children' | 'onChange' | 'onClick' | 'height' | 'size' | 'clickable' | 'scrollable'> {
   graph: DiagramFlowGraph;
   onChange: (graph: DiagramFlowGraph, operation: DiagramFlowOperation) => void;
   onConnectionEdit?: (connection: DiagramFlowConnection) => void;
   onNodeEdit?: (node: DiagramFlowNode) => void;
+  /** Render custom content below the standard body. Return undefined to use node.body. */
+  renderNodeBody?: (node: DiagramFlowNode) => ReactNode;
   /** Called when a node is clicked, including when it is a connection target. */
   onNodeClick?: (node: DiagramFlowNode) => void;
   /** Called when a connection is selected by click or keyboard. */
@@ -32,6 +45,19 @@ export interface DiagramFlowProps extends Omit<PanelProps, 'children' | 'onChang
   onReconnect?: (previous: DiagramFlowConnection, next: DiagramFlowConnection) => void;
   /** Called after an atomic node creation request, including its optional connection. */
   onNodeCreate?: (node: DiagramFlowNode, connection?: DiagramFlowConnection) => void;
+  /** Show an inspector when a node is selected. @default false */
+  inspector?: boolean;
+  inspectorTitle?: ReactNode;
+  /** Width of the inspector in pixels, clamped to 180–480. @default 280 */
+  inspectorWidth?: number;
+  /** Stack the inspector below the diagram under this width. @default 320 */
+  inspectorStackBelow?: number;
+  inspectorVariant?: 'auto' | NonNullable<PanelProps['variant']>;
+  inspectorTone?: 'auto' | SurfaceTone;
+  /** Replace the inspector's connection list with application-owned content. */
+  renderInspectorBody?: (node: DiagramFlowNode, helpers: DiagramFlowInspectorHelpers) => ReactNode;
+  /** Replace the inspector's footer actions. */
+  renderInspectorActions?: (node: DiagramFlowNode, helpers: DiagramFlowInspectorHelpers) => ReactNode;
   height?: number;
   /** Spacing for both snapping and the background lattice. @default 20 */
   gridSize?: number;
@@ -39,8 +65,9 @@ export interface DiagramFlowProps extends Omit<PanelProps, 'children' | 'onChang
   connectorStyle?: DiagramFlowConnectorStyle;
   /** Show the background lattice or customize its appearance. @default true */
   grid?: boolean | DiagramFlowGridProps;
+  /** Disable editing while allowing navigation and selection. @default true */
   readOnly?: boolean;
-  /** Create a connected node when a connector is dropped in empty space. @default false */
+  /** Create a connected node when a connector is dropped in empty space. @default true */
   autoCreate?: boolean;
   /** Default Panel options for every node; individual nodes can override them. */
   nodePanelProps?: DiagramFlowPanelProps;
@@ -74,11 +101,23 @@ const ENDPOINT_KEYS = { source: 'kit.diagramFlow.source', target: 'kit.diagramFl
 type ConnectionGesture = { kind: 'create'; sourceId: string; outcome: DiagramFlowOutcome; side?: PortSide } | { kind: 'reconnect'; edgeId: string; endpoint: 'source' | 'target' };
 type PointerConnection = { gesture: ConnectionGesture; pointerId: number; x: number; y: number; startX: number; startY: number };
 
-export default function DiagramFlow({ graph, onChange, onConnectionEdit, onNodeEdit, onNodeClick, onConnectionClick, onConnect, onReconnect, onNodeCreate, height = 560, gridSize = 20, grid = true, connectorStyle = 'bulb', readOnly = false, autoCreate = false, nodePanelProps, animated = true, dotSpeed = 120, dotInterval = 700, size = 'md', progressType = 'bar', itemProgress = 'bar', maxVisibleItems = 2, className, style, variant = 'outlined', tone = 'none', padding = 'none', ...surfaceProps }: DiagramFlowProps) {
+export default function DiagramFlow({ graph, onChange, onConnectionEdit, onNodeEdit, renderNodeBody, onNodeClick, onConnectionClick, onConnect, onReconnect, onNodeCreate, inspector = false, inspectorTitle, inspectorWidth = 280, inspectorStackBelow = 320, inspectorVariant = 'auto', inspectorTone = 'auto', renderInspectorBody, renderInspectorActions, height = 560, gridSize = 20, grid = true, connectorStyle = 'bulb', readOnly = true, autoCreate = true, nodePanelProps, animated = true, dotSpeed = 120, dotInterval = 700, size = 'md', progressType = 'bar', itemProgress = 'bar', maxVisibleItems = 2, className, style, variant = 'outlined', tone = 'none', padding = 'none', ...surfaceProps }: DiagramFlowProps) {
   const t = useKitT();
   const uid = useId().replace(/[^a-zA-Z0-9_-]/g, '');
   const root = useRef<HTMLElement>(null);
   const canvas = useRef<HTMLDivElement>(null);
+  const inspectorLayout = useRef<HTMLDivElement>(null);
+  const [inspectorStacked, setInspectorStacked] = useState(false);
+  useEffect(() => {
+    const element = inspectorLayout.current;
+    if (!element || !inspector) return;
+    const measure = () => setInspectorStacked(element.getBoundingClientRect().width < inspectorStackBelow);
+    measure();
+    if (typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [inspector, inspectorStackBelow]);
   const viewport = useRef<HTMLDivElement>(null);
   const sequence = useRef(0);
   const [selected, setSelected] = useState<string | null>(null);
@@ -181,6 +220,19 @@ export default function DiagramFlow({ graph, onChange, onConnectionEdit, onNodeE
     };
     view.addEventListener('wheel', wheel, { passive: false });
     return () => view.removeEventListener('wheel', wheel);
+  }, [locked]);
+  useEffect(() => {
+    const view = viewport.current;
+    if (!view || locked) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.target !== view || event.altKey || event.ctrlKey || event.metaKey) return;
+      const moves: Record<string, [number, number]> = { ArrowLeft: [-40, 0], ArrowRight: [40, 0], ArrowUp: [0, -40], ArrowDown: [0, 40], PageUp: [0, -view.clientHeight], PageDown: [0, view.clientHeight] };
+      const delta = moves[event.key];
+      if (delta) { event.preventDefault(); view.scrollLeft += delta[0]; view.scrollTop += delta[1]; }
+      else if (event.key === 'Home' || event.key === 'End') { event.preventDefault(); view.scrollTop = event.key === 'Home' ? 0 : view.scrollHeight; }
+    };
+    view.addEventListener('keydown', onKeyDown);
+    return () => view.removeEventListener('keydown', onKeyDown);
   }, [locked]);
   useEffect(() => {
     if (locked) { pan.current = null; setPanning(false); setHoveredNode(null); }
@@ -430,6 +482,18 @@ export default function DiagramFlow({ graph, onChange, onConnectionEdit, onNodeE
     return routePolyline([fixedPort, { x: mid, y: fixedPort.y }, { x: mid, y: end.y }, end], 'orthogonal', 8).d;
   })();
   const selectedNode = byId.get(selected ?? '');
+  const inspectorHelpers: DiagramFlowInspectorHelpers | undefined = selectedNode ? {
+    readOnly: editDisabled || nodeDisabled(selectedNode),
+    updateNode: patch => !editDisabled && !nodeDisabled(selectedNode) && commit({ type: 'update-node', node: { ...selectedNode, ...patch, id: selectedNode.id } }),
+    close: () => setSelected(null),
+    centerOnNode: () => {
+      const view = viewport.current;
+      if (!view) return;
+      const dimensions = nodeSize(selectedNode);
+      view.scrollLeft = (selectedNode.position.x + offsetX + dimensions.width / 2) * zoom - view.clientWidth / 2;
+      view.scrollTop = (selectedNode.position.y + offsetY + dimensions.height / 2) * zoom - view.clientHeight / 2;
+    },
+  } : undefined;
   const selectedConnection = graph.connections.find(edge => edge.id === selectedEdge);
   const activateNode = (node: DiagramFlowNode) => {
     if (locked) return;
@@ -448,10 +512,11 @@ export default function DiagramFlow({ graph, onChange, onConnectionEdit, onNodeE
     setZoom(next);
     requestAnimationFrame(() => { view.scrollLeft = Math.max(0, (minX + maxX) * next / 2 - view.clientWidth / 2); view.scrollTop = Math.max(0, (minY + maxY) * next / 2 - view.clientHeight / 2); });
   };
-  return <Panel {...surfaceProps} ref={root} aria-label={surfaceProps['aria-label'] ?? t('kit.diagramFlow.name')} data-diagram-flow variant={variant} tone={tone} padding={padding} clickable={false} scrollable={false} className={`overflow-hidden ${className ?? ''}`} style={style}>
+  return <div ref={inspectorLayout} className={[inspector && 'cj-network-graph', inspector && selectedNode && 'cj-network-graph--inspector-open', inspector && inspectorStacked && 'cj-network-graph--stacked'].filter(Boolean).join(' ')} style={inspector ? { '--cj-network-graph-inspector-width': `${Math.max(180, Math.min(480, Number.isFinite(inspectorWidth) ? inspectorWidth : 280))}px` } as React.CSSProperties : undefined}>
+    <div className="cj-network-graph__main">
+    <Panel {...surfaceProps} ref={root} aria-label={surfaceProps['aria-label'] ?? t('kit.diagramFlow.name')} data-diagram-flow variant={variant} tone={tone} padding={padding} clickable={false} scrollable={false} className={`overflow-hidden ${className ?? ''}`} style={style}>
     <style>{`[data-diagram-flow]{--diagram-caption-fill:var(--color-neutral-100,#f5f5f5);--diagram-caption-text:var(--color-neutral-700,#404040)} .dark [data-diagram-flow]{--diagram-caption-fill:var(--color-neutral-800,#262626);--diagram-caption-text:var(--color-neutral-100,#f5f5f5)} [data-diagram-terminal][data-hovered][data-tinted]{--ui-surface-color:var(--terminal-light-color);--ui-surface-alpha:var(--terminal-light-alpha)} [data-diagram-terminal][data-hovered][data-tinted]:not(.ui-surface-fill){background-color:var(--terminal-hover-light)} [data-diagram-terminal][data-hovered][data-hover-rim]{border-color:var(--terminal-rim-light)} .dark [data-diagram-terminal][data-hovered][data-hover-rim]{border-color:var(--terminal-rim-dark)} .dark [data-diagram-terminal][data-hovered][data-tinted]{--ui-surface-color:var(--terminal-dark-color);--ui-surface-alpha:var(--terminal-dark-alpha)} .dark [data-diagram-terminal][data-hovered][data-tinted]:not(.ui-surface-fill){background-color:var(--terminal-hover-dark)} [data-diagram-terminal][data-hovered]:not([data-tinted]) [data-terminal-hover-overlay]{background-color:rgb(0 0 0 / .045)} .dark [data-diagram-terminal][data-hovered]:not([data-tinted]) [data-terminal-hover-overlay]{background-color:rgb(255 255 255 / .1)} [data-diagram-terminal-dot][data-contrast][data-outcome=success]{fill:#065f46} .dark [data-diagram-terminal-dot][data-contrast][data-outcome=success]{fill:#a7f3d0} [data-diagram-terminal-dot][data-contrast][data-outcome=failure]{fill:#9f1239} .dark [data-diagram-terminal-dot][data-contrast][data-outcome=failure]{fill:#fecdd3} [data-diagram-terminal-dot][data-contrast][data-outcome=unknown]{fill:#1e293b} .dark [data-diagram-terminal-dot][data-contrast][data-outcome=unknown]{fill:#e2e8f0}`}</style>
-    <div role="status" className="min-h-6 px-3 text-xs text-neutral-500">{errors.length ? t('kit.diagramFlow.invalid', { errors: errors.join('; ') }) : notice || (routes.length < graph.connections.length ? t('kit.diagramFlow.unroutable') : connecting ? t('kit.diagramFlow.chooseTarget') : t('kit.diagramFlow.instructions'))}</div>
-    <div className="relative"><ScrollArea viewportRef={viewport} gutter={false} contentClassName="block" style={{ height }}><div style={{ width: canvasWidth * zoom, height: canvasHeightWithCaptions * zoom, position: 'relative' }}>
+    <div className="relative"><div role="status" className={errors.length || notice || routes.length < graph.connections.length ? 'absolute left-3 top-3 z-30 max-w-[calc(100%-1.5rem)] rounded-md border border-neutral-300 bg-white/95 px-3 py-2 text-xs text-neutral-700 shadow-sm dark:border-neutral-600 dark:bg-neutral-900/95 dark:text-neutral-200' : 'sr-only'}>{errors.length ? t('kit.diagramFlow.invalid', { errors: errors.join('; ') }) : notice || (routes.length < graph.connections.length ? t('kit.diagramFlow.unroutable') : connecting ? t('kit.diagramFlow.chooseTarget') : t('kit.diagramFlow.instructions'))}</div><ScrollArea viewportRef={viewport} viewportClassName="!overflow-hidden" gutter={false} contentClassName="block" style={{ height }}><div style={{ width: canvasWidth * zoom, height: canvasHeightWithCaptions * zoom, position: 'relative' }}>
       <div ref={canvas} style={{ position: 'absolute', width: canvasWidth, height: canvasHeightWithCaptions, transform: `scale(${zoom})`, transformOrigin: 'top left' }}>
         {grid !== false && <GridBackground data-diagram-grid aria-hidden="true" pattern="dots" lineColor="#a3a3a3" dotSize={.7} opacity={.7} {...(typeof grid === 'object' ? grid : {})} size={spacing} style={{ inset: 'auto', left: (offsetX % spacing) - spacing, top: (offsetY % spacing) - spacing, right: 0, bottom: 0 }} />}
         <button type="button" tabIndex={-1} aria-label={t('kit.diagramFlow.clear')} disabled={locked}
@@ -492,7 +557,7 @@ export default function DiagramFlow({ graph, onChange, onConnectionEdit, onNodeE
           const [rimLight, rimDark] = terminalHoverColors(panel.variant, hue ?? 'none', 'rim');
           return <Panel key={`${edge.id}-${endpoint}`} data-diagram-terminal={endpoint} data-diagram-terminal-node={node.id} data-hover-enabled={hoverEnabled || undefined} data-hovered={hovered || undefined} data-tinted={hue ? true : undefined} data-hover-rim={rimLight && rimDark ? true : undefined} aria-hidden="true" variant={panel.variant} tone={panel.tone} active={!!panel.active || selected === node.id || dropTarget?.node.id === node.id} activeTone={panel.activeTone} borderColor={panel.borderColor} backgroundColor={panel.backgroundColor} transparency={panel.transparency} glassOpacity={panel.glassOpacity} vibrancy={panel.vibrancy} specularMode={panel.specularMode} raisedSurface={panel.raisedSurface} padding="none" clickable={false} hoverable={false} className="!rounded-full transition-colors duration-200" style={{ position: 'absolute', left: port.x - 7, top: port.y - 7, width: 14, height: 14, pointerEvents: 'none', zIndex: 0, borderRadius: '50%', '--terminal-hover-light': light?.paint, '--terminal-hover-dark': dark?.paint, '--terminal-light-color': light?.color, '--terminal-light-alpha': light?.alpha, '--terminal-dark-color': dark?.color, '--terminal-dark-alpha': dark?.alpha, '--terminal-rim-light': rimLight?.paint, '--terminal-rim-dark': rimDark?.paint } as React.CSSProperties}><span data-terminal-hover-overlay aria-hidden="true" className="transition-colors duration-200" style={{ position: 'absolute', inset: 0, borderRadius: 'inherit', pointerEvents: 'none' }} /></Panel>;
         }))}
-        {nodes.map((node, index) => { const panel = { variant: 'outlined' as const, padding: 'sm' as const, ...nodePanelProps, ...(node.tone ? { tone: node.tone } : {}), ...node.panelProps }; const dimensions = nodeSize(node); const flowNode: ConnectionFlowNode = node; const stepperReadOnly = node.dotStepper?.readOnly ?? !(node.dotStepper?.onStepSelect || node.dotStepper?.renderActiveContent); const hasControls = (!!node.dotStepper && !stepperReadOnly) || (node.items?.length ?? 0) > (node.maxItems ?? maxVisibleItems) || expanded.has(node.id); const laid: LaidOutNode = { id: node.id, node: flowNode, outline: '', x: node.position.x, y: node.position.y, ...dimensions, anchorY: dimensions.height / 2, column: 0, depth: 0, tone: nodeTone(flowNode), scrollable: true }; return <Panel key={node.id} {...panel} disabled={nodeDisabled(node)} clickable={hasControls ? false : panel.clickable} role={hasControls ? 'group' : undefined} tabIndex={hasControls ? (nodeDisabled(node) ? -1 : 0) : undefined} data-diagram-node={node.id} aria-label={t('kit.diagramFlow.nodeLabel', { title: node.title, status: t(STATUS_KEYS[node.status ?? 'pending']), join: node.join === 'all' ? `, ${t(node.joinReady ? 'kit.diagramFlow.joinReady' : 'kit.diagramFlow.joinWaiting').toLocaleLowerCase()}` : '' })} aria-pressed={hasControls ? undefined : selected === node.id} active={!!panel.active || selected === node.id || dropTarget?.node.id === node.id} onPointerEnter={() => setHoveredNode(node.id)} onPointerLeave={event => { if (!(event.relatedTarget instanceof Element) || event.relatedTarget.getAttribute('data-diagram-port-node') !== node.id) setHoveredNode(null); }} onFocus={() => setHoveredNode(node.id)} onBlur={event => { if (!(event.relatedTarget instanceof Element) || event.relatedTarget.getAttribute('data-diagram-port-node') !== node.id) setHoveredNode(null); }} onClick={() => activateNode(node)} onDoubleClick={() => { if (!locked) onNodeEdit?.(node); }}
+        {nodes.map((node, index) => { const panel = { variant: 'outlined' as const, padding: 'sm' as const, ...nodePanelProps, ...(node.tone ? { tone: node.tone } : {}), ...node.panelProps }; const dimensions = nodeSize(node); const renderedBody = renderNodeBody?.(node); const customBody = renderedBody === undefined ? node.body : renderedBody; const hasCustomBody = customBody !== null && customBody !== undefined && customBody !== false; const flowNode: ConnectionFlowNode = node; const stepperReadOnly = node.dotStepper?.readOnly ?? !(node.dotStepper?.onStepSelect || node.dotStepper?.renderActiveContent); const hasControls = hasCustomBody || (!!node.dotStepper && !stepperReadOnly) || (node.items?.length ?? 0) > (node.maxItems ?? maxVisibleItems) || expanded.has(node.id); const laid: LaidOutNode = { id: node.id, node: flowNode, outline: '', x: node.position.x, y: node.position.y, ...dimensions, anchorY: dimensions.height / 2, column: 0, depth: 0, tone: nodeTone(flowNode), scrollable: true }; return <Panel key={node.id} {...panel} disabled={nodeDisabled(node)} clickable={hasControls ? false : panel.clickable} role={hasControls ? 'group' : undefined} tabIndex={hasControls ? (nodeDisabled(node) ? -1 : 0) : undefined} data-diagram-node={node.id} aria-label={t('kit.diagramFlow.nodeLabel', { title: node.title, status: t(STATUS_KEYS[node.status ?? 'pending']), join: node.join === 'all' ? `, ${t(node.joinReady ? 'kit.diagramFlow.joinReady' : 'kit.diagramFlow.joinWaiting').toLocaleLowerCase()}` : '' })} aria-pressed={hasControls ? undefined : selected === node.id} active={!!panel.active || selected === node.id || dropTarget?.node.id === node.id} onPointerEnter={() => setHoveredNode(node.id)} onPointerLeave={event => { if (!(event.relatedTarget instanceof Element) || event.relatedTarget.getAttribute('data-diagram-port-node') !== node.id) setHoveredNode(null); }} onFocus={() => setHoveredNode(node.id)} onBlur={event => { if (!(event.relatedTarget instanceof Element) || event.relatedTarget.getAttribute('data-diagram-port-node') !== node.id) setHoveredNode(null); }} onClick={() => activateNode(node)} onDoubleClick={() => { if (!locked) onNodeEdit?.(node); }}
           onPointerDown={event => { if (editDisabled || connecting || event.button !== 0 || (event.target instanceof Element && event.target.closest('button, a, input, select, textarea, [data-no-drag]'))) return; event.currentTarget.setPointerCapture(event.pointerId); drag.current = { id: node.id, x: event.clientX, y: event.clientY, original: node.position, moved: false }; }}
           onPointerMove={event => { const d = drag.current; if (!d || d.id !== node.id) return; const dx = (event.clientX - d.x) / zoom, dy = (event.clientY - d.y) / zoom; if (Math.hypot(dx, dy) < 4 && !d.moved) return; d.moved = true; setPreview({ id: node.id, x: snap(d.original.x + dx), y: snap(d.original.y + dy) }); }}
           onPointerUp={event => { const d = drag.current; drag.current = null; if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId); if (d?.moved) { suppressClick.current = true; setTimeout(() => { suppressClick.current = false; }, 0); move(node.id, { x: snap(d.original.x + (event.clientX - d.x) / zoom), y: snap(d.original.y + (event.clientY - d.y) / zoom) }); } setPreview(null); }}
@@ -502,7 +567,7 @@ export default function DiagramFlow({ graph, onChange, onConnectionEdit, onNodeE
           style={{ ...panel.style, position: 'absolute', left: node.position.x + offsetX, top: node.position.y + offsetY, ...nodeSize(node), ...(bulbPorts.has(node.id) ? { maskImage: `url(#${maskId(index)})`, WebkitMaskImage: `url(#${maskId(index)})` } : {}), touchAction: 'none' }}>
           {hasControls && <button type="button" disabled={nodeDisabled(node)} className="sr-only focus:not-sr-only" onClick={event => { event.stopPropagation(); activateNode(node); }}>{t('kit.diagramFlow.selectNode', { title: node.title })}</button>}
           <div className="flex h-full min-h-0 gap-2 overflow-y-auto">
-            <div className="min-w-0 flex-1"><ConnectionFlowNodeBody node={laid} metrics={NODE_METRICS[size]} options={layoutOptions} scrollable expanded={expanded} moreLabel={count => t('kit.diagramFlow.more', { count })} lessLabel={t('kit.diagramFlow.less')} onToggleExpanded={id => setExpanded(current => { const next = new Set(current); if (next.has(id)) next.delete(id); else next.add(id); return next; })} showProgress={(node.progressType ?? progressType) === 'bar'} />{node.dotStepper && <div data-no-drag data-diagram-stepper={node.id} className="mt-2 max-w-full overflow-x-auto"><DotStepper variant="none" {...node.dotStepper} readOnly={stepperReadOnly} aria-label={node.dotStepper['aria-label'] ?? t('kit.diagramFlow.nodeSteps', { title: node.title })} /></div>}{node.join === 'all' && <span className="text-xs text-neutral-500">{t(node.joinReady ? 'kit.diagramFlow.joinReady' : 'kit.diagramFlow.joinWaiting')}</span>}</div>
+            <div className="min-w-0 flex-1"><ConnectionFlowNodeBody node={laid} metrics={NODE_METRICS[size]} options={layoutOptions} scrollable expanded={expanded} moreLabel={count => t('kit.diagramFlow.more', { count })} lessLabel={t('kit.diagramFlow.less')} onToggleExpanded={id => setExpanded(current => { const next = new Set(current); if (next.has(id)) next.delete(id); else next.add(id); return next; })} showProgress={(node.progressType ?? progressType) === 'bar'} />{node.dotStepper && <div data-no-drag data-diagram-stepper={node.id} className="mt-2 w-full max-w-full overflow-x-auto"><DotStepper variant="none" {...node.dotStepper} fullWidth={node.dotStepper.fullWidth ?? true} readOnly={stepperReadOnly} aria-label={node.dotStepper['aria-label'] ?? t('kit.diagramFlow.nodeSteps', { title: node.title })} /></div>}{node.join === 'all' && <span className="text-xs text-neutral-500">{t(node.joinReady ? 'kit.diagramFlow.joinReady' : 'kit.diagramFlow.joinWaiting')}</span>}{hasCustomBody && <div data-no-drag data-diagram-node-body={node.id} className="mt-2 min-w-0">{customBody}</div>}</div>
             {(node.progressType ?? progressType) === 'spinner' && node.progress !== undefined && <ProgressSpinner size="xs" color={nodeTone(flowNode)} value={node.progress * 100} showValue={false} />}
           </div>
         </Panel>; })}
@@ -541,5 +606,25 @@ export default function DiagramFlow({ graph, onChange, onConnectionEdit, onNodeE
       onOutcome={outcome => { if (selectedConnection) commit({ type: 'update-connection', connection: { ...selectedConnection, outcome } }); }}
       onFit={fitDiagram} onReset={() => { setSelected(null); setSelectedEdge(null); setConnecting(null); fitDiagram(); }} onZoomIn={() => setZoom(z => Math.min(2, z * 1.25))} onZoomOut={() => setZoom(z => Math.max(.1, z * .8))} />
     </div>
-  </Panel>;
+    </Panel>
+    </div>
+    {inspector && <aside className="cj-network-graph__inspector" aria-hidden={!selectedNode || undefined} inert={!selectedNode || undefined}>
+      <div className="cj-network-graph__inspector-inner">
+        <Panel variant={inspectorVariant === 'auto' ? variant : inspectorVariant} tone={inspectorTone === 'auto' ? tone : inspectorTone} padding="sm" corner={surfaceProps.corner} glassOpacity={surfaceProps.glassOpacity} vibrancy={surfaceProps.vibrancy} specularMode={surfaceProps.specularMode} clickable={false} scrollable={false} flexBody className="cj-network-graph__details" style={{ minHeight: inspectorStacked ? 240 : height }}>
+          {selectedNode && inspectorHelpers && <>
+            <div className="cj-network-graph__body">
+              <div className="cj-network-graph__eyebrow">{inspectorTitle ?? t('kit.networkGraph.inspector')}</div>
+              <h3>{selectedNode.title}</h3>
+              <dl className="cj-network-graph__meta">
+                <dt>{t('kit.networkGraph.nodeId')}</dt><dd><code>{selectedNode.id}</code></dd>
+                <dt>{t('kit.networkGraph.connections')}</dt><dd>{graph.connections.filter(edge => edge.sourceId === selectedNode.id || edge.targetId === selectedNode.id).length}</dd>
+              </dl>
+              {renderInspectorBody ? renderInspectorBody(selectedNode, inspectorHelpers) : <div className="cj-network-graph__neighbors"><small>{t('kit.networkGraph.neighbors')}</small><div className="cj-network-graph__neighbor-rows">{graph.connections.filter(edge => edge.sourceId === selectedNode.id || edge.targetId === selectedNode.id).map(edge => { const neighbor = byId.get(edge.sourceId === selectedNode.id ? edge.targetId : edge.sourceId); return neighbor && <button key={edge.id} type="button" className="cj-network-graph__neighbor" onClick={() => setSelected(neighbor.id)}><i /><span>{neighbor.title}</span></button>; })}</div></div>}
+            </div>
+            <div className="cj-network-graph__actions">{renderInspectorActions ? renderInspectorActions(selectedNode, inspectorHelpers) : <><Button size="sm" fullWidth variant="solid" color="slate" onClick={inspectorHelpers.centerOnNode}>{t('kit.networkGraph.centerOnNode')}</Button><Button size="sm" fullWidth variant="solid" color="slate" onClick={inspectorHelpers.close}>{t('kit.networkGraph.close')}</Button></>}</div>
+          </>}
+        </Panel>
+      </div>
+    </aside>}
+  </div>;
 }

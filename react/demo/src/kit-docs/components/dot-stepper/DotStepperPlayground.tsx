@@ -26,6 +26,7 @@ export function DotStepperPlayground() {
   // The pill on a page of its own tint goes invisible; this forces the first
   // nested-panels depth step so the stepper has an edge again.
   const [raisedSurface, setRaisedSurface] = useState(false);
+  const [fullWidth, setFullWidth] = useState(false);
   const [animated, setAnimated] = useState(true);
   const [disabled, setDisabled] = useState(false);
   const [complete, setComplete] = useState(false);
@@ -47,6 +48,7 @@ export function DotStepperPlayground() {
       <SelectControl label="Variant" value={variant} options={surfaceVariantOptions} onChange={value => setVariant(value as SurfaceVariant)} />
       <SelectControl label="Padding" value={padding} options={panelPaddingOptions} onChange={value => setPadding(value as SurfacePadding)} />
       <SelectControl label="Corners" value={corner ?? "full"} options={[{ value: "full", label: "Full / pill" }, ...panelCornerOptions]} onChange={value => setCorner(value as DotStepperProps["corner"])} />
+      <ToggleRow label="Full width" checked={fullWidth} onChange={setFullWidth} />
       <ToggleRow label="Raised surface" checked={raisedSurface} onChange={setRaisedSurface} />
     </> },
     { id: "colours", title: "Colours", controls: <>
@@ -62,7 +64,7 @@ export function DotStepperPlayground() {
     </> },
   ]} />} preview={<div className="flex w-full flex-col items-center gap-8 py-8">
     <div className="space-y-2 text-center"><p className="text-xs font-medium uppercase tracking-wider text-neutral-500">Workflow progress</p><p className="text-sm">{complete ? "All steps completed" : `${active + 1} / ${total} · ${steps[active].title}`}</p></div>
-    <DotStepper steps={steps} currentIndex={active} maxVisible={max} size={size} variant={variant} padding={padding} corner={corner} raisedSurface={raisedSurface} tone={tone} doneColor={doneColor} nextColor={nextColor} errorColor={errorColor} animated={animated} disabled={disabled}
+    <DotStepper fullWidth={fullWidth} steps={steps} currentIndex={active} maxVisible={max} size={size} variant={variant} padding={padding} corner={corner} raisedSurface={raisedSurface} tone={tone} doneColor={doneColor} nextColor={nextColor} errorColor={errorColor} animated={animated} disabled={disabled}
       onStepSelect={(step, index) => pushLog(`Step ${index + 1}: ${step.title}`)}
       renderActiveContent={showPopover ? (step, index) => <div className="space-y-2"><p className="text-xs text-neutral-500">Step {index + 1} of {total}</p><p className="font-semibold">{step.title}</p><p className="text-sm">Your app supplies this content. Add progress, logs or actions for the running step.</p></div> : undefined}
       popoverProps={{ placement: "bottom", onOpenChange: open => pushLog(`Popover ${open ? "opened" : "closed"}`) }} />

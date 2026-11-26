@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import type { PanelProps } from '../Panel';
 import type { DotStepperProps } from '../DotStepper';
 import type { ConnectionFlowItemProgress, ConnectionFlowNodeItem, ConnectionFlowProgressType } from '../../connectionFlow';
@@ -14,6 +15,8 @@ export interface DiagramFlowNode {
   title: string;
   subtitle?: string;
   description?: string;
+  /** Optional custom content below the standard node content. Set height to reserve space. */
+  body?: ReactNode;
   icon?: string;
   tone?: TrueColor;
   active?: boolean;
