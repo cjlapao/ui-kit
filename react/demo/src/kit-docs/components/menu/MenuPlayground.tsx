@@ -34,6 +34,7 @@ export function MenuPlayground() {
   const [disabled, setDisabled] = useState(true);
   const [checked, setChecked] = useState(true);
   const [scheme, setScheme] = useState("System");
+  const [washSelected, setWashSelected] = useState(false);
   const [log, pushLog] = useEventLog();
   const items: MenuItem[] = [
     { id: "documents", type: "group", label: "Documents", items: [
@@ -70,6 +71,7 @@ export function MenuPlayground() {
       <ToggleRow label="Show icons" checked={withIcons} onChange={setWithIcons} />
       <ToggleRow label="Autosave toggle row" checked={withToggleRow} onChange={setWithToggleRow} />
       <ToggleRow label="Disabled archive item" checked={disabled} onChange={setDisabled} />
+      <ToggleRow label="Wash selected radio" checked={washSelected} onChange={setWashSelected} />
     </> },
     { id: "behavior", title: "Behavior", controls: <>
       <SelectControl label="Submenus" options={[{value:"tiered",label:"Tiered"},{value:"inline",label:"Inline"}]} value={submenuMode ?? "tiered"} onChange={v => setSubmenuMode(v as MenuProps["submenuMode"])} />
@@ -84,7 +86,7 @@ export function MenuPlayground() {
   ]} /><p className="text-xs text-neutral-500">Item styles are independent of the surface. Individual MenuItem entries can override tone, padding, and corner. Danger rows keep their warning tone.</p></div>}
     preview={<div className="w-full space-y-4"><div className="flex min-h-80 items-start justify-center">
       <Menu key={popup ? "popup" : "inline"} aria-label="Playground commands" items={items} variant={variant} tone={tone} size={size} padding={padding} corner={corner} raisedSurface={raisedSurface}
-        itemTone={followTone ? undefined : itemTone} itemPadding={itemPadding === "auto" ? undefined : itemPadding} itemCorner={itemCorner}
+        itemTone={followTone ? undefined : itemTone} itemPadding={itemPadding === "auto" ? undefined : itemPadding} itemCorner={itemCorner} washSelected={washSelected}
         submenuMode={submenuMode} closeOnSelect={closeMode === "auto" ? undefined : closeMode === "always"} placement={placement} align={align} width={widthFloor === "trigger" ? "trigger" : Number(widthFloor)} maxWidth={Number(maxWidth)} trigger={popup ? <Button tooltip="Run a command" tooltipDisabled={menuOpen}>Open menu</Button> : undefined}
         header={withChrome ? <div className="px-3 py-2 font-semibold">Workspace</div> : undefined}
         footer={withChrome ? <div className="px-3 py-2 text-xs text-neutral-500">Signed in as Alex Morgan</div> : undefined}

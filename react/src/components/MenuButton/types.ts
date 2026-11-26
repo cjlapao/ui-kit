@@ -36,6 +36,8 @@ export interface MenuButtonProps
   items: MenuItem[];
   /** Selected item id at any depth: right-aligned check + parent value echo. */
   selectedKey?: string;
+  /** Faded tone wash on the checked radio row. Passed through to `Menu`. */
+  washSelected?: MenuProps["washSelected"];
   submenuMode?: MenuProps["submenuMode"];
   /** Menu-wide default for the per-item closeOnSelect flag. */
   closeOnSelect?: MenuProps["closeOnSelect"];

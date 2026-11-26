@@ -14,6 +14,7 @@ import {
   getPillColorClasses,
   getSidebarSurfaceTokens,
   getSideMenuItemTokens,
+  getSelectedRowTokens,
   getStatTileColorClasses,
   getStepperTonePalette,
   getSubItemHoverClasses,
@@ -98,6 +99,8 @@ const generatedClasses = (): Set<string> => {
     collect(getCollapsibleHelpToneTokens(tone), out);
     collect(getAppDividerToneTokens(tone), out);
     collect(getSideMenuItemTokens(tone), out);
+    // Menu's `washSelected` fill — faded wash + toned copy, per tone.
+    collect(getSelectedRowTokens(tone), out);
     // ActivityFeed sub-row hover — wash and dot lift, per tone.
     collect(getSubItemHoverClasses(tone), out);
     for (const variant of ["solid", "soft", "outline"] as const) {

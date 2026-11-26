@@ -6,7 +6,7 @@ import Panel from "../Panel";
 import ScrollArea from "../ScrollArea";
 import CustomIcon from "../CustomIcon";
 import { CollapseChevron } from "../CollapseToggleButton";
-import { getSideMenuItemTokens, getSurfaceTriggerTokens, getSurfaceCornerClass } from "../../theme/Theme";
+import { getSideMenuItemTokens, getSurfaceTriggerTokens, getSurfaceCornerClass, getSelectedRowTokens } from "../../theme/Theme";
 import { MenuPopup } from "./MenuPopup";
 import type { MenuItem, MenuProps } from "./types";
 
@@ -133,6 +133,14 @@ function MenuRow({ item, state, depth, gutter = true }: { item: MenuItem; state:
   // `selectedKey` drives the right-aligned check and the parent-row value echo;
   // checkbox/radio rows keep their own left-side checks, so checkable wins.
   const selected = !checkable && props.selectedKey != null && item.id === props.selectedKey;
+  // `washSelected` paints the radio row the dot marks with a faded wash of
+  // its own tone — pale in light, sunk in dark — so the selection reads
+  // before the dot is noticed. Decorative: `aria-checked` and the dot stay
+  // the truth. A danger radio washes rose, the hue its ink already wears;
+  // disabled rows keep the opacity-40 treatment instead.
+  const wash = props.washSelected && item.type === "radio" && item.checked && !item.disabled
+    ? getSelectedRowTokens(item.danger ? "rose" : itemTone)
+    : undefined;
   const branch = !selected && nested && item.trailing == null && props.selectedKey != null
     ? findSelectedBranch(item.items, props.selectedKey)
     : undefined;
@@ -192,7 +200,8 @@ function MenuRow({ item, state, depth, gutter = true }: { item: MenuItem; state:
       getSurfaceCornerClass(item.corner ?? props.itemCorner ?? "rounded-sm"),
       getSurfaceTriggerTokens(itemTone).focusRing,
       item.disabled ? "cursor-not-allowed opacity-40" : item.danger ? "text-rose-700 hover:bg-rose-50 dark:text-rose-300 dark:hover:bg-rose-500/10" : [tokens.hoverBg, tokens.hoverText],
-      expanded && !item.disabled && tokens.bg),
+      expanded && !item.disabled && tokens.bg,
+      wash && [wash.bg, wash.text]),
     onClick: activate,
     onKeyDown: (event: React.KeyboardEvent<HTMLElement>) => {
       if (event.key === "ArrowRight" && nested) { event.preventDefault(); event.stopPropagation(); open(true); }

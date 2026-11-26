@@ -2097,6 +2097,51 @@ sideMenuItemTokens.neutral = {
 export const getSideMenuItemTokens = (color: TrueColor): SideMenuItemTokens =>
   sideMenuItemTokens[color] ?? sideMenuItemTokens.blue;
 
+export interface SelectedRowTokens {
+  /** Resting wash of the selected row. */
+  bg: string;
+  /** Copy (and `bg-current` dot) of the selected row. */
+  text: string;
+}
+
+/**
+ * The faded-tone wash for a menu's selected radio row — the row the gutter
+ * dot marks. A checked `type: "radio"` row otherwise wears no fill at all:
+ * the whole selection lives in a 6px dot. This is the kit's faded-tone
+ * grammar (`Picker.optionSelectedBg`'s exact pair) — paler than the panel in
+ * light (`{c}-50`), sunk deeper than it in dark (`{c}-900/20`) — so the row
+ * answers with its tone before the dot is even noticed.
+ *
+ * `neutral` steps up to the SideMenu active-row pair: a `{c}-900/20` wash on
+ * a neutral-900 menu panel is the same paint on the same paint — invisible.
+ *
+ * Generated from `TRUE_COLORS` for the reason every generated table in this
+ * file exists: the last hand-written 21-tone literal (Picker's) spelled
+ * `red` as rose and `green` as emerald, and the misspelled classes were never
+ * emitted at all. Template-literal classes, so every shape needs a matching
+ * `@source inline()` line in `scripts/generate-safelist.mjs` — all four
+ * already ship (`bg-{COLOR}-50`, `text-{COLOR}-700`, `dark:text-{COLOR}-300`,
+ * `dark:bg-{COLOR}-900/20`); `themeSafelist.test.ts` walks this getter.
+ */
+const selectedRowTokens: Record<TrueColor, SelectedRowTokens> =
+  Object.fromEntries(
+    TRUE_COLORS.map((color) => [
+      color,
+      {
+        bg: `bg-${color}-50 dark:bg-${color}-900/20`,
+        text: `text-${color}-700 dark:text-${color}-300`,
+      },
+    ]),
+  ) as Record<TrueColor, SelectedRowTokens>;
+
+selectedRowTokens.neutral = {
+  bg: "bg-neutral-100 dark:bg-neutral-800/60",
+  text: "text-neutral-900 dark:text-neutral-100",
+};
+
+export const getSelectedRowTokens = (color: TrueColor): SelectedRowTokens =>
+  selectedRowTokens[color] ?? selectedRowTokens.blue;
+
 /**
  * Resting copy for an idle `SideMenu` row, per surface context.
  *

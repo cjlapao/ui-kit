@@ -1,7 +1,7 @@
 # Spec: Menu — Faded Tone Wash on the Selected Radio Row
 
 Date: 2026-11-26
-Status: approved design, in implementation
+Status: implemented — Menu wash tests green; themeSafelist walk added; react lint + build clean
 
 ## Goal
 

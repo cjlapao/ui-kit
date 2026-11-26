@@ -65,6 +65,14 @@ export interface MenuProps extends Pick<PanelProps, "variant" | "tone" | "corner
    * own left-side checks — `checkable` types win on the same row.
    */
   selectedKey?: string;
+  /** Paint the checked `type: "radio"` row with a faded wash of its own tone —
+   * pale `bg-{c}-50` in light, sunk `dark:bg-{c}-900/20` in dark — so the
+   * selection reads before the gutter dot is even noticed. The tone resolves
+   * like the row's other tone-driven styles (`item.tone ?? itemTone ?? tone`,
+   * "none" washes neutral, `danger` washes rose). The row's copy and its dot
+   * take the tone too. Decorative only — `aria-checked` and the dot stay the
+   * truth. @default false */
+  washSelected?: boolean;
   /** Submenu presentation — a tiered popup flyout by default, `inline` expands in place. */
   submenuMode?: "inline" | "tiered";
   expandedKeys?: string[];

@@ -34,6 +34,7 @@ export function MenuButton({
   caretIcon = "ArrowDown",
   items,
   selectedKey,
+  washSelected,
   submenuMode,
   closeOnSelect,
   onSelect,
@@ -86,6 +87,7 @@ export function MenuButton({
       trigger={trigger}
       items={items}
       selectedKey={selectedKey}
+      washSelected={washSelected}
       submenuMode={submenuMode}
       closeOnSelect={closeOnSelect}
       onSelect={onSelect}

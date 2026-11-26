@@ -153,6 +153,41 @@ describe("Menu", () => {
   });
 });
 
+describe("Menu washSelected (faded tone fill on the checked radio row)", () => {
+  const radios: MenuItem[] = [
+    { id: "light", label: "Light", type: "radio", checked: false },
+    { id: "dark", label: "Dark", type: "radio", checked: true },
+  ];
+  it("leaves the checked radio row unfilled by default", () => {
+    render(<Menu items={radios} itemTone="blue" />);
+    expect(screen.getByRole("menuitemradio", { name: "Dark" }).classList.contains("bg-blue-50")).toBe(false);
+  });
+  it("washes the checked radio row with the faded tone pair", () => {
+    render(<Menu items={radios} itemTone="blue" washSelected />);
+    expect(screen.getByRole("menuitemradio", { name: "Dark" })).toHaveClass("bg-blue-50", "dark:bg-blue-900/20", "text-blue-700", "dark:text-blue-300");
+    // The unchecked sibling keeps the plain row — no wash, and its tone
+    // classes stay hover-only (`bg-blue-50` never lands on the row itself).
+    expect(screen.getByRole("menuitemradio", { name: "Light" }).classList.contains("bg-blue-50")).toBe(false);
+  });
+  it("prefers the item's own tone over the menu-wide one", () => {
+    render(<Menu items={[{ id: "x", label: "X", type: "radio", checked: true, tone: "amber" }]} itemTone="blue" washSelected />);
+    expect(screen.getByRole("menuitemradio", { name: "X" })).toHaveClass("bg-amber-50", "dark:bg-amber-900/20");
+  });
+  it("falls back to the visible neutral pair when untinted", () => {
+    render(<Menu items={radios} washSelected />);
+    expect(screen.getByRole("menuitemradio", { name: "Dark" })).toHaveClass("bg-neutral-100", "dark:bg-neutral-800/60");
+  });
+  it("washes a danger radio with the rose pair its ink already wears", () => {
+    render(<Menu items={[{ id: "rm", label: "Remove", type: "radio", checked: true, danger: true }]} washSelected />);
+    expect(screen.getByRole("menuitemradio", { name: "Remove" })).toHaveClass("bg-rose-50", "dark:bg-rose-900/20", "text-rose-700", "dark:text-rose-300");
+  });
+  it("never washes a disabled or selectedKey row", () => {
+    render(<Menu items={[{ id: "d", label: "Disabled", type: "radio", checked: true, disabled: true }, { id: "s", label: "Sel" }]} selectedKey="s" washSelected />);
+    expect(screen.getByRole("menuitemradio", { name: "Disabled" }).classList.contains("bg-neutral-100")).toBe(false);
+    expect(screen.getByRole("menuitemradio", { name: "Sel" }).classList.contains("bg-neutral-100")).toBe(false);
+  });
+});
+
 describe("Menu selection (selectedKey)", () => {
   const tree: MenuItem[] = [
     { id: "model", label: "Sonnet 5.5", description: "Most efficient for simpler tasks" },
