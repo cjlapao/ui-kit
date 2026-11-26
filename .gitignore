@@ -65,6 +65,7 @@ vue/demo/build/
 
 # React kit build outputs
 react/dist/
+react/demo/build/
 *.tsbuildinfo
 .primevue/
 .playwright-mcp/
