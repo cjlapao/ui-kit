@@ -63,6 +63,15 @@ for (const demo of DEMOS) {
   console.log(`[assemble-pages-site] ${demo.name}/ ← ${path.relative(root, demo.src)} (+ 404.html)`);
 }
 
+// GitHub Pages only treats the 404.html at the ARTIFACT ROOT as the fallback
+// for unknown paths — a nested demo/404.html is just a static file. So the
+// root fallback carries the React shell (built with basename
+// import.meta.env.BASE_URL): its absolute /ui-kit/react/asset URLs load from
+// any 404'd path and BrowserRouter restores the deep link. The Vue demo has
+// no URL routing, so it needs no fallback.
+fs.copyFileSync(path.join(OUT, "react", "index.html"), path.join(OUT, "404.html"));
+console.log("[assemble-pages-site] 404.html ← react shell (Pages root SPA fallback)");
+
 const landing = fs.readFileSync(LANDING, "utf-8").replaceAll("{{VERSION}}", version);
 fs.writeFileSync(path.join(OUT, "index.html"), landing);
 console.log(`[assemble-pages-site] index.html ← site-landing/ (version ${version})`);
