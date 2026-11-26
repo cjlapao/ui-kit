@@ -313,7 +313,6 @@ export function AgentMap({ projects, expandedProjectId, defaultExpandedProjectId
     el.addEventListener("wheel", onWheel, { passive: false });
     return () => el.removeEventListener("wheel", onWheel);
     // zoomBy reads zoomRef, so the listener stays attached across zoom changes.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [zoomable, narrow, loading, showSkeleton, projects.length]);
   function toggle(project: AgentMapProject) { const next = expanded === project.id ? null : project.id; if (selection) { if (selectedAgentId === undefined) setInternalSelected(null); onSelectionClear?.(); } if (expandedProjectId === undefined) setInternalExpanded(next); onExpandedProjectChange?.(next); }
   function select(agent: AgentMapAgent, project: AgentMapProject) { if (selectedAgentId === undefined) setInternalSelected(agent.id); onAgentSelect?.(agent, project); }

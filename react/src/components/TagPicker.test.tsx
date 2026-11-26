@@ -32,8 +32,6 @@ import type { TagPickerProps } from "./TagPicker";
 // The keyboard cursor's wash, read from the theme rather than restated here: a
 // retune of the constant retunes these assertions instead of vacating them.
 const CURSOR_WASH = POPUP_ROW_WASH.cursor.split(" ");
-const NO_WASH = [...CURSOR_WASH, ...POPUP_ROW_WASH.hover.split(" ")];
-
 
 const openDropdown = () => {
   fireEvent.click(screen.getByRole("button", { name: "Toggle options" }));
@@ -350,7 +348,10 @@ describe("TagPicker - the dropdown surface follows the field", () => {
       />,
     );
     openDropdown();
-    expect(popupCard()).toContain("bg-white/90");
+    // The outlined card is a surface blend, not a literal step: white at 90%
+    // (see the --ui-surface-color/--ui-surface-alpha contract in Panel).
+    expect(popupCard()).toContain("[--ui-surface-color:var(--color-white)]");
+    expect(popupCard()).toContain("[--ui-surface-alpha:90%]");
     expect(popupCard()).not.toContain("backdrop-blur");
     expect(popupCard()).toContain("rounded-none");
   });

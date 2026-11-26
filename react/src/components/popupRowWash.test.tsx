@@ -16,7 +16,7 @@
  * until the list is the only thing on screen.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render } from "@testing-library/react";
 import { useRef, useState, type ReactElement } from "react";
 
 import Combobox from "./Combobox";
@@ -122,7 +122,8 @@ const ROWS: Row[] = [
           { id: "a", title: "api-gateway", group: "Fleet" },
           { id: "b", title: "worker-pool", group: "Fleet" },
         ]}
-        multiple
+        multi
+        groupSelectable
         variant="ghost"
         tone="blue"
         inputFillTone="neutral"
@@ -142,7 +143,7 @@ const ROWS: Row[] = [
         items={TAG_ITEMS}
         value={[]}
         onChange={vi.fn()}
-        creatable
+        allowCreate
         variant="ghost"
         tone="blue"
         inputFillTone="neutral"
@@ -183,10 +184,9 @@ const ROWS: Row[] = [
       <VariablePicker
         groups={GROUPS}
         onSelect={vi.fn()}
-        variant="ghost"
+        variant="simple"
         tone="blue"
         inputFillTone="neutral"
-        panelVariant="simple"
         panelTone="neutral"
       />
     ),
