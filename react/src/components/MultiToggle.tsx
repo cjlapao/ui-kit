@@ -1,5 +1,8 @@
 import TooltipWrapper from "./TooltipWrapper";
-import { getMultiToggleMotionStyle } from "../../../common/theme/multiToggleMotion";
+import {
+  DEFAULT_SEPARATOR_PADDING,
+  getMultiToggleMotionStyle,
+} from "../../../common/theme/multiToggleMotion";
 import {
   CONTROL_SPRING_TOKENS,
   type ControlSpring,
@@ -67,12 +70,23 @@ export type MultiToggleOptionWidth = number | LiteralUnion<"auto">;
 export type MultiToggleActiveWidthStrategy = "auto" | "max";
 
 export interface MultiToggleOption {
-  value: string;
+  /** The radio's value. Required for a segment; ignored on a separator. */
+  value?: string;
   label?: ReactNode;
   icon?: string | React.ReactElement;
   disabled?: boolean;
   width?: MultiToggleOptionWidth;
+  /**
+   * `"separator"` draws a vertical hairline at this position instead of a
+   * segment. As many as you like; they are not radios, take no part in
+   * selection or arrow-key navigation, and sit outside the indicator maths.
+   */
+  type?: "item" | "separator";
 }
+
+/** A separator option — a hairline between groups, not a radio. */
+const isSeparatorOption = (option: MultiToggleOption): boolean =>
+  option.type === "separator";
 
 export interface MultiToggleProps
   // The root element is the radiogroup `<div>`, not a button. These props used
@@ -113,6 +127,25 @@ export interface MultiToggleProps
   activeWidthStrategy?: MultiToggleActiveWidthStrategy;
   /** The track's surface, from the Panel family. @default "subtle" */
   variant?: MultiToggleVariant;
+  /**
+   * Paints the track at all. `false` drops the surface entirely — no fill,
+   * border, shadow or blur — so the segments float on whatever is behind the
+   * group, like a filter row on a page header. The geometry and the sliding
+   * indicator are untouched. @default true
+   */
+  background?: boolean;
+  /**
+   * Space between adjacent segments, in px. Nothing is imposed on the outer
+   * edges (flex gap never touches the first or last child), and nothing is
+   * added around a separator — its own `separatorPadding` defines that space.
+   */
+  gap?: number;
+  /**
+   * Horizontal padding a separator keeps on each side of its hairline, in px.
+   * This is the *only* space a separator leaves to its neighbours: the item
+   * `gap` is cancelled on both sides of it. @default 8
+   */
+  separatorPadding?: number;
   /** How the active segment is drawn. @default "solid" */
   indicator?: MultiToggleIndicator;
   /** Overrides the active option's text tone. */
@@ -131,6 +164,8 @@ const sizeTokens: Record<
     label: string;
     icon: string;
     paddingY: string;
+    /** Vertical inset of a separator's rule, so it reads as a hairline. */
+    separator: string;
   }
 > = {
   xs: {
@@ -141,6 +176,7 @@ const sizeTokens: Record<
     label: "text-[11px]",
     icon: "h-3.5 w-3.5",
     paddingY: "py-0.5",
+    separator: "my-0.5",
   },
   sm: {
     track: "h-8 text-xs",
@@ -150,6 +186,7 @@ const sizeTokens: Record<
     label: "text-xs",
     icon: "h-4 w-4",
     paddingY: "py-0.5",
+    separator: "my-1",
   },
   md: {
     track: "h-9 text-sm",
@@ -159,6 +196,7 @@ const sizeTokens: Record<
     label: "text-sm",
     icon: "h-5 w-5",
     paddingY: "py-0.5",
+    separator: "my-1.5",
   },
   lg: {
     track: "h-11 text-base",
@@ -168,6 +206,7 @@ const sizeTokens: Record<
     label: "text-base",
     icon: "h-6 w-6",
     paddingY: "py-0.5",
+    separator: "my-2",
   },
   xl: {
     track: "h-12 text-lg",
@@ -177,6 +216,7 @@ const sizeTokens: Record<
     label: "text-lg",
     icon: "h-7 w-7",
     paddingY: "py-0.5",
+    separator: "my-2.5",
   },
 };
 
@@ -224,6 +264,9 @@ const MultiToggle: React.FC<MultiToggleProps> = ({
   style: sharedButtonStyle,
   activeWidthStrategy = "auto",
   variant = "subtle",
+  background = true,
+  gap,
+  separatorPadding = DEFAULT_SEPARATOR_PADDING,
   indicator = "solid",
   accentTone,
   accentColor,
@@ -234,7 +277,10 @@ const MultiToggle: React.FC<MultiToggleProps> = ({
   const optionRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const measurementRefs = useRef<Array<HTMLDivElement | null>>([]);
   const hasCustomWidths =
-    adaptiveWidth || options.some((option) => option.width !== undefined);
+    adaptiveWidth ||
+    options.some(
+      (option) => !isSeparatorOption(option) && option.width !== undefined,
+    );
   const [indicatorInlineStyle, setIndicatorInlineStyle] =
     useState<React.CSSProperties>();
   const [overflowLabels, setOverflowLabels] = useState<Array<string | undefined>>([]);
@@ -272,9 +318,22 @@ const MultiToggle: React.FC<MultiToggleProps> = ({
               : "rounded-full";
 
   const optionCount = options.length ?? 0;
+  // Separators are not radios: they take no segment slot, no indicator maths
+  // and no keyboard step — they only occupy their own padded width.
+  const separatorCount = options.reduce(
+    (count, option) => count + (isSeparatorOption(option) ? 1 : 0),
+    0,
+  );
+  const itemCount = optionCount - separatorCount;
+  const usesFreeFlowLayout = separatorCount > 0 || gap !== undefined;
+  // A group of nothing but separators would divide by zero in the fallback
+  // pill maths below; it still has to render its rules, so clamp to one.
+  const segmentCount = Math.max(1, itemCount);
   const activeIndex = Math.max(
     0,
-    options.findIndex((option) => option.value === value),
+    options.findIndex(
+      (option) => !isSeparatorOption(option) && option.value === value,
+    ),
   );
   const sizeStyles = sizeTokens[size] ?? sizeTokens.md;
   // `color` is the old name for `tone`.
@@ -284,7 +343,8 @@ const MultiToggle: React.FC<MultiToggleProps> = ({
   const trigger = getSurfaceTriggerTokens(resolvedTone);
   // The track is a surface, so its copy colour comes from the surface — a
   // hardcoded `text-neutral-600` is unreadable on `glass` over a photo.
-  const surfaceText = getSurfaceTextTokens(variant);
+  // With no track at all, the copy sits on the page, so it takes the solid pair.
+  const surfaceText = getSurfaceTextTokens(background ? variant : "none");
   const trackClasses = getSurfaceVariantClasses(variant, resolvedTone);
   const activeTextClass =
     getMultiToggleVariantTokens(resolvedAccent).activeText;
@@ -302,12 +362,19 @@ const MultiToggle: React.FC<MultiToggleProps> = ({
     soft: `${variantTokens.softIndicator} border border-${resolvedTone}-300 dark:border-${resolvedTone}-500/25`,
     tonal: `bg-${resolvedTone}-500/15 dark:bg-${resolvedTone}-400/20 border border-${resolvedTone}-400/40 dark:border-${resolvedTone}-300/20`,
   }[indicator];
-  const usesSegmentLayout = fullWidth && !hasCustomWidths && !shouldLockToMaxWidth;
+  // The even-segment maths only holds when nothing breaks the evenness: a
+  // separator or an item gap makes the segments unequal-spaced, so the pill is
+  // positioned from the measured segment instead — which is exact either way.
+  const usesSegmentLayout =
+    fullWidth &&
+    !hasCustomWidths &&
+    !shouldLockToMaxWidth &&
+    !usesFreeFlowLayout;
   optionRefs.current.length = optionCount;
   measurementRefs.current.length = optionCount;
 
   const indicatorStyle = useMemo(() => {
-    const segmentExpression = `(100% - ${CONTAINER_HORIZONTAL_PADDING * 2}px) / ${optionCount}`;
+    const segmentExpression = `(100% - ${CONTAINER_HORIZONTAL_PADDING * 2}px) / ${segmentCount}`;
     const margin = INDICATOR_MARGIN;
 
     if (usesSegmentLayout) {
@@ -317,12 +384,12 @@ const MultiToggle: React.FC<MultiToggleProps> = ({
       };
     }
 
-    const widthPercent = 100 / optionCount;
+    const widthPercent = 100 / segmentCount;
     return {
       width: `calc(${widthPercent}% - ${margin * 2}px)`,
-      transform: `translateX(calc(${activeIndex} * (100% / ${optionCount}) + ${margin}px))`,
+      transform: `translateX(calc(${activeIndex} * (100% / ${segmentCount}) + ${margin}px))`,
     };
-  }, [activeIndex, optionCount, usesSegmentLayout]);
+  }, [activeIndex, segmentCount, usesSegmentLayout]);
 
   const updateIndicatorPosition = useCallback(() => {
     const container = containerRef.current;
@@ -352,7 +419,7 @@ const MultiToggle: React.FC<MultiToggleProps> = ({
     );
 
     if (usesSegmentLayout) {
-      const segmentWidth = containerInnerWidth / optionCount;
+      const segmentWidth = containerInnerWidth / segmentCount;
       const inset = computeInset(segmentWidth);
       const indicatorWidth = Math.max(0, segmentWidth - inset * 2);
       const offset = paddingLeft + activeIndex * segmentWidth + inset;
@@ -387,7 +454,7 @@ const MultiToggle: React.FC<MultiToggleProps> = ({
     activeIndex,
     shouldLockToMaxWidth,
     maxOptionWidth,
-    optionCount,
+    segmentCount,
     usesSegmentLayout,
     truncateOverflow,
   ]);
@@ -402,10 +469,18 @@ const MultiToggle: React.FC<MultiToggleProps> = ({
               : option.label !== undefined
                 ? "node"
                 : "";
-          return `${option.value}:${option.width ?? ""}:${labelSignature}`;
+          return `${option.value ?? ""}:${option.type ?? ""}:${option.width ?? ""}:${labelSignature}`;
         })
         .join("|"),
     [options],
+  );
+
+  // The layout effect re-measures when anything that moves a segment changes:
+  // the options themselves, or the spacing that sits between them.
+  const layoutSignature = useMemo(
+    () =>
+      `${optionsSignature}:${gap ?? ""}:${separatorPadding}:${background}`,
+    [optionsSignature, gap, separatorPadding, background],
   );
 
   useLayoutEffect(() => {
@@ -437,7 +512,7 @@ const MultiToggle: React.FC<MultiToggleProps> = ({
     const constrainedWidth = Math.min(largestWidth, containerInnerWidth);
 
     setMaxOptionWidth(constrainedWidth || undefined);
-  }, [shouldLockToMaxWidth, optionsSignature, size, optionMaxWidth]);
+  }, [shouldLockToMaxWidth, layoutSignature, size, optionMaxWidth]);
 
   useLayoutEffect(() => {
     if (typeof window === "undefined") {
@@ -475,7 +550,7 @@ const MultiToggle: React.FC<MultiToggleProps> = ({
       resizeObserver?.disconnect();
     };
   }, [
-    optionsSignature,
+    layoutSignature,
     optionMaxWidth,
     updateIndicatorPosition,
     shouldLockToMaxWidth,
@@ -501,16 +576,24 @@ const MultiToggle: React.FC<MultiToggleProps> = ({
 
       const selectable = options
         .map((option, index) => ({ option, index }))
-        .filter(({ option }) => !option.disabled && !disabled);
+        .filter(
+          ({ option }) =>
+            !isSeparatorOption(option) && !option.disabled && !disabled,
+        );
       if (selectable.length === 0) return;
 
-      if (event.key === "Home" || event.key === "End") {
-        const target =
-          event.key === "Home"
-            ? selectable[0]
-            : selectable[selectable.length - 1];
+      const commit = (target: { option: MultiToggleOption; index: number }) => {
+        if (target.option.value === undefined) return;
         onChange(target.option.value);
         optionRefs.current[target.index]?.focus();
+      };
+
+      if (event.key === "Home" || event.key === "End") {
+        commit(
+          event.key === "Home"
+            ? selectable[0]
+            : selectable[selectable.length - 1],
+        );
         return;
       }
 
@@ -518,10 +601,7 @@ const MultiToggle: React.FC<MultiToggleProps> = ({
         ({ index }) => index === activeIndex,
       );
       // Wraps at both ends, which is what the radiogroup pattern specifies.
-      const next =
-        selectable[(current + step + selectable.length) % selectable.length];
-      onChange(next.option.value);
-      optionRefs.current[next.index]?.focus();
+      commit(selectable[(current + step + selectable.length) % selectable.length]);
     },
     [options, disabled, activeIndex, onChange],
   );
@@ -537,17 +617,22 @@ const MultiToggle: React.FC<MultiToggleProps> = ({
       ref={containerRef}
       className={classNames(
         "multi-toggle relative inline-flex min-w-0 max-w-full box-border select-none items-center px-1 py-0.5",
-        trackClasses,
+        background && trackClasses,
         controlRounded,
         sizeStyles.track,
         fullWidth && "w-full",
         disabled && "opacity-60 cursor-not-allowed",
         className,
       )}
-      style={{
-        "--mt-spring-easing": springConfig.easing,
-        "--mt-spring-duration": `${springDuration ?? springConfig.duration}ms`,
-      } as React.CSSProperties}
+      style={
+        {
+          "--mt-spring-easing": springConfig.easing,
+          "--mt-spring-duration": `${springDuration ?? springConfig.duration}ms`,
+          // Flex gap never touches the outer edges — the first and last
+          // segments keep the track's own padding alone.
+          ...(gap !== undefined ? { columnGap: `${gap}px` } : undefined),
+        } as React.CSSProperties
+      }
       role="radiogroup"
       aria-disabled={disabled}
       {...buttonProps}
@@ -582,6 +667,9 @@ const MultiToggle: React.FC<MultiToggleProps> = ({
           }}
         >
           {options.map((option, index) => {
+            if (isSeparatorOption(option)) {
+              return null;
+            }
             const measurementStyle: React.CSSProperties = {};
             if (option.width && option.width !== "auto") {
               const targetWidth = toCssDimension(option.width);
@@ -627,6 +715,31 @@ const MultiToggle: React.FC<MultiToggleProps> = ({
       )}
 
       {options.map((option, index) => {
+        if (isSeparatorOption(option)) {
+          // No ref, no radio — just a hairline. Its own padding is the only
+          // space around it: the item gap is cancelled on both sides so the
+          // neighbouring segment never pays gap *plus* separator padding.
+          optionRefs.current[index] = null;
+          return (
+            <span
+              key={`separator-${index}`}
+              role="separator"
+              aria-orientation="vertical"
+              className={classNames(
+                "multi-toggle-separator pointer-events-none flex shrink-0 items-stretch self-stretch",
+                sizeStyles.separator,
+              )}
+              style={{
+                paddingLeft: separatorPadding,
+                paddingRight: separatorPadding,
+                ...(gap ? { marginLeft: -gap, marginRight: -gap } : undefined),
+              }}
+            >
+              <span className={classNames("w-0 border-l", surfaceText.divider)} />
+            </span>
+          );
+        }
+
         const isActive = option.value == value;
         const optionDisabled = disabled || option.disabled;
         const applyCustomWidth =
@@ -682,12 +795,15 @@ const MultiToggle: React.FC<MultiToggleProps> = ({
             : undefined;
 
         return (
-          <TooltipWrapper key={option.value} text={overflowLabels[index]}>
+          <TooltipWrapper
+            key={option.value ?? `option-${index}`}
+            text={overflowLabels[index]}
+          >
           <button
             ref={(node) => {
               optionRefs.current[index] = node;
             }}
-            key={option.value}
+            key={option.value ?? `option-${index}`}
             type="button"
             className={classNames(
               "relative z-[1] flex min-w-0 items-center justify-center transition-colors duration-150",
@@ -705,7 +821,11 @@ const MultiToggle: React.FC<MultiToggleProps> = ({
                   ),
             )}
             onClick={() => {
-              if (optionDisabled || option.value === value) {
+              if (
+                optionDisabled ||
+                option.value === undefined ||
+                option.value === value
+              ) {
                 return;
               }
               onChange(option.value);

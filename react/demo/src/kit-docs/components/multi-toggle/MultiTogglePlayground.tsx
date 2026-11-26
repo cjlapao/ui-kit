@@ -48,18 +48,25 @@ export const MultiTogglePlayground: React.FC = () => {
   const [fullWidth, setFullWidth] = useState(false);
   const [disabled, setDisabled] = useState(false);
   const [withIcons, setWithIcons] = useState(false);
+  const [background, setBackground] = useState(true);
+  const [gap, setGap] = useState(0);
+  const [withSeparators, setWithSeparators] = useState(false);
+  const [separatorPadding, setSeparatorPadding] = useState(8);
   const [log, pushLog] = useEventLog();
+
+  const baseOptions = withIcons
+    ? OPTIONS.map((o, i) => ({ ...o, icon: ["Calendar", "ChartLine", "Clock"][i] }))
+    : OPTIONS;
+
+  // The grouped filter-bar pattern: a rule between the segments and the
+  // "All" entry, spaced only by the rule's own padding.
+  const previewOptions = withSeparators
+    ? [...baseOptions, { type: "separator" as const }, { value: "all", label: "All" }]
+    : baseOptions;
 
   const toggle = (
     <MultiToggle
-      options={
-        withIcons
-          ? OPTIONS.map((o, i) => ({
-              ...o,
-              icon: ["Calendar", "ChartLine", "Clock"][i],
-            }))
-          : OPTIONS
-      }
+      options={previewOptions}
       value={value}
       onChange={(v) => {
         setValue(v);
@@ -68,6 +75,9 @@ export const MultiTogglePlayground: React.FC = () => {
       size={size}
       tone={tone}
       variant={variant}
+      background={background}
+      gap={gap > 0 ? gap : undefined}
+      separatorPadding={separatorPadding}
       indicator={indicator}
       rounded={rounded}
       fullWidth={fullWidth}
@@ -143,6 +153,59 @@ export const MultiTogglePlayground: React.FC = () => {
                       value={size}
                       onChange={(v) => setSize(v as ControlSize)}
                     />
+                  </div>
+                ),
+              },
+              {
+                id: "spacing",
+                title: "Spacing & separators",
+                controls: (
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-2">
+                      <ToggleRow
+                        label="Track background"
+                        checked={background}
+                        onChange={setBackground}
+                      />
+                      <ToggleRow
+                        label="Separator + All"
+                        checked={withSeparators}
+                        onChange={setWithSeparators}
+                      />
+                    </div>
+                    <Control label={`Item gap · ${gap}px`}>
+                      <input
+                        aria-label="Item gap"
+                        className="w-full"
+                        type="range"
+                        min="0"
+                        max="24"
+                        step="1"
+                        value={gap}
+                        onChange={(event) => setGap(Number(event.target.value))}
+                      />
+                    </Control>
+                    <Control label={`Separator padding · ${separatorPadding}px`}>
+                      <input
+                        aria-label="Separator padding"
+                        className="w-full"
+                        type="range"
+                        min="0"
+                        max="20"
+                        step="1"
+                        value={separatorPadding}
+                        onChange={(event) =>
+                          setSeparatorPadding(Number(event.target.value))
+                        }
+                      />
+                    </Control>
+                    <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                      The gap never touches the outer edges, and a separator
+                      cancels it on both sides of its rule — only{" "}
+                      <strong>Separator padding</strong> spaces the rule from
+                      its neighbours. Switch <strong>Track background</strong>{" "}
+                      off and the segments float on the page, indicator and all.
+                    </p>
                   </div>
                 ),
               },

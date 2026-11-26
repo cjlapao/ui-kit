@@ -194,3 +194,87 @@ describe("MultiToggle overflow tooltips", () => {
     w.unmount();
   });
 });
+
+describe("MultiToggle separators, gap and background", () => {
+  const SEPARATED = [
+    { value: "a", label: "Alpha" },
+    { value: "b", label: "Beta" },
+    { type: "separator" as const },
+    { value: "c", label: "Gamma" },
+  ];
+
+  it("draws separators as vertical rules that are not radios", () => {
+    const w = mountToggle({ options: SEPARATED });
+    expect(radios(w)).toHaveLength(3);
+    const rule = w.find('[role="separator"]');
+    expect(rule.exists()).toBe(true);
+    expect(rule.attributes("aria-orientation")).toBe("vertical");
+    // A rule is decoration between groups — never a selectable box.
+    expect(rule.text()).toBe("");
+    w.unmount();
+  });
+
+  it("steps the arrow keys over separators", async () => {
+    const w = mountToggle({ options: SEPARATED, modelValue: "b" });
+    await radios(w)[1].trigger("keydown", { key: "ArrowRight" });
+    expect(w.emitted("update:modelValue")?.[0]).toEqual(["c"]);
+    w.unmount();
+  });
+
+  it("supports any number of separators between any number of segments", async () => {
+    const w = mountToggle({
+      options: [
+        { value: "a", label: "Alpha" },
+        { value: "b", label: "Beta" },
+        { type: "separator" as const },
+        { value: "c", label: "Gamma" },
+        { value: "d", label: "Delta" },
+        { type: "separator" as const },
+        { value: "e", label: "Epsilon" },
+      ],
+      modelValue: "d",
+      gap: 10,
+    });
+    expect(radios(w)).toHaveLength(5);
+    expect(w.findAll('[role="separator"]')).toHaveLength(2);
+    // Arrow from Delta steps over the second rule straight into Epsilon.
+    await radios(w)[3].trigger("keydown", { key: "ArrowRight" });
+    expect(w.emitted("update:modelValue")?.[0]).toEqual(["e"]);
+    // Both rules cancel the gap on their own flanks, independently.
+    for (const rule of w.findAll('[role="separator"]')) {
+      const style = rule.attributes("style") ?? "";
+      expect(style).toContain("margin-left: -10px");
+      expect(style).toContain("margin-right: -10px");
+    }
+    w.unmount();
+  });
+
+  it("applies the gap to the track and cancels it around separators", () => {
+    const w = mountToggle({ options: SEPARATED, gap: 12, separatorPadding: 10 });
+    expect((w.element as HTMLElement).style.columnGap).toBe("12px");
+    const style = w.find('[role="separator"]').attributes("style") ?? "";
+    // The default padding is the only space around the rule — gap never adds.
+    expect(style).toContain("padding-left: 10px");
+    expect(style).toContain("padding-right: 10px");
+    expect(style).toContain("margin-left: -12px");
+    expect(style).toContain("margin-right: -12px");
+    w.unmount();
+  });
+
+  it("lets the separator's own padding define its space", () => {
+    const w = mountToggle({ options: SEPARATED, separatorPadding: 14 });
+    const style = w.find('[role="separator"]').attributes("style") ?? "";
+    expect(style).toContain("padding-left: 14px");
+    expect(style).not.toContain("margin-left");
+    w.unmount();
+  });
+
+  it("paints no track when background is off", () => {
+    const w = mountToggle({ background: false });
+    for (const cls of getSurfaceVariantClasses("subtle", "blue").split(" ")) {
+      if (cls)
+        expect((w.element as HTMLElement).className).not.toContain(cls);
+    }
+    w.unmount();
+  });
+});

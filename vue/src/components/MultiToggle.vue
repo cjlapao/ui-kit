@@ -1,6 +1,9 @@
 <script lang="ts">
 import type { CSSProperties, VNode } from "vue";
-import { getMultiToggleMotionStyle } from "../../../common/theme/multiToggleMotion";
+import {
+  DEFAULT_SEPARATOR_PADDING,
+  getMultiToggleMotionStyle,
+} from "../../../common/theme/multiToggleMotion";
 import {
   CONTROL_SPRING_TOKENS,
   type ControlSpring,
@@ -49,12 +52,23 @@ export type MultiToggleOptionWidth = number | LiteralUnion<"auto">;
 export type MultiToggleActiveWidthStrategy = "auto" | "max";
 
 export interface MultiToggleOption {
-  value: string;
+  /** The radio's value. Required for a segment; ignored on a separator. */
+  value?: string;
   label?: string | number | VNode;
   icon?: string | VNode;
   disabled?: boolean;
   width?: MultiToggleOptionWidth;
+  /**
+   * `"separator"` draws a vertical hairline at this position instead of a
+   * segment. As many as you like; they are not radios, take no part in
+   * selection or arrow-key navigation, and sit outside the indicator maths.
+   */
+  type?: "item" | "separator";
 }
+
+/** A separator option — a hairline between groups, not a radio. */
+const isSeparatorOption = (option: MultiToggleOption): boolean =>
+  option.type === "separator";
 
 export interface MultiToggleProps {
   options: MultiToggleOption[];
@@ -75,6 +89,25 @@ export interface MultiToggleProps {
   activeWidthStrategy?: MultiToggleActiveWidthStrategy;
   /** The track's surface, from the Panel family. @default "subtle" */
   variant?: MultiToggleVariant;
+  /**
+   * Paints the track at all. `false` drops the surface entirely — no fill,
+   * border, shadow or blur — so the segments float on whatever is behind the
+   * group, like a filter row on a page header. The geometry and the sliding
+   * indicator are untouched. @default true
+   */
+  background?: boolean;
+  /**
+   * Space between adjacent segments, in px. Nothing is imposed on the outer
+   * edges (flex gap never touches the first or last child), and nothing is
+   * added around a separator — its own `separatorPadding` defines that space.
+   */
+  gap?: number;
+  /**
+   * Horizontal padding a separator keeps on each side of its hairline, in px.
+   * This is the *only* space a separator leaves to its neighbours: the item
+   * `gap` is cancelled on both sides of it. @default 8
+   */
+  separatorPadding?: number;
   /** How the active segment is drawn. @default "solid" */
   indicator?: MultiToggleIndicator;
   /** Accent for the indicator, the active label and the focus ring. @default "blue" */
@@ -96,6 +129,8 @@ const sizeTokens: Record<
     label: string;
     icon: string;
     paddingY: string;
+    /** Vertical inset of a separator's rule, so it reads as a hairline. */
+    separator: string;
   }
 > = {
   xs: {
@@ -106,6 +141,7 @@ const sizeTokens: Record<
     label: "text-[11px]",
     icon: "h-3.5 w-3.5",
     paddingY: "py-0.5",
+    separator: "my-0.5",
   },
   sm: {
     track: "h-8 text-xs",
@@ -115,6 +151,7 @@ const sizeTokens: Record<
     label: "text-xs",
     icon: "h-4 w-4",
     paddingY: "py-0.5",
+    separator: "my-1",
   },
   md: {
     track: "h-9 text-sm",
@@ -124,6 +161,7 @@ const sizeTokens: Record<
     label: "text-sm",
     icon: "h-5 w-5",
     paddingY: "py-0.5",
+    separator: "my-1.5",
   },
   lg: {
     track: "h-11 text-base",
@@ -133,6 +171,7 @@ const sizeTokens: Record<
     label: "text-base",
     icon: "h-6 w-6",
     paddingY: "py-0.5",
+    separator: "my-2",
   },
   xl: {
     track: "h-12 text-lg",
@@ -142,6 +181,7 @@ const sizeTokens: Record<
     label: "text-lg",
     icon: "h-7 w-7",
     paddingY: "py-0.5",
+    separator: "my-2.5",
   },
 };
 
@@ -214,6 +254,9 @@ const props = withDefaults(defineProps<MultiToggleProps>(), {
   rounded: "lg",
   activeWidthStrategy: "auto",
   variant: "subtle",
+  background: true,
+  gap: undefined,
+  separatorPadding: DEFAULT_SEPARATOR_PADDING,
   indicator: "solid",
 });
 
@@ -246,7 +289,9 @@ const setMeasurementRef = (
 const hasCustomWidths = computed(
   () =>
     props.adaptiveWidth ||
-    props.options.some((option) => option.width !== undefined),
+    props.options.some(
+      (option) => !isSeparatorOption(option) && option.width !== undefined,
+    ),
 );
 const indicatorInlineStyle = ref<CSSProperties | undefined>();
 const overflowLabels = ref<Array<string | undefined>>([]);
@@ -290,10 +335,29 @@ const indicatorRounded = computed(() =>
 );
 
 const optionCount = computed(() => props.options.length ?? 0);
+// Separators are not radios: they take no segment slot, no indicator maths
+// and no keyboard step — they only occupy their own padded width.
+const separatorCount = computed(() =>
+  props.options.reduce(
+    (count, option) => count + (isSeparatorOption(option) ? 1 : 0),
+    0,
+  ),
+);
+const usesFreeFlowLayout = computed(
+  () => separatorCount.value > 0 || props.gap !== undefined,
+);
+// A group of nothing but separators would divide by zero in the fallback pill
+// maths below; it still has to render its rules, so clamp to one.
+const segmentCount = computed(() =>
+  Math.max(1, optionCount.value - separatorCount.value),
+);
 const activeIndex = computed(() =>
   Math.max(
     0,
-    props.options.findIndex((option) => option.value === props.modelValue),
+    props.options.findIndex(
+      (option) =>
+        !isSeparatorOption(option) && option.value === props.modelValue,
+    ),
   ),
 );
 const sizeStyles = computed(() => sizeTokens[props.size] ?? sizeTokens.md);
@@ -308,7 +372,10 @@ const variantTokens = computed(() =>
 const trigger = computed(() => getSurfaceTriggerTokens(resolvedTone.value));
 // The track is a surface, so its copy colour comes from the surface — a
 // hardcoded `text-neutral-600` is unreadable on `glass` over a photo.
-const surfaceText = computed(() => getSurfaceTextTokens(props.variant));
+// With no track at all, the copy sits on the page, so it takes the solid pair.
+const surfaceText = computed(() =>
+  getSurfaceTextTokens(props.background === false ? "none" : props.variant),
+);
 const trackClasses = computed(() =>
   getSurfaceVariantClasses(props.variant, resolvedTone.value),
 );
@@ -332,12 +399,19 @@ const indicatorClasses = computed(() => {
 const activeTextClass = computed(
   () => getMultiToggleVariantTokens(resolvedAccent.value).activeText,
 );
+// The even-segment maths only holds when nothing breaks the evenness: a
+// separator or an item gap makes the segments unequal-spaced, so the pill is
+// positioned from the measured segment instead — which is exact either way.
 const usesSegmentLayout = computed(
-  () => props.fullWidth && !hasCustomWidths.value && !shouldLockToMaxWidth.value,
+  () =>
+    props.fullWidth &&
+    !hasCustomWidths.value &&
+    !shouldLockToMaxWidth.value &&
+    !usesFreeFlowLayout.value,
 );
 
 const indicatorStyle = computed<CSSProperties>(() => {
-  const segmentExpression = `(100% - ${CONTAINER_HORIZONTAL_PADDING * 2}px) / ${optionCount.value}`;
+  const segmentExpression = `(100% - ${CONTAINER_HORIZONTAL_PADDING * 2}px) / ${segmentCount.value}`;
   const margin = INDICATOR_MARGIN;
 
   if (usesSegmentLayout.value) {
@@ -347,10 +421,10 @@ const indicatorStyle = computed<CSSProperties>(() => {
     };
   }
 
-  const widthPercent = 100 / optionCount.value;
+  const widthPercent = 100 / segmentCount.value;
   return {
     width: `calc(${widthPercent}% - ${margin * 2}px)`,
-    transform: `translateX(calc(${activeIndex.value} * (100% / ${optionCount.value}) + ${margin}px))`,
+    transform: `translateX(calc(${activeIndex.value} * (100% / ${segmentCount.value}) + ${margin}px))`,
   };
 });
 
@@ -377,7 +451,7 @@ const updateIndicatorPosition = () => {
   );
 
   if (usesSegmentLayout.value) {
-    const segmentWidth = containerInnerWidth / optionCount.value;
+    const segmentWidth = containerInnerWidth / segmentCount.value;
     const inset = computeInset(segmentWidth);
     const indicatorWidth = Math.max(0, segmentWidth - inset * 2);
     const offset = paddingLeft + activeIndex.value * segmentWidth + inset;
@@ -419,9 +493,16 @@ const optionsSignature = computed(() =>
           : option.label !== undefined
             ? "node"
             : "";
-      return `${option.value}:${option.width ?? ""}:${labelSignature}`;
+      return `${option.value ?? ""}:${option.type ?? ""}:${option.width ?? ""}:${labelSignature}`;
     })
     .join("|"),
+);
+
+// The measuring and positioning watches re-run when anything that moves a
+// segment changes: the options themselves, or the spacing between them.
+const layoutSignature = computed(
+  () =>
+    `${optionsSignature.value}:${props.gap ?? ""}:${props.separatorPadding}:${props.background}`,
 );
 
 const measureMaxWidth = () => {
@@ -488,7 +569,7 @@ const attachResizeObserver = () => {
 watch(
   [
     shouldLockToMaxWidth,
-    optionsSignature,
+    layoutSignature,
     () => props.size,
     () => props.optionMaxWidth,
   ],
@@ -500,7 +581,7 @@ watch(
 
 watch(
   [
-    optionsSignature,
+    layoutSignature,
     () => props.optionMaxWidth,
     activeIndex,
     () => props.truncateOverflow,
@@ -535,11 +616,14 @@ onUnmounted(() => {
 });
 
 const shouldTruncate = computed(() => props.truncateOverflow ?? true);
-const springStyle = computed(() => {
+const containerStyle = computed<CSSProperties>(() => {
   const config = CONTROL_SPRING_TOKENS[props.spring] ?? CONTROL_SPRING_TOKENS.bouncy;
   return {
     "--mt-spring-easing": config.easing,
     "--mt-spring-duration": `${props.springDuration ?? config.duration}ms`,
+    // Flex gap never touches the outer edges — the first and last segments
+    // keep the track's own padding alone.
+    ...(props.gap !== undefined ? { columnGap: `${props.gap}px` } : undefined),
   };
 });
 const computedIndicatorStyle = computed(
@@ -549,7 +633,7 @@ const computedIndicatorStyle = computed(
 const containerClass = computed(() =>
   classNames(
     "multi-toggle relative inline-flex min-w-0 max-w-full box-border select-none items-center px-1 py-0.5",
-    trackClasses.value,
+    props.background && trackClasses.value,
     controlRounded.value,
     sizeStyles.value.track,
     props.fullWidth && "w-full",
@@ -573,6 +657,28 @@ const indicatorClass = computed(() =>
     indicatorClasses.value,
   ),
 );
+
+/* No ref, no radio — just a hairline. Its own padding is the only space
+ * around it: the item gap is cancelled on both sides so the neighbouring
+ * segment never pays gap *plus* separator padding. */
+const separatorClass = computed(() =>
+  classNames(
+    "multi-toggle-separator pointer-events-none flex shrink-0 items-stretch self-stretch",
+    sizeStyles.value.separator,
+  ),
+);
+
+const separatorRuleClass = computed(() =>
+  classNames("w-0 border-l", surfaceText.value.divider),
+);
+
+const separatorStyle = computed<CSSProperties>(() => ({
+  paddingLeft: `${props.separatorPadding}px`,
+  paddingRight: `${props.separatorPadding}px`,
+  ...(props.gap
+    ? { marginLeft: `${-props.gap}px`, marginRight: `${-props.gap}px` }
+    : undefined),
+}));
 
 const measurementStyle = (option: MultiToggleOption): CSSProperties => {
   const style: CSSProperties = {};
@@ -678,10 +784,14 @@ const handleKeyDown = (event: KeyboardEvent) => {
 
   const selectable = props.options
     .map((option, index) => ({ option, index }))
-    .filter(({ option }) => !isOptionDisabled(option));
+    .filter(
+      ({ option }) =>
+        !isSeparatorOption(option) && !isOptionDisabled(option),
+    );
   if (selectable.length === 0) return;
 
   const commit = (target: { option: MultiToggleOption; index: number }) => {
+    if (target.option.value === undefined) return;
     emit("update:modelValue", target.option.value);
     emit("change", target.option.value);
     optionRefs[target.index]?.focus();
@@ -698,7 +808,11 @@ const handleKeyDown = (event: KeyboardEvent) => {
 };
 
 const handleSelect = (option: MultiToggleOption) => {
-  if (isOptionDisabled(option) || option.value === props.modelValue) {
+  if (
+    isOptionDisabled(option) ||
+    option.value === undefined ||
+    option.value === props.modelValue
+  ) {
     return;
   }
   emit("update:modelValue", option.value);
@@ -710,7 +824,7 @@ const handleSelect = (option: MultiToggleOption) => {
   <div
     ref="containerRef"
     :class="containerClass"
-    :style="springStyle"
+    :style="containerStyle"
     role="radiogroup"
     :aria-disabled="disabled"
     v-bind="restAttrs"
@@ -724,82 +838,101 @@ const handleSelect = (option: MultiToggleOption) => {
       aria-hidden="true"
       :style="measurementContainerStyle"
     >
-      <div
-        v-for="(option, index) in options"
-        :key="`measure-${option.value}`"
-        :ref="(el) => setMeasurementRef(el, index)"
-        :class="
-          classNames(
-            'inline-flex min-w-0 items-center justify-center rounded-full',
-            sizeStyles.cell,
-            sizeStyles.gap,
-          )
+      <template v-for="(option, index) in options">
+        <div
+          v-if="!isSeparatorOption(option)"
+          :key="`measure-${option.value}`"
+          :ref="(el) => setMeasurementRef(el, index)"
+          :class="
+            classNames(
+              'inline-flex min-w-0 items-center justify-center rounded-full',
+              sizeStyles.cell,
+              sizeStyles.gap,
+            )
+          "
+          :style="measurementStyle(option)"
+        >
+          <span
+            :class="
+              classNames(
+                'flex min-w-0 max-w-full items-center justify-center',
+                sizeStyles.gap,
+              )
+            "
+          >
+            <VNodeRenderer
+              v-if="option.icon"
+              :nodes="
+                renderIconFn(option.icon, size as IconSize, sizeStyles.icon)
+              "
+            />
+            <span
+              v-if="option.label"
+              :class="classNames(sizeStyles.label, 'min-w-0')"
+            >
+              <VNodeRenderer :nodes="option.label" />
+            </span>
+          </span>
+        </div>
+      </template>
+    </div>
+
+    <template v-for="(option, index) in options">
+      <span
+        v-if="isSeparatorOption(option)"
+        :key="`separator-${index}`"
+        :ref="() => { optionRefs[index] = null; }"
+        role="separator"
+        aria-orientation="vertical"
+        :class="separatorClass"
+        :style="separatorStyle"
+      >
+        <span :class="separatorRuleClass" />
+      </span>
+      <TooltipWrapper
+        v-else
+        :key="option.value ?? `option-${index}`"
+        :text="overflowLabels[index]"
+      >
+      <button
+        :ref="(el) => setOptionRef(el, index)"
+        type="button"
+        :class="optionClass(option)"
+        :disabled="isOptionDisabled(option)"
+        role="radio"
+        :aria-checked="option.value === modelValue"
+        :tabindex="
+          isOptionDisabled(option) ? -1 : option.value === modelValue ? 0 : -1
         "
-        :style="measurementStyle(option)"
+        :style="optionStyle(option)"
+        @click="handleSelect(option)"
+        @keydown="handleKeyDown"
       >
         <span
           :class="
-            classNames(
-              'flex min-w-0 max-w-full items-center justify-center',
-              sizeStyles.gap,
-            )
+            classNames('flex min-w-0 max-w-full items-center justify-center', sizeStyles.gap)
           "
         >
           <VNodeRenderer
             v-if="option.icon"
-            :nodes="
-              renderIconFn(option.icon, size as IconSize, sizeStyles.icon)
-            "
+            :nodes="renderIconFn(option.icon, size as IconSize, sizeStyles.icon)"
           />
           <span
-            v-if="option.label"
-            :class="classNames(sizeStyles.label, 'min-w-0')"
+            v-if="option.label && (!showOnlyActiveLabel || option.value === modelValue)"
+            :class="
+              classNames(
+                sizeStyles.label,
+                'min-w-0 px-1 text-center leading-tight block',
+                shouldTruncate ? 'truncate' : 'whitespace-nowrap',
+              )
+            "
+            data-multi-toggle-label=""
           >
             <VNodeRenderer :nodes="option.label" />
           </span>
         </span>
-      </div>
-    </div>
-
-    <TooltipWrapper v-for="(option, index) in options" :key="option.value" :text="overflowLabels[index]">
-    <button
-      :ref="(el) => setOptionRef(el, index)"
-      type="button"
-      :class="optionClass(option)"
-      :disabled="isOptionDisabled(option)"
-      role="radio"
-      :aria-checked="option.value === modelValue"
-      :tabindex="
-        isOptionDisabled(option) ? -1 : option.value === modelValue ? 0 : -1
-      "
-      :style="optionStyle(option)"
-      @click="handleSelect(option)"
-      @keydown="handleKeyDown"
-    >
-      <span
-        :class="
-          classNames('flex min-w-0 max-w-full items-center justify-center', sizeStyles.gap)
-        "
-      >
-        <VNodeRenderer
-          v-if="option.icon"
-          :nodes="renderIconFn(option.icon, size as IconSize, sizeStyles.icon)"
-        />
-        <span
-          v-if="option.label && (!showOnlyActiveLabel || option.value === modelValue)"
-          :class="
-            classNames(
-              sizeStyles.label,
-              'min-w-0 px-1 text-center leading-tight block',
-              shouldTruncate ? 'truncate' : 'whitespace-nowrap',
-            )
-          "
-          data-multi-toggle-label=""
-        >
-          <VNodeRenderer :nodes="option.label" />
-        </span>
-      </span>
-    </button>
-    </TooltipWrapper>
+      </button>
+      </TooltipWrapper>
+    </template>
   </div>
 </template>

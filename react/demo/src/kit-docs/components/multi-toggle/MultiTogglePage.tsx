@@ -16,18 +16,28 @@ import LongLabels from "./examples/LongLabels";
 import longLabelsCode from "./examples/LongLabels.tsx?raw";
 import Tones from "./examples/Tones";
 import tonesCode from "./examples/Tones.tsx?raw";
+import Separators from "./examples/Separators";
+import separatorsCode from "./examples/Separators.tsx?raw";
 
 export const MultiTogglePage: React.FC = () => (
   <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Multi Toggle"
-      description="A segmented control — a radiogroup with a sliding indicator. The track takes the same eight surface variants as Panel, so it sits flush beside a card; the indicator is its own scale. Arrow keys, Home and End move the selection and skip disabled options."
+      description="A segmented control — a radiogroup with a sliding indicator. The track takes the same eight surface variants as Panel, so it sits flush beside a card; the indicator is its own scale, and `background={false}` takes the track away altogether. A `{ type: &quot;separator&quot; }` option rules a group boundary whose own padding — not the item `gap` — spaces it. Arrow keys, Home and End move the selection and skip disabled options and separators alike."
     />
     <MultiTogglePlayground />
     <section className="flex flex-col gap-5">
       <h2 className="text-xs font-semibold uppercase tracking-widest text-neutral-400 dark:text-neutral-500">
         Examples
       </h2>
+      <ExampleCard
+        title="Grouped filters without a track"
+        description="A filter row with no track at all — `background={false}` lets the segments float on the page. The `{ type: &quot;separator&quot; }` option draws a hairline wherever a group boundary belongs; its own padding, not the item `gap`, spaces it from its neighbours."
+        code={separatorsCode}
+        filename="Separators.tsx"
+      >
+        <Separators />
+      </ExampleCard>
       <ExampleCard
         title="Long labels in a narrow parent"
         description="Resize the parent to compare natural label widths with full-width truncation. Select each option to check the indicator at both edges."
@@ -67,7 +77,7 @@ export const MultiTogglePage: React.FC = () => (
           name: "options",
           type: "MultiToggleOption[]",
           description:
-            "`value`, `label`, `icon` (registry name or element), `disabled`, and an optional fixed `width` for icon-only segments. Labels are ReactNodes and entirely the caller&rsquo;s — this component owns no strings.",
+            "`value`, `label`, `icon` (registry name or element), `disabled`, and an optional fixed `width` for icon-only segments. A `{ type: &quot;separator&quot; }` entry draws a vertical hairline instead of a segment — as many as the row needs; separators are not radios and the arrow keys step over them. Labels are ReactNodes and entirely the caller&rsquo;s — this component owns no strings.",
         },
         {
           name: "value",
@@ -141,6 +151,26 @@ export const MultiTogglePage: React.FC = () => (
           type: "boolean",
           default: "false",
           description: "Segments share the width evenly.",
+        },
+        {
+          name: "background",
+          type: "boolean",
+          default: "true",
+          description:
+            "Paints the track at all. `false` drops the surface — no fill, border, shadow or blur — so the segments float on whatever is behind the group; the copy falls back to the solid-surface pair so it stays legible on the page.",
+        },
+        {
+          name: "gap",
+          type: "number",
+          description:
+            "Space between adjacent segments, in px. A flex gap, so nothing is imposed on the outer edges, and it is cancelled on both sides of a separator — that space belongs to `separatorPadding` alone.",
+        },
+        {
+          name: "separatorPadding",
+          type: "number",
+          default: "8",
+          description:
+            "Horizontal padding each separator keeps on either side of its rule, in px. This is the only space a separator leaves to its neighbours.",
         },
       ]}
     />

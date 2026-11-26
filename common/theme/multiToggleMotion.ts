@@ -16,3 +16,10 @@ export const getMultiToggleMotionStyle = (
     "--mt-right": `${right}px`,
   };
 };
+
+/**
+ * Horizontal padding a separator keeps on each side of its rule. The item
+ * `gap` is deliberately *not* added here — the separator's own padding is what
+ * spaces it from its neighbours on both sides. Shared so React and Vue agree.
+ */
+export const DEFAULT_SEPARATOR_PADDING = 8;

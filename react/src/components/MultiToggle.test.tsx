@@ -317,3 +317,102 @@ describe("MultiToggle overflow tooltips", () => {
     expect(screen.getAllByRole("radio").map((button) => button.tabIndex)).toEqual([0, -1, -1]);
   });
 });
+
+describe("MultiToggle separators, gap and background", () => {
+  const SEPARATED = [
+    { value: "a", label: "Alpha" },
+    { value: "b", label: "Beta" },
+    { type: "separator" as const },
+    { value: "c", label: "Gamma" },
+  ];
+
+  it("draws separators as vertical rules that are not radios", () => {
+    const { container } = setup({ options: SEPARATED });
+    expect(screen.getAllByRole("radio")).toHaveLength(3);
+    const rules = container.querySelectorAll('[role="separator"]');
+    expect(rules).toHaveLength(1);
+    expect(rules[0].getAttribute("aria-orientation")).toBe("vertical");
+    // A rule is decoration between groups — never a selectable box.
+    expect(rules[0].textContent).toBe("");
+  });
+
+  it("steps the arrow keys over separators", () => {
+    const { onChange } = setup({ options: SEPARATED, value: "b" });
+    fireEvent.keyDown(screen.getByRole("radio", { name: "Beta" }), {
+      key: "ArrowRight",
+    });
+    expect(onChange).toHaveBeenCalledWith("c");
+  });
+
+  it("supports any number of separators between any number of segments", () => {
+    const { container, onChange } = setup({
+      options: [
+        { value: "a", label: "Alpha" },
+        { value: "b", label: "Beta" },
+        { type: "separator" as const },
+        { value: "c", label: "Gamma" },
+        { value: "d", label: "Delta" },
+        { type: "separator" as const },
+        { value: "e", label: "Epsilon" },
+      ],
+      value: "d",
+      gap: 10,
+    });
+    expect(screen.getAllByRole("radio")).toHaveLength(5);
+    expect(container.querySelectorAll('[role="separator"]')).toHaveLength(2);
+    // Arrow from Delta steps over the second rule straight into Epsilon.
+    fireEvent.keyDown(screen.getByRole("radio", { name: "Delta" }), {
+      key: "ArrowRight",
+    });
+    expect(onChange).toHaveBeenCalledWith("e");
+    // Both rules cancel the gap on their own flanks, independently.
+    const rules = container.querySelectorAll<HTMLElement>('[role="separator"]');
+    for (const rule of rules) {
+      expect(rule.style.marginLeft).toBe("-10px");
+      expect(rule.style.marginRight).toBe("-10px");
+    }
+  });
+
+  it("applies the gap to the track and cancels it around separators", () => {
+    const { container } = setup({ options: SEPARATED, gap: 12 });
+    const group = container.querySelector<HTMLElement>(
+      '[role="radiogroup"]',
+    )!;
+    expect(group.style.columnGap).toBe("12px");
+    const rule = container.querySelector<HTMLElement>('[role="separator"]')!;
+    // The default padding is the only space around the rule — gap never adds.
+    expect(rule.style.paddingLeft).toBe("8px");
+    expect(rule.style.paddingRight).toBe("8px");
+    expect(rule.style.marginLeft).toBe("-12px");
+    expect(rule.style.marginRight).toBe("-12px");
+  });
+
+  it("lets the separator's own padding define its space", () => {
+    const { container } = setup({ options: SEPARATED, separatorPadding: 14 });
+    const rule = container.querySelector<HTMLElement>('[role="separator"]')!;
+    expect(rule.style.paddingLeft).toBe("14px");
+    expect(rule.style.paddingRight).toBe("14px");
+    // No item gap means there is nothing to cancel.
+    expect(rule.style.marginLeft).toBe("");
+  });
+
+  it("paints no track when background is off, and the surface by default", () => {
+    const surface = getSurfaceVariantClasses("subtle", "blue");
+    const painted = setup();
+    const group = painted.container.querySelector<HTMLElement>(
+      '[role="radiogroup"]',
+    )!;
+    for (const cls of surface.split(" ")) {
+      if (cls) expect(group.className).toContain(cls);
+    }
+    painted.unmount();
+
+    const bare = setup({ background: false });
+    const bareGroup = bare.container.querySelector<HTMLElement>(
+      '[role="radiogroup"]',
+    )!;
+    for (const cls of surface.split(" ")) {
+      if (cls) expect(bareGroup.className).not.toContain(cls);
+    }
+  });
+});
