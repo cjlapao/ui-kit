@@ -5,6 +5,7 @@ import type { TrueColor } from '../../theme/Theme';
 
 /** Positions are expressed in canvas pixels and owned by the application. */
 export interface DiagramFlowPosition { x: number; y: number }
+export type DiagramFlowConnectorStyle = 'bulb' | 'arrow';
 export type DiagramFlowOutcome = 'unknown' | 'success' | 'failure';
 export type DiagramFlowSide = 'top' | 'right' | 'bottom' | 'left';
 export type DiagramFlowStatus = 'pending' | 'running' | 'succeeded' | 'failed' | 'skipped';
@@ -42,6 +43,8 @@ export interface DiagramFlowConnection {
   sourceId: string;
   targetId: string;
   outcome: DiagramFlowOutcome;
+  /** Override the diagram-wide terminal style for this connection. */
+  connectorStyle?: DiagramFlowConnectorStyle;
   /** Optional sides chosen by the user when drawing a connection. */
   fromSide?: DiagramFlowSide;
   toSide?: DiagramFlowSide;

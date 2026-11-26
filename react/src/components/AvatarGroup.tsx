@@ -6,7 +6,6 @@ import { type IconName } from "../icons/registry";
 import Popover from "./Popover";
 import {
   ScrollArea,
-  SCROLLAREA_LANE_PX,
   SCROLLAREA_MASK_FADE_PX,
 } from "./ScrollArea";
 import {
@@ -620,8 +619,9 @@ export const AvatarGroup = ({
     // into the content, so when the row scrolls its ends push the first and
     // last chip to land just outside that reach — right past the blur, not
     // a whole chip clear of it. A row that fits keeps the plain content
-    // padding, with no fade to dodge; the right pad pays ScrollArea's own
-    // lane gutter back, so both ends guard the same distance.
+    // padding, with no fade to dodge; the row only scrolls sideways, so
+    // ScrollArea's lane is never paid and both ends guard the same
+    // distance on their own.
     const edgeGuard =
       !fitsAll && layoutOpen ? SCROLLAREA_MASK_FADE_PX - padPx : 0;
     // The condensed line: leading chips overlap, the inline `+N` pays the
@@ -678,12 +678,9 @@ export const AvatarGroup = ({
             className="flex h-full items-center"
             style={{
               paddingLeft: padPx + edgeGuard,
-              // ScrollArea's lane gutter sits past all content, so the
-              // right guard pays it back to match the left one.
-              paddingRight: Math.max(
-                0,
-                padPx + edgeGuard - SCROLLAREA_LANE_PX,
-              ),
+              // This row scrolls sideways only, so ScrollArea never reserves
+              // its lane — both guards are the plain distance.
+              paddingRight: padPx + edgeGuard,
             }}
           >
             {items

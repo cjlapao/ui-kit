@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { DiagramFlow, type DiagramFlowGraph, type DiagramFlowPanelProps, type DiagramFlowProps, type DiagramFlowGridProps, type SurfaceTone, type SurfaceVariant, type SurfaceCorner, type GlassOpacity, type GlassVibrancy } from '@cjlapao/ui-kit';
+import { DiagramFlow, type DiagramFlowGraph, type DiagramFlowPanelProps, type DiagramFlowProps, type DiagramFlowGridProps, type DiagramFlowConnectorStyle, type SurfaceTone, type SurfaceVariant, type SurfaceCorner, type GlassOpacity, type GlassVibrancy } from '@cjlapao/ui-kit';
 import { PageHeader } from '../../shared/PageHeader';
 import { PlaygroundPanel, SelectControl, ToggleRow } from '../../shared/PlaygroundPanel';
 import { SurfaceToneControl } from '../../shared/SurfaceToneControl';
@@ -45,6 +45,7 @@ export default function DiagramFlowPage() {
   const [readOnly, setReadOnly] = useState(false);
   const [autoCreate, setAutoCreate] = useState(false);
   const [animated, setAnimated] = useState(true);
+  const [connectorStyle, setConnectorStyle] = useState<DiagramFlowConnectorStyle>('bulb');
   const [variant, setVariant] = useState<SurfaceVariant>('outlined');
   const [tone, setTone] = useState<SurfaceTone>('none');
   const [corner, setCorner] = useState<SurfaceCorner>('rounded-md');
@@ -86,12 +87,13 @@ export default function DiagramFlowPage() {
         <SelectControl label="Node variant" value={panel.variant ?? 'outlined'} options={surfaceVariantOptions} onChange={value => setPanel(current => ({ ...current, variant: value as DiagramFlowPanelProps['variant'] }))} />
         <SurfaceToneControl label="Node tone" value={panel.tone ?? 'none'} onChange={value => setPanel(current => ({ ...current, tone: value }))} />
         <SelectControl label="Node padding" value={panel.padding ?? 'sm'} options={['none', 'xs', 'sm', 'md', 'lg', 'xl'].map(value => ({ label: value, value }))} onChange={value => setPanel(current => ({ ...current, padding: value as DiagramFlowPanelProps['padding'] }))} />
+        <SelectControl label="Connector style" value={connectorStyle} options={[{ label: 'Bulb', value: 'bulb' }, { label: 'Arrow', value: 'arrow' }]} onChange={value => setConnectorStyle(value as DiagramFlowConnectorStyle)} />
         <ToggleRow label="Read only" checked={readOnly} onChange={setReadOnly} />
         <ToggleRow label="Auto-create nodes" checked={autoCreate} onChange={setAutoCreate} />
         <ToggleRow label="Animate connections" checked={animated} onChange={setAnimated} />
       </> },
     ]} />} preview={<div className="w-full min-w-0 space-y-3">
-      <DiagramFlow graph={graph} onChange={setGraph} height={620} gridSize={gridSize} grid={showGrid ? grid : false} nodePanelProps={panel} readOnly={readOnly} autoCreate={autoCreate} animated={animated} variant={variant} tone={tone} corner={corner} glassOpacity={opacity} vibrancy={vibrancy} raisedSurface={raisedSurface} padding={padding} disabled={disabled} loading={loading}
+      <DiagramFlow graph={graph} onChange={setGraph} height={620} connectorStyle={connectorStyle} gridSize={gridSize} grid={showGrid ? grid : false} nodePanelProps={panel} readOnly={readOnly} autoCreate={autoCreate} animated={animated} variant={variant} tone={tone} corner={corner} glassOpacity={opacity} vibrancy={vibrancy} raisedSurface={raisedSurface} padding={padding} disabled={disabled} loading={loading}
         onNodeClick={node => setLastAction(`Selected ${node.title}`)}
         onConnectionClick={edge => setLastAction(`Selected ${edge.outcome} connection`)}
         onConnect={edge => setLastAction(`Connected ${edge.sourceId} to ${edge.targetId}`)}
@@ -107,6 +109,7 @@ export default function DiagramFlowPage() {
     <PropsTable props={[
       { name: 'graph / onChange', type: 'DiagramFlowGraph / (graph, operation) => void', description: 'Controlled nodes and connections. Each edit emits a validated graph and an atomic operation; the application persists the result.' },
       { name: 'variant / tone / corner / padding', type: 'PanelProps', default: 'outlined / none / Panel default / none', description: 'The outer canvas is a Panel. Surface options, including glass opacity, vibrancy, raisedSurface, loading and disabled, are forwarded to it. DiagramFlow owns the content, click behavior and scrolling; height and size configure the diagram.' },
+      { name: 'connectorStyle / connection.connectorStyle', type: '"bulb" | "arrow"', default: 'bulb', description: 'Choose ConnectionFlow-style terminals or arrowheads. Individual connections can override the diagram default.' },
       { name: 'grid', type: 'boolean | DiagramFlowGridProps', default: 'true', description: 'Show or customize the GridBackground pattern, color, dot radius, opacity and fade. Lattice spacing always follows gridSize and scales with the diagram.' },
       { name: 'nodePanelProps / node.panelProps / node.tone', type: 'DiagramFlowPanelProps / DiagramFlowPanelProps / TrueColor', description: 'Set shared node Panel options and override them per node. DiagramFlow owns interaction and positioning handlers.' },
       { name: 'readOnly / autoCreate', type: 'boolean / boolean', default: 'false / false', description: 'Read-only disables editing. Auto-create adds one node and connection when a connector is dropped in clear space.' },

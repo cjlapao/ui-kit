@@ -299,11 +299,11 @@ describe("AvatarGroup", () => {
         proto.getBoundingClientRect = original;
       }
       const row = document.querySelector('[role="group"]') as HTMLElement;
-      // Exactly the fade's reach (24) — the chip lands just past the blur;
-      // the end pays back the scroller's 10px bar lane, so both ends clear
-      // the fade the same.
+      // Exactly the fade's reach (24) on both ends — the chip lands just
+      // past the blur either way; the row scrolls sideways only, so there
+      // is no vertical bar lane to pay and refund.
       expect(row.style.paddingLeft).toBe("24px");
-      expect(row.style.paddingRight).toBe("14px");
+      expect(row.style.paddingRight).toBe("24px");
     });
 
     it("does not pad the scroll ends when the row fits — no fade to dodge", () => {
@@ -311,7 +311,7 @@ describe("AvatarGroup", () => {
       // Unmeasured (jsdom width 0) counts as fitting: plain content padding.
       const row = document.querySelector('[role="group"]') as HTMLElement;
       expect(row.style.paddingLeft).toBe("8px");
-      expect(row.style.paddingRight).toBe("0px");
+      expect(row.style.paddingRight).toBe("8px");
     });
 
     it("pins the collapse chip outside the scroller, so it never scrolls away", () => {

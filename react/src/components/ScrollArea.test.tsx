@@ -216,7 +216,7 @@ describe("ScrollArea", () => {
     expect(viewport().className).toContain("[&::-webkit-scrollbar]:hidden");
   });
 
-  it("reserves the bar's lane in the content always, never on gesture", () => {
+  it("reserves the bar's lane only while the axis actually scrolls, never on gesture", () => {
     render(
       <ScrollArea>
         <p>content</p>
@@ -225,11 +225,33 @@ describe("ScrollArea", () => {
     const content = document.querySelector(
       '[data-slot="scrollarea-content"]',
     ) as HTMLElement;
-    // The gutter is constant: the auto/hover thumb appears and hides on
-    // gesture, and a padding that followed it would jog the text sideways.
-    expect(content.className).toContain("pr-2.5");
+    // Nothing overflows, no bar can ever exist — the content keeps its
+    // full width; a short list should not trail a phantom gutter.
+    expect(content.className).not.toContain("pr-2.5");
     overflowY(viewport(), 400);
     expect(content.className).toContain("pr-2.5");
+    // The lane follows scrollability, never visibility: the auto/hover
+    // thumb appears and hides on gesture, and a gutter tied to that would
+    // jog the text sideways on every pointer move.
+    fireEvent.pointerEnter(document.querySelector('[data-slot="scrollarea"]')!);
+    expect(content.className).toContain("pr-2.5");
+    fireEvent.pointerLeave(document.querySelector('[data-slot="scrollarea"]')!);
+    expect(content.className).toContain("pr-2.5");
+  });
+
+  it("does not reserve the vertical lane for a sideways-only region", () => {
+    render(
+      <ScrollArea vertical={false}>
+        <p>content</p>
+      </ScrollArea>,
+    );
+    overflowX(viewport(), 400);
+    const content = document.querySelector(
+      '[data-slot="scrollarea-content"]',
+    ) as HTMLElement;
+    // The lane guards the *vertical* thumb; a region that only scrolls
+    // sideways has no thumb on the right edge to keep clear of.
+    expect(content.className).not.toContain("pr-2.5");
   });
 
   it("refunds the lane when the caller's own padding is the lane (gutter=false)", () => {

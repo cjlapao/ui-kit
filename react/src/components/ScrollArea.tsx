@@ -69,13 +69,15 @@ export interface ScrollAreaProps extends React.HTMLAttributes<HTMLDivElement> {
    * scrolling box itself styled apart from the frame. */
   contentClassName?: string;
   /**
-   * Whether the content pays the overlay bar's lane (a constant 10px right
-   * inset). A surface that already trails its rows with ≥10px of padding —
-   * a padded menu list — should refund it, or the lane stacks on top of
-   * that padding and the content sits further from the right edge than
-   * from the left, with the bar floating over dead space. The thumb still
-   * never touches real content, because the caller's own padding is the
-   * lane now.
+   * Whether the content pays the overlay bar's lane (a 10px right inset).
+   * The lane is paid only while the vertical axis actually scrolls — a
+   * region whose content fits has no bar to make room for, and keeps its
+   * full width. A surface that already trails its rows with ≥10px of
+   * padding — a padded menu list — should refund it even then, or the lane
+   * stacks on top of that padding and the scrolling content sits further
+   * from the right edge than from the left, with the bar floating over
+   * dead space. The thumb still never touches real content, because the
+   * caller's own padding is the lane then.
    * @default true
    */
   gutter?: boolean;
@@ -101,8 +103,9 @@ const SCROLL_LINGER_MS = 800;
 /** How far the edge fade reaches into the content when `mask` is on. */
 export const SCROLLAREA_MASK_FADE_PX = 24; // the 1.5rem below
 const MASK_FADE = `${SCROLLAREA_MASK_FADE_PX / 16}rem`;
-/** The content's permanent right inset, reserving the overlay bar's lane —
- *  exported so a caller that pads its own content can pay the lane back. */
+/** The content's right inset while the vertical axis scrolls, reserving the
+ * overlay bar's lane — exported so a caller that pads its own content can pay
+ * the lane back. */
 export const SCROLLAREA_LANE_PX = 10; // mirrors the `pr-2.5` below
 
 const BAR_BASE =
@@ -477,16 +480,18 @@ export const ScrollArea = ({
             // then slices mid-word. Block content wraps instead and measures
             // exactly to the viewport.
             virtualScroll ? "h-full min-w-full" : horizontal ? "table min-w-full" : "block min-w-full",
-            // The overlay bar's lane is reserved in the content *always*:
-            // the auto/hover bar appears on gesture, and a gutter tied to
-            // its visibility would jog the text sideways on every scroll.
-            // A constant 10px inset is the calmer contract — the thumb then
-            // never sits on the caller's content, or its hover state. A
-            // surface whose rows already trail ≥10px of padding — a padded
-            // menu list — refunds the lane with `gutter={false}`: its own
-            // padding is the lane then, and the content keeps an equal inset
-            // on both edges.
-            gutter && "pr-2.5",
+            // The overlay bar's lane is reserved while the vertical axis
+            // actually scrolls: the auto/hover bar appears on gesture, and
+            // a gutter tied to *that* would jog the text sideways on every
+            // scroll — so it follows scrollability, not visibility, and
+            // stays put for the life of the overflow. A region whose
+            // content fits has no bar to make room for at all, and pays
+            // nothing: a short picker list, a nav that never scrolls,
+            // keeps the full width. A surface whose rows already trail
+            // ≥10px of padding — a padded menu list — refunds the lane
+            // with `gutter={false}`: its own padding is the lane then, and
+            // the content keeps an equal inset on both edges.
+            gutter && overflow.y && "pr-2.5",
             contentClassName,
           )}
         >

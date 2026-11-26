@@ -16,6 +16,20 @@ function Editor() { const [value, setValue] = useState(graph); return <><Diagram
 const current = () => JSON.parse(screen.getByTestId('graph').textContent!) as DiagramFlowGraph;
 
 describe('DiagramFlow', () => {
+  it('defaults to bulb terminals and supports diagram and per-connection arrow styles', () => {
+    const mixed: DiagramFlowGraph = { ...graph, connections: graph.connections.map(edge => edge.id === 'bc' ? { ...edge, connectorStyle: 'arrow' } : edge) };
+    const { container, rerender } = render(<DiagramFlow graph={mixed} onChange={vi.fn()} />);
+    expect(container.querySelectorAll('[data-diagram-terminal]')).toHaveLength(2);
+    const ab = screen.getByRole('button', { name: 'success connection from A to B' }).parentElement!;
+    const bc = screen.getByRole('button', { name: /success connection from B to C/ }).parentElement!;
+    expect(ab.querySelector('path[marker-end]')).toBeNull();
+    expect(bc.querySelector('path[marker-end]')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'success connection from A to B' }));
+    expect(container.querySelectorAll('[data-diagram-endpoint]')).toHaveLength(2);
+    rerender(<DiagramFlow graph={graph} onChange={vi.fn()} connectorStyle="arrow" />);
+    expect(container.querySelectorAll('[data-diagram-terminal]')).toHaveLength(0);
+    expect(container.querySelectorAll('path[marker-end]')).toHaveLength(2);
+  });
   it('routes a straight connection between top-aligned nodes with different heights', () => {
     const uneven: DiagramFlowGraph = { nodes: [{ id: 'a', title: 'A', position: { x: 0, y: 0 }, height: 80 }, { id: 'b', title: 'B', position: { x: 260, y: 0 }, height: 100 }], connections: [{ id: 'ab', sourceId: 'a', targetId: 'b', outcome: 'success' }] };
     render(<DiagramFlow graph={uneven} onChange={vi.fn()} />);

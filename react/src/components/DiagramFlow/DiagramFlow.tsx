@@ -13,7 +13,7 @@ import { DEFAULT_LAYOUT_OPTIONS, NODE_METRICS, dotTiming, measureNode, nodeTone,
 import type { ControlSize } from '../../theme/Theme';
 import { useKitT } from '../../i18n';
 import { DIAGRAM_SIDES, alignedDiagramPorts, freeDiagramPort, nearestDiagramSide, type DiagramPort } from './ports';
-import { applyDiagramFlowOperation, validateDiagramFlow, type DiagramFlowConnection, type DiagramFlowGraph, type DiagramFlowNode, type DiagramFlowOperation, type DiagramFlowOutcome, type DiagramFlowPanelProps } from './model';
+import { applyDiagramFlowOperation, validateDiagramFlow, type DiagramFlowConnection, type DiagramFlowConnectorStyle, type DiagramFlowGraph, type DiagramFlowNode, type DiagramFlowOperation, type DiagramFlowOutcome, type DiagramFlowPanelProps } from './model';
 
 export type DiagramFlowGridProps = Pick<GridBackgroundProps, 'pattern' | 'lineColor' | 'dotSize' | 'opacity' | 'fade' | 'fadeStart'>;
 
@@ -35,6 +35,8 @@ export interface DiagramFlowProps extends Omit<PanelProps, 'children' | 'onChang
   height?: number;
   /** Spacing for both snapping and the background lattice. @default 20 */
   gridSize?: number;
+  /** Terminal appearance for connections. Individual connections can override it. @default 'bulb' */
+  connectorStyle?: DiagramFlowConnectorStyle;
   /** Show the background lattice or customize its appearance. @default true */
   grid?: boolean | DiagramFlowGridProps;
   readOnly?: boolean;
@@ -63,7 +65,7 @@ const ENDPOINT_KEYS = { source: 'kit.diagramFlow.source', target: 'kit.diagramFl
 type ConnectionGesture = { kind: 'create'; sourceId: string; outcome: DiagramFlowOutcome; side?: PortSide } | { kind: 'reconnect'; edgeId: string; endpoint: 'source' | 'target' };
 type PointerConnection = { gesture: ConnectionGesture; pointerId: number; x: number; y: number; startX: number; startY: number };
 
-export default function DiagramFlow({ graph, onChange, onConnectionEdit, onNodeEdit, onNodeClick, onConnectionClick, onConnect, onReconnect, onNodeCreate, height = 560, gridSize = 20, grid = true, readOnly = false, autoCreate = false, nodePanelProps, animated = true, dotSpeed = 120, dotInterval = 700, size = 'md', progressType = 'bar', itemProgress = 'bar', maxVisibleItems = 2, className, style, variant = 'outlined', tone = 'none', padding = 'none', ...surfaceProps }: DiagramFlowProps) {
+export default function DiagramFlow({ graph, onChange, onConnectionEdit, onNodeEdit, onNodeClick, onConnectionClick, onConnect, onReconnect, onNodeCreate, height = 560, gridSize = 20, grid = true, connectorStyle = 'bulb', readOnly = false, autoCreate = false, nodePanelProps, animated = true, dotSpeed = 120, dotInterval = 700, size = 'md', progressType = 'bar', itemProgress = 'bar', maxVisibleItems = 2, className, style, variant = 'outlined', tone = 'none', padding = 'none', ...surfaceProps }: DiagramFlowProps) {
   const t = useKitT();
   const uid = useId().replace(/[^a-zA-Z0-9_-]/g, '');
   const root = useRef<HTMLElement>(null);
@@ -422,7 +424,7 @@ export default function DiagramFlow({ graph, onChange, onConnectionEdit, onNodeE
           {routes.map(({ edge, route }) => <g key={edge.id}>
             {selectedEdge === edge.id && <path d={route.d} fill="none" stroke="#60a5fa" strokeWidth="8" opacity=".35" pointerEvents="none" />}
             <path d={route.d} fill="none" stroke="transparent" strokeWidth="12" pointerEvents="stroke" style={{ outline: 'none', cursor: 'pointer' }} tabIndex={locked ? -1 : 0} role="button" aria-label={t('kit.diagramFlow.edgeLabel', { outcome: t(`kit.diagramFlow.${edge.outcome}`).toLocaleLowerCase(), source: byId.get(edge.sourceId)?.title ?? edge.sourceId, target: byId.get(edge.targetId)?.title ?? edge.targetId, label: edge.label || edge.conditionLabel ? `, ${edge.label || edge.conditionLabel}` : '' })} onClick={() => { if (locked) return; setSelectedEdge(edge.id); setSelected(null); onConnectionClick?.(edge); }} onKeyDown={e => { if (locked) return; if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedEdge(edge.id); setSelected(null); onConnectionClick?.(edge); } else if (!editDisabled && (e.key === 'Delete' || e.key === 'Backspace')) { e.preventDefault(); commit({ type: 'remove-connection', id: edge.id }); setSelectedEdge(null); } }} onDoubleClick={() => { if (!locked) onConnectionEdit?.(edge); }} />
-            <path d={route.d} fill="none" stroke={edge.outcome === 'failure' ? '#e11d48' : edge.outcome === 'success' ? '#059669' : '#94a3b8'} strokeWidth={selectedEdge === edge.id ? 3 : 2} strokeDasharray={edge.outcome === 'failure' ? '6 4' : undefined} markerEnd={`url(#${uid}-arrow)`} pointerEvents="none" />
+            <path d={route.d} fill="none" stroke={edge.outcome === 'failure' ? '#e11d48' : edge.outcome === 'success' ? '#059669' : '#94a3b8'} strokeWidth={selectedEdge === edge.id ? 3 : 2} strokeDasharray={edge.outcome === 'failure' ? '6 4' : undefined} markerEnd={(edge.connectorStyle ?? connectorStyle) === 'arrow' ? `url(#${uid}-arrow)` : undefined} pointerEvents="none" />
             {edge.animated && animated && (() => { const group = dotGroups.get(edge.sourceId) ?? []; const index = group.findIndex(item => item.edge.id === edge.id); const span = Math.max(1, ...group.map(item => routeLength(item.route.points))); const timing = dotTiming(routeLength(route.points), Math.max(0, index), group.length, span, dotSpeed, Math.max(1, dotInterval) / 1000); return <circle data-diagram-flow-dot={edge.id} r={3} fill={edge.outcome === 'failure' ? '#fb7185' : edge.outcome === 'success' ? '#34d399' : '#cbd5e1'} opacity={0} className="motion-reduce:hidden" pointerEvents="none"><animateMotion path={route.d} dur={`${timing.cycle.toFixed(3)}s`} begin={`${timing.begin.toFixed(3)}s`} repeatCount="indefinite" calcMode="linear" keyPoints="0;1;1" keyTimes={`0;${timing.arrival.toFixed(4)};1`} /><animate attributeName="opacity" dur={`${timing.cycle.toFixed(3)}s`} begin={`${timing.begin.toFixed(3)}s`} repeatCount="indefinite" calcMode="discrete" values="1;0" keyTimes={`0;${timing.arrival.toFixed(4)}`} /></circle>; })()}
           </g>)}
           {routes.map(({ edge }) => { const caption = captions.get(edge.id); if (!caption) return null; return <g key={`caption-${edge.id}`} data-diagram-caption={edge.id}>
@@ -446,6 +448,12 @@ export default function DiagramFlow({ graph, onChange, onConnectionEdit, onNodeE
             {(node.progressType ?? progressType) === 'spinner' && node.progress !== undefined && <ProgressSpinner size="xs" color={nodeTone(flowNode)} value={node.progress * 100} showValue={false} />}
           </div>
         </Panel>; })}
+        {routes.flatMap(({ edge, fromPort, toPort }) => (edge.connectorStyle ?? connectorStyle) !== 'bulb' ? [] : ([{ port: fromPort, node: byId.get(edge.sourceId), endpoint: 'source' }, { port: toPort, node: byId.get(edge.targetId), endpoint: 'target' }] as const).map(({ port, node, endpoint }) => {
+          if (!node) return null;
+          const panel = { variant: 'outlined' as const, ...nodePanelProps, ...(node.tone ? { tone: node.tone } : {}), ...node.panelProps };
+          const color = edge.outcome === 'failure' ? '#fb7185' : edge.outcome === 'success' ? '#10b981' : '#94a3b8';
+          return <Panel key={`${edge.id}-${endpoint}`} data-diagram-terminal={endpoint} aria-hidden="true" variant={panel.variant} tone={panel.tone} transparency={panel.transparency} glassOpacity={panel.glassOpacity} vibrancy={panel.vibrancy} specularMode={panel.specularMode} raisedSurface={panel.raisedSurface} padding="none" clickable={false} hoverable={false} className="!rounded-full" style={{ position: 'absolute', left: port.x - 7, top: port.y - 7, width: 14, height: 14, pointerEvents: 'none', zIndex: 10, borderRadius: '50%' }}><span style={{ position: 'absolute', left: 4, top: 4, width: 6, height: 6, borderRadius: '50%', background: color }} /></Panel>;
+        }))}
         {!editDisabled && selectedNode && !nodeDisabled(selectedNode) && (() => { const size = nodeSize(selectedNode); return <button type="button" data-diagram-resize={selectedNode.id} aria-label={t('kit.diagramFlow.resize', { title: selectedNode.title })} title={t('kit.diagramFlow.resizeHint')} className="absolute z-20 flex items-end justify-end rounded-sm border border-blue-500 bg-white text-blue-600 shadow focus-visible:outline focus-visible:outline-2 dark:bg-neutral-900" style={{ left: selectedNode.position.x + offsetX + size.width - 10, top: selectedNode.position.y + offsetY + size.height - 10, width: 20, height: 20, cursor: 'nwse-resize', touchAction: 'none' }}
           onPointerDown={event => { if (event.button !== 0) return; event.stopPropagation(); event.currentTarget.setPointerCapture(event.pointerId); resize.current = { id: selectedNode.id, pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, ...size }; }}
           onPointerMove={event => { const r = resize.current; if (!r || r.pointerId !== event.pointerId) return; setSizePreview({ id: r.id, width: Math.max(120, snap(r.width + (event.clientX - r.startX) / zoom)), height: Math.max(60, snap(r.height + (event.clientY - r.startY) / zoom)) }); }}
