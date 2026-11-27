@@ -177,6 +177,19 @@ const tagOpen = (
   return `<${tag}\n${attributes.map((attribute) => indentLines(attribute, 1)).join("\n")}\n${close.trim()}`;
 };
 
+/** `<Tag …>children</Tag>`, flattened while it fits the measure. */
+const elementOf = (
+  tag: string,
+  attributes: string[],
+  level: number,
+  children: string,
+): string => {
+  const open = tagOpen(tag, attributes, level, false);
+  const flat = `${open}${children}</${tag}>`;
+  if (!flat.includes("\n") && flat.length + level * 2 <= MAX_WIDTH) return flat;
+  return `${open}\n${indentLines(children, 1)}\n</${tag}>`;
+};
+
 /** One React element, walked. */
 const printElement = (
   element: { type: unknown; props: Record<string, unknown> },
@@ -404,7 +417,8 @@ export const createEmitter = (
 
     object: (entries) => block([...entries], "{", "}", 0),
 
-    element: (tag, attributes, level = 0) => {
+    element: (tag, attributes, level = 0, children) => {
+      if (children !== undefined) return elementOf(tag, attributes, level, children);
       if (attributes.length === 0) return `<${tag} />`;
       const flat = `<${tag} ${attributes.join(" ")} />`;
       if (!flat.includes("\n") && flat.length + level * 2 <= MAX_WIDTH) return flat;

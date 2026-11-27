@@ -212,8 +212,13 @@ export interface EmitHelpers {
   payload(options?: { set?: string; fields?: PlaygroundField[] }): string[];
   /** `{ … }` around already-printed `name: value` entries. */
   object(entries: Iterable<string>): string;
-  /** `<Tag … />`, one line when it fits, attributes stacked when it does not. */
-  element(tag: string, attributes: string[], level?: number): string;
+  /**
+   * `<Tag … />`, one line when it fits, attributes stacked when it does not.
+   * Pass `children` (already-printed JSX) for the open/close form — what a
+   * children-bearing component needs, so the stage around a backdrop prints as
+   * the markup the reader is looking at instead of a self-closing lie.
+   */
+  element(tag: string, attributes: string[], level?: number, children?: string): string;
   /** `const NAME = …` for a data source, with its `// label — note` line above. */
   decl(id: string, options?: { note?: string; hoist?: boolean }): string;
   /** `const NAME = …` for anything the page wants hoisted. */

@@ -113,9 +113,9 @@ would print a page of plumbing; a static `ExampleCard` set is honest).
 
 <!-- BEGIN GENERATED TABLE — npm --prefix react/demo run audit -->
 - **143 pages** in the side menu, **5 fully done** — run `npm --prefix react/demo run audit` after every conversion to refresh this table.
-- Playground: 5 on the engine · 130 legacy `PlaygroundPanel` · 1 inline · 7 without one.
-- Standard sections: API 78 · Screen reader 65 · Keyboard 64 · i18n 62.
-- Tests: 5 pages have one · examples missing on 12 pages.
+- Playground: 6 on the engine · 129 legacy `PlaygroundPanel` · 1 inline · 7 without one.
+- Standard sections: API 79 · Screen reader 66 · Keyboard 65 · i18n 63.
+- Tests: 6 pages have one · examples missing on 12 pages.
 
 ### Layout — 3/24 done
 
@@ -124,7 +124,7 @@ would print a page of plumbing; a static `ExampleCard` set is honest).
 | ✅ | [Page Body Layout](page-body-layout/PageBodyLayoutPage.tsx) | `page-body-layout` | 🟢 engine | 17 fields | ✅ | ✅ | ✅ | ✅ | 0 | `pageBodyLayoutSnippet.test.ts` |
 | ✅ | [Side Menu](side-menu/SideMenuPage.tsx) | `side-menu` | 🟢 engine | 37 fields · ⚠ 1 default | ✅ | ✅ | ⬜ | ✅ | 18 | `sideMenuSnippet.test.ts` |
 | ✅ | [Breadcrumb](breadcrumb/BreadcrumbPage.tsx) | `breadcrumb` | 🟢 engine | 6 fields | ✅ | ✅ | ✅ | ✅ | 6 | `breadcrumbSnippet.test.ts` |
-| ☐ | [Glass Background](glass-background/GlassBackgroundPage.tsx) | `glass-background` | 🟡 panel | — | ⬜ | ⬜ | ⬜ | ⬜ | 5 | — |
+| ✅ | [Glass Background](glass-background/GlassBackgroundPage.tsx) | `glass-background` | 🟢 engine | 6 fields | ✅ | ✅ | ✅ | ✅ | 5 | `glassBackgroundSnippet.test.ts` |
 | ☐ | [Gradient Backdrop](gradient-backdrop/GradientBackdropPage.tsx) | `gradient-backdrop` | 🟡 panel | — | ✅ | ✅ | ✅ | ✅ | 4 | — |
 | ☐ | [Grid Background](grid-background/GridBackgroundPage.tsx) | `grid-background` | 🟡 panel | — | ✅ | ✅ | ✅ | ✅ | 4 | — |
 | ☐ | [Panel](panel/PanelPage.tsx) | `panel` | 🟡 panel | — | ⬜ | ⬜ | ⬜ | ⬜ | 9 | — |
