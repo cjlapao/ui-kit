@@ -362,6 +362,10 @@ export const ToggleRow: React.FC<{
     <Toggle
       size="sm"
       color="blue"
+      // The visible `<span>` is the label for a mouse; the switch is a
+      // `role="switch"` button, which is not in the label's a11y tree, so it
+      // needs its own name.
+      aria-label={label}
       checked={checked}
       onChange={(event) => onChange(event.target.checked)}
     />

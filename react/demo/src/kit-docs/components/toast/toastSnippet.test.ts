@@ -5,6 +5,10 @@ import {
   toastCode,
   toastConfig,
 } from "./toastPlayground";
+import {
+  TOAST_INPUT_PROPS as TOAST_INPUT_DOC,
+  TOAST_VIEWPORT_PROPS as TOAST_VIEWPORT_DOC,
+} from "./ToastPage";
 import type { PlaygroundState } from "../../shared/playground/schema";
 
 /**
@@ -17,13 +21,14 @@ import type { PlaygroundState } from "../../shared/playground/schema";
  * into each other, and that every name it prints is a name the kit has.
  */
 
+/** What the controls show on load: `ToastInput`'s and `ToastViewport`'s own defaults. */
 const OPENING: PlaygroundState = {
-  intent: "success",
+  intent: "neutral",
   variant: "glass",
   size: "md",
   mode: "stacked",
-  position: "bottom-right",
-  width: "22.5rem",
+  position: "top-right",
+  width: "18.75rem",
   overrideTone: false,
   color: "emerald",
   life: "5000",
@@ -45,44 +50,15 @@ const render = (changes: Partial<PlaygroundState> = {}): string => {
   return toastCode({ state, data: {}, h });
 };
 
-/** `ToastInput`, as `Toast/types.ts` declares it — the guard's source of truth. */
-const TOAST_INPUT_PROPS = [
-  "intent",
-  "title",
-  "detail",
-  "variant",
-  "color",
-  "size",
-  "icon",
-  "vibrancy",
-  "glassOpacity",
-  "specularMode",
-  "life",
-  "sticky",
-  "closable",
-  "progress",
-  "loading",
-  "group",
-  "onClick",
-  "actions",
-  "meta",
-];
-
-/** `ToastViewportProps`, as `ToastViewport.tsx` declares it. */
-const VIEWPORT_PROPS = [
-  "group",
-  "position",
-  "mode",
-  "gap",
-  "limit",
-  "width",
-  "zIndex",
-  "breakpoints",
-  "onClose",
-  "onLifeEnd",
-  "className",
-  "style",
-];
+/**
+ * The page's own API tables, not a copy of them: an attribute the Code view
+ * prints without a row to live under is a prop nobody documented, and that is
+ * the failure this file exists to catch.
+ */
+const TOAST_INPUT_PROPS = TOAST_INPUT_DOC.map((row) => row.name);
+const VIEWPORT_PROPS = TOAST_VIEWPORT_DOC.map((row) => row.name).filter((name) =>
+  /^[A-Za-z]+$/.test(name),
+);
 
 describe("the raised message", () => {
   it("prints the whole call the button makes", () => {
@@ -91,25 +67,35 @@ describe("the raised message", () => {
     expect(code).toContain("const { toast } = useToast();");
     expect(code).toContain("toast.show({");
     expect(code).toContain(`group: GROUP,`);
-    expect(code).toContain('intent: "success",');
     expect(code).toContain('title: "Build 482 shipped",');
     expect(code).toContain("export default function Demo() {");
     expect(code).toContain("<ToastProvider>");
   });
 
   it("leaves out what the kit already does by default", () => {
+    // The controls open on the component's own defaults, so the snippet the
+    // reader sees first carries the routing and the copy and nothing else:
+    // `neutral` intent, `glass` variant, `md` size, the 5-second timer,
+    // `closable`, `top-right`, the 18.75rem column, the stacked deck.
     const code = render();
-    // variant: glass and size: md are the component's own defaults; the
-    // 5-second timer is the documented one.
-    expect(code).not.toContain("variant:");
-    expect(code).not.toContain("size:");
-    expect(code).not.toContain("life:");
-    // ... and `closable` is on by default too.
-    expect(code).not.toContain("closable:");
+    for (const leftAlone of [
+      "intent:",
+      "variant:",
+      "size:",
+      "life:",
+      "closable:",
+      "position=",
+      "width=",
+      "mode=",
+    ]) {
+      expect(code, leftAlone).not.toContain(leftAlone);
+    }
   });
 
-  it("prints the width the deck is showing even though it is not the kit's", () => {
-    expect(render()).toContain('width="22.5rem"');
+  it("prints the width once the reader widens the column", () => {
+    expect(render({ width: "22.5rem" })).toContain('width="22.5rem"');
+    expect(render({ position: "bottom-left" })).toContain('position="bottom-left"');
+    expect(render({ intent: "success" })).toContain('intent: "success",');
   });
 
   it("says sticky instead of life: 0", () => {
@@ -195,6 +181,16 @@ describe("the viewport that holds the deck", () => {
 });
 
 describe("the snippet as a whole", () => {
+  it("speaks only props the page has a row for", () => {
+    // A field whose id is neither a prop nor an intentional lever (`prop: null`)
+    // is a typo waiting to render nothing in the preview and nothing in the code.
+    const documented = [...TOAST_INPUT_PROPS, ...VIEWPORT_PROPS];
+    for (const field of toastConfig.fields) {
+      if (field.prop === null) continue;
+      expect(documented, `field "${field.id}"`).toContain(field.prop ?? field.id);
+    }
+  });
+
   it("imports everything it uses and nothing it does not", () => {
     const code = render();
     expect(code.split("\n")[0]).toBe(

@@ -11,8 +11,10 @@ import type { PlaygroundState } from "../../shared/playground/schema";
  * to be a row of the page's own API table.
  */
 
+/** What the controls show on load: `AvatarGroup`'s own defaults, unedited. */
 const OPENING: PlaygroundState = {
-  size: "lg",
+  size: "md",
+  padding: "none",
   tone: "blue",
   rounded: "full",
   border: true,
@@ -34,9 +36,15 @@ const snippet = (changes: Partial<PlaygroundState> = {}): string => {
   });
 };
 
+/** Every attribute the element prints, `singleRow` shorthand included. */
 const attributes = (code: string): string[] => {
-  const element = code.slice(code.indexOf("<AvatarGroup"), code.indexOf("/>"));
-  return [...element.matchAll(/(?:^|\s)([A-Za-z]+)=/g)].map((match) => match[1]);
+  const element = code.slice(code.indexOf("<AvatarGroup") + "<AvatarGroup".length, code.indexOf("/>"));
+  const named = [...element.matchAll(/([A-Za-z]\w*)=(?:"|\{)/g)].map((m) => m[1]);
+  const flags = element
+    .replace(/[A-Za-z]\w*=(?:"[^"]*"|\{[^}]*\})/g, "")
+    .match(/(^|\s)([A-Za-z]\w*)(?=\s|$)/g)
+    ?.map((flag) => flag.trim());
+  return [...named, ...(flags ?? [])];
 };
 
 describe("the roster", () => {
@@ -58,19 +66,25 @@ describe("the roster", () => {
 });
 
 describe("the element", () => {
-  it("prints the diff, not the whole prop list", () => {
+  it("opens as minimal as the component's own defaults", () => {
+    // The controls open on the kit's defaults, so the Code view has nothing to
+    // say yet beyond the data it was handed.
     const code = snippet();
-    expect(code).toContain('size="lg"');
-    for (const leftAtItsDefault of ["tone", "rounded", "border", "expandOn", "maxVisible", "defaultExpanded", "singleRow"]) {
-      expect(code).not.toContain(`${leftAtItsDefault}=`);
+    expect(attributes(code)).toEqual(["items"]);
+    for (const untouched of ["size", "tone", "rounded", "border", "expandOn", "maxVisible", "defaultExpanded", "singleRow", "padding"]) {
+      expect(code).not.toContain(`${untouched}=`);
     }
   });
 
   it("prints what the reader switched on", () => {
-    const code = snippet({ singleRow: true, maxVisible: "3", tone: "rose" });
+    const code = snippet({ size: "lg", singleRow: true, maxVisible: "3", tone: "rose", padding: "md" });
+    expect(code).toContain('size="lg"');
     expect(code).toContain("singleRow");
     expect(code).toContain("maxVisible={3}");
     expect(code).toContain('tone="rose"');
+    expect(code).toContain('padding="md"');
+    // A prop left at its default stays out, even next to one that moved.
+    expect(code).not.toContain("expandOn=");
   });
 
   it("stacks its attributes once they no longer fit", () => {
@@ -91,8 +105,8 @@ describe("the element", () => {
 describe("the guard", () => {
   it("names only props the page documents", () => {
     const documented = AVATAR_GROUP_PROPS.map((row) => row.name);
-    const printed = attributes(snippet({ singleRow: true, maxVisible: "8", tone: "rose" }));
-    expect(printed.length).toBeGreaterThan(3);
+    const printed = attributes(snippet({ singleRow: true, maxVisible: "8", tone: "rose", size: "lg", padding: "md" }));
+    expect(printed).toEqual(expect.arrayContaining(["items", "singleRow", "maxVisible", "tone", "size", "padding"]));
     expect(printed.filter((name) => !documented.includes(name))).toEqual([]);
   });
 

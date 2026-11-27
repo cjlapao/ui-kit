@@ -21,6 +21,13 @@ import type {
  * `set`s: the message's, and the viewport's. `toastCode` prints both from the
  * same state, which is the only way the snippet can be trusted to describe the
  * deck on screen.
+ *
+ * Every `default` is the component's own, read from `Toast/types.ts` and
+ * `Toast/ToastViewport.tsx` — `neutral`, `top-right`, `18.75rem`. The playground
+ * opens wearing the kit's defaults and the Code view opens minimal; a line
+ * appears when the reader moves something. The two content fields are the
+ * exception: a card with no text is not a preview, so they carry sample copy
+ * against a documented default of "absent" and print from the start.
  */
 
 /** The routing key the deck and its viewport share. */
@@ -74,8 +81,7 @@ export const toastConfig: PlaygroundConfig = {
       label: "Intent",
       group: "core",
       options: alertIntentOptions,
-      default: "success",
-      docDefault: "neutral",
+      default: "neutral",
     },
     {
       kind: "choice",
@@ -111,8 +117,7 @@ export const toastConfig: PlaygroundConfig = {
       label: "Position",
       group: "core",
       options: toastPositionOptions,
-      default: "bottom-right",
-      docDefault: "top-right",
+      default: "top-right",
       control: "select",
       set: VIEWPORT_SET,
     },
@@ -122,10 +127,9 @@ export const toastConfig: PlaygroundConfig = {
       label: "Width",
       group: "core",
       options: WIDTH_OPTIONS,
-      // The playground opens wider than the kit default, and the snippet says
-      // so: `docDefault` is the kit's, so this line is always worth printing.
-      default: "22.5rem",
-      docDefault: "18.75rem",
+      // `18.75rem` is the kit's own default, so the Code view prints nothing
+      // here until the reader widens the column.
+      default: "18.75rem",
       control: "select",
       set: VIEWPORT_SET,
     },

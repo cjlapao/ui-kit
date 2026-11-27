@@ -1,5 +1,9 @@
 import type { AvatarGroupItem } from "@cjlapao/ui-kit";
-import { controlSizeOptions, trueColorOptions } from "../../shared/options";
+import {
+  controlSizeOptions,
+  panelPaddingOptions,
+  trueColorOptions,
+} from "../../shared/options";
 import type { PlaygroundConfig } from "../../shared/playground/schema";
 
 /**
@@ -9,6 +13,13 @@ import type { PlaygroundConfig } from "../../shared/playground/schema";
  * Code view. The roster is a declared **data source**, so the snippet prints the
  * identities the strip is actually wearing rather than a `items={…}` the reader
  * has to imagine.
+ *
+ * Every `default` here is the component's own default, read from
+ * `src/components/AvatarGroup.tsx` — none of them a matter of taste. The
+ * playground therefore opens wearing the kit's defaults, the Code view opens
+ * minimal, and a prop appears in it the moment the reader deviates. Nothing
+ * needs `docDefault`: the opening value and the documented default are the same
+ * number on purpose.
  */
 
 const ROSTER: AvatarGroupItem[] = [
@@ -54,10 +65,16 @@ export const avatarGroupConfig: PlaygroundConfig = {
       label: "Size",
       group: "chips",
       options: controlSizeOptions,
-      // The playground opens a step above the kit's, so the snippet says so.
-      default: "lg",
-      docDefault: "md",
+      default: "md",
       control: "select",
+    },
+    {
+      kind: "choice",
+      id: "padding",
+      label: "Padding",
+      group: "chips",
+      options: panelPaddingOptions,
+      default: "none",
     },
     {
       kind: "choice",

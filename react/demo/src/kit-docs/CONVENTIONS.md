@@ -38,10 +38,14 @@ a Preview/Code `IconToggleGroup` after the Background image toggle, and its Code
 view prints the runnable snippet for exactly the state on screen — plus the
 fixture data that made it, so the reader can see where the content came from.
 
-- `default` is what the playground opens with; `docDefault` is the component's
-  documented default and the bar for printing. A field appears in the snippet
-  only when it differs from `docDefault` (or sets `alwaysEmit`, for a prop with
-  no documented default such as Toast's `color`).
+- `default` is what the playground opens with, and it is **the component's own
+  default, read from its source** — the `@default` on the prop, not a value that
+  happens to photograph well. The playground therefore opens minimal and the
+  snippet prints a line only where the reader deviated. `docDefault` is the bar
+  for printing; leave it out (it defaults to `default`), and where you do set it
+  — a documented default the page deliberately does not open on, or sample copy a
+  card cannot render without — say why on that field. A prop with no documented
+  default gets `alwaysEmit` (Toast's `color`).
 - A data source is declared once and used twice: `emit: "literal"` prints the
   resolved value, `emit: "source"` prints the generator itself, and `note`
   becomes the comment above the `const`. **The preview must consume the value
@@ -56,6 +60,13 @@ fixture data that made it, so the reader can see where the content came from.
 - A page's snippet test (see `avatarGroupSnippet.test.ts`) asserts that every
   attribute the Code view prints is a row of that page's `PropsTable`; a prop the
   playground prints that the API table does not list is a documentation bug.
+- The playground's controls are part of the page's accessibility: `ToggleRow`
+  names its switch with `aria-label`, and every control the schema renders keeps
+  its visible label.
+
+Which pages still owe this — playground, API table, Keyboard support,
+Internationalization — is tracked in [INVENTORY.md](INVENTORY.md), regenerated
+by `npm --prefix react/demo run audit`.
 
 A panel that passes no `code` renders exactly as it always did, so the pages
 written before this rule are untouched until their own pass comes up.
