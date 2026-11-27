@@ -112,12 +112,12 @@ would print a page of plumbing; a static `ExampleCard` set is honest).
 ## Status
 
 <!-- BEGIN GENERATED TABLE — npm --prefix react/demo run audit -->
-- **143 pages** in the side menu, **9 fully done** — run `npm --prefix react/demo run audit` after every conversion to refresh this table.
-- Playground: 9 on the engine · 126 legacy `PlaygroundPanel` · 1 inline · 7 without one.
-- Standard sections: API 80 · Screen reader 67 · Keyboard 66 · i18n 64.
-- Tests: 9 pages have one · examples missing on 12 pages.
+- **143 pages** in the side menu, **10 fully done** — run `npm --prefix react/demo run audit` after every conversion to refresh this table.
+- Playground: 10 on the engine · 125 legacy `PlaygroundPanel` · 1 inline · 7 without one.
+- Standard sections: API 81 · Screen reader 68 · Keyboard 67 · i18n 65.
+- Tests: 10 pages have one · examples missing on 12 pages.
 
-### Layout — 7/24 done
+### Layout — 8/24 done
 
 |  | Page | Slug | Playground | Fields | API | SR | Kbd | i18n | Ex | Tests |
 |:--:|---|---|---|---|:--:|:--:|:--:|:--:|:--:|---|
@@ -128,7 +128,7 @@ would print a page of plumbing; a static `ExampleCard` set is honest).
 | ✅ | [Gradient Backdrop](gradient-backdrop/GradientBackdropPage.tsx) | `gradient-backdrop` | 🟢 engine | 8 fields | ✅ | ✅ | ✅ | ✅ | 4 | `gradientBackdropSnippet.test.ts` |
 | ✅ | [Grid Background](grid-background/GridBackgroundPage.tsx) | `grid-background` | 🟢 engine | 8 fields | ✅ | ✅ | ✅ | ✅ | 4 | `gridBackgroundSnippet.test.ts` |
 | ✅ | [Panel](panel/PanelPage.tsx) | `panel` | 🟢 engine | 39 fields | ✅ | ✅ | ✅ | ✅ | 9 | `panelSnippet.test.ts` |
-| ☐ | [Collapsible Help Text](collapsible-help-text/CollapsibleHelpTextPage.tsx) | `collapsible-help-text` | 🟡 panel | — | ⬜ | ⬜ | ⬜ | ⬜ | 3 | — |
+| ✅ | [Collapsible Help Text](collapsible-help-text/CollapsibleHelpTextPage.tsx) | `collapsible-help-text` | 🟢 engine | 19 fields | ✅ | ✅ | ✅ | ✅ | 3 | `collapsibleHelpTextSnippet.test.ts` |
 | ☐ | [Collapsible Panel](collapsible-panel/CollapsiblePanelPage.tsx) | `collapsible-panel` | 🟡 panel | — | ✅ | ✅ | ✅ | ✅ | 4 | — |
 | ☐ | [Accordion](accordion/AccordionPage.tsx) | `accordion` | 🟡 panel | — | ✅ | ✅ | ✅ | ✅ | 3 | — |
 | ☐ | [App Divider](app-divider/AppDividerPage.tsx) | `app-divider` | 🟡 panel | — | ✅ | ✅ | ✅ | ✅ | 4 | — |
