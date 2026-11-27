@@ -141,6 +141,14 @@ export interface PlaygroundDataSource {
   prop?: string | null;
   /** Emission subset, as `PlaygroundField.set`. @default "props" */
   set?: string;
+  /**
+   * Drop the fixture from the printed source — its `const` and its attribute go
+   * together, so a hidden fixture can never leave a dangling declaration behind.
+   * The preview still receives `data[id]`, which is how an optional zone says
+   * "off" without its content vanishing from state. Same rule as a field's
+   * `when`: what the reader cannot see on screen, the Code view does not print.
+   */
+  when?: (state: PlaygroundState) => boolean;
   /** Printed above the declaration as `// label — note`. */
   label: string;
   /** The how-was-this-made line. This is the reader's only clue for synthetic data. */

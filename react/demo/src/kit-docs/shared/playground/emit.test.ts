@@ -298,6 +298,47 @@ describe("data sources", () => {
       h.decl("roster"),
     ]);
   });
+
+  /*
+   * Optional content — a layout zone, an extra section — is gated by a control.
+   * The predicate has to be honoured by both halves of the printer at once: a
+   * snippet that prints `left={left}` with no `const left` above it, or a
+   * declaration the preview never renders, is a snippet that does not run.
+   */
+  it("drops a fixture the state switched off, its attribute and its const together", () => {
+    const zone: PlaygroundDataSource = {
+      id: "left",
+      label: "Left zone",
+      emit: "source",
+      value: () => null,
+      source: () => `<Rail />`,
+      when: (state) => state.withLeft === "on",
+    };
+    const withLeft = choice({ id: "withLeft", default: "on", prop: null }) as PlaygroundField;
+    const off = createEmitter(config([withLeft], [zone]), { withLeft: "off" });
+    expect(off.props()).toEqual([]);
+    expect(defaultDeclarations(config([withLeft], [zone]), { withLeft: "off" }, off)).toEqual([]);
+
+    const on = createEmitter(config([withLeft], [zone]), { withLeft: "on" });
+    expect(on.props()).toEqual(["left={left}"]);
+    expect(defaultDeclarations(config([withLeft], [zone]), { withLeft: "on" }, on)).toEqual([
+      on.decl("left"),
+    ]);
+  });
+
+  it("still lets a page place a switched-off fixture itself", () => {
+    const zone: PlaygroundDataSource = {
+      id: "left",
+      label: "Left zone",
+      emit: "source",
+      value: () => null,
+      source: () => `<Rail />`,
+      when: () => false,
+    };
+    // `code` composes deliberately: `when` keeps the *default* emission honest,
+    // it does not veto a page that asks for the declaration by name.
+    expect(createEmitter(config([], [zone]), {}).decl("left")).toContain("const left = <Rail />;");
+  });
 });
 
 afterEach(() => {

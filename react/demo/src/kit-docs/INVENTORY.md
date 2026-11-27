@@ -29,7 +29,9 @@ looks fine" is not a pass — each line is verified against the component's sour
 
 1. **Playground on the engine.** The page renders `<Playground playground={…}
    preview={…} …/>` from `shared/playground`. The options, the preview and the
-   snippet all come from one `PlaygroundConfig` in `<name>Playground.ts`. No
+   snippet all come from one `PlaygroundConfig` in `<name>Playground.ts` (`.tsx`, in the
+   preview's own file, when the fixtures are JSX — one file holding config, preview
+   and `code` beats two whose names differ only in casing). No
    hand-written `PlaygroundPanel` call remains. If the component is imperative
    (raises through a hook, pins a viewport), pass `code`; if it is declarative,
    pass `component={{ tag, imports }}` — AvatarGroup is the template, Toast is the
@@ -110,16 +112,16 @@ would print a page of plumbing; a static `ExampleCard` set is honest).
 ## Status
 
 <!-- BEGIN GENERATED TABLE — npm --prefix react/demo run audit -->
-- **143 pages** in the side menu, **2 fully done** — run `npm --prefix react/demo run audit` after every conversion to refresh this table.
-- Playground: 2 on the engine · 132 legacy `PlaygroundPanel` · 1 inline · 8 without one.
-- Standard sections: API 77 · Screen reader 63 · Keyboard 62 · i18n 60.
-- Tests: 2 pages have one · examples missing on 12 pages.
+- **143 pages** in the side menu, **3 fully done** — run `npm --prefix react/demo run audit` after every conversion to refresh this table.
+- Playground: 3 on the engine · 132 legacy `PlaygroundPanel` · 1 inline · 7 without one.
+- Standard sections: API 77 · Screen reader 64 · Keyboard 63 · i18n 61.
+- Tests: 3 pages have one · examples missing on 12 pages.
 
-### Layout — 0/24 done
+### Layout — 1/24 done
 
 |  | Page | Slug | Playground | Fields | API | SR | Kbd | i18n | Ex | Tests |
 |:--:|---|---|---|---|:--:|:--:|:--:|:--:|:--:|---|
-| ☐ | [Page Body Layout](page-body-layout/PageBodyLayoutPage.tsx) | `page-body-layout` | 🔴 none | — | ✅ | ⬜ | ⬜ | ⬜ | 0 | — |
+| ✅ | [Page Body Layout](page-body-layout/PageBodyLayoutPage.tsx) | `page-body-layout` | 🟢 engine | 17 fields | ✅ | ✅ | ✅ | ✅ | 0 | `pageBodyLayoutSnippet.test.ts` |
 | ☐ | [Side Menu](side-menu/SideMenuPage.tsx) | `side-menu` | 🟡 panel | — | ✅ | ✅ | ⬜ | ✅ | 18 | — |
 | ☐ | [Breadcrumb](breadcrumb/BreadcrumbPage.tsx) | `breadcrumb` | 🟡 panel | — | ⬜ | ⬜ | ⬜ | ⬜ | 6 | — |
 | ☐ | [Glass Background](glass-background/GlassBackgroundPage.tsx) | `glass-background` | 🟡 panel | — | ⬜ | ⬜ | ⬜ | ⬜ | 5 | — |

@@ -227,6 +227,7 @@ export const createEmitter = (
       if (!options?.fields) {
         for (const source of dataSources) {
           if (!inSet(source, options?.set) || source.prop === null) continue;
+          if (source.when && !source.when(state)) continue;
           attributes.push(`${source.prop ?? source.id}={${source.constName ?? source.id}}`);
         }
       }
@@ -315,7 +316,7 @@ export const createEmitter = (
  */
 export const defaultDeclarations = (
   config: PlaygroundConfig,
-  _state: PlaygroundState,
+  state: PlaygroundState,
   h: EmitHelpers,
 ): string[] =>
   (config.data ?? [])
@@ -323,6 +324,7 @@ export const defaultDeclarations = (
       (source) =>
         source.hoist !== false &&
         source.prop !== null &&
+        (source.when ? source.when(state) : true) &&
         (source.set ?? "props") === "props",
     )
     .map((source) => h.decl(source.id));
