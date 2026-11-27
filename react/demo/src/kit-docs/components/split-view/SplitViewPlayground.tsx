@@ -1,347 +1,387 @@
-import { SurfaceToneSwatches } from "../../shared/SurfaceToneControl";
-import type { SurfaceTone } from "@cjlapao/ui-kit";
-import React, { useState } from "react";
-import {
-  ColorSwatches,
-  SplitView,
-  SPLIT_VIEW_LOADERS,
-  Pill,
-} from "@cjlapao/ui-kit";
+import React from "react";
+import { SplitView } from "@cjlapao/ui-kit";
 import type {
-  ControlSize,
   InputVariant,
-  SplitViewItem,
   SplitViewLoader,
-  SurfaceVariant,
+  SplitViewVariant,
+  SurfaceTone,
   TrueColor,
+  ControlSize,
 } from "@cjlapao/ui-kit";
+import { Playground, usePlayground } from "../../shared/playground";
+import type {
+  PlaygroundCodeContext,
+  PlaygroundPreviewProps,
+  PlaygroundState,
+} from "../../shared/playground/schema";
+import { C } from "../../shared/A11ySections";
 import {
-  ChoiceControl,
-  Control,
-  PlaygroundPanel,
-  ToggleRow,
-} from "../../shared/PlaygroundPanel";
-import { ControlAccordion } from "../../shared/ControlAccordion";
-import { EventLogControl, useEventLog } from "../../shared/EventLog";
+  FIXTURE_CONSTS,
+  hostStateLines,
+  splitViewConfig,
+} from "./splitViewPlayground";
 import {
-  controlSizeOptions,
-  inputVariantOptions,
-  surfaceVariantOptions,
-} from "../../shared/options";
+  LIST_ACTIONS,
+  EMPTY_LIST,
+  LOADING_STATE,
+  PANEL_EMPTY,
+  PANEL_HEADER,
+  REPLICAS_SOURCE,
+  SLOT_NAMES,
+  STAGE_CLASS,
+  buildItems,
+  panelHeaderProps,
+  panelHeaderPropsSource,
+  CAPSULES,
+} from "./splitViewFixture";
+import {
+  LIST_TITLE,
+  LIST_WIDTH_AUTO,
+  LOADER_DEFAULT,
+  MAX_LIST_WIDTH_AUTO,
+  MENU_VISIBILITY_DEFAULT,
+  MIN_LIST_WIDTH_DEFAULT,
+  SELECTION_AUTO,
+  SIZE_DEFAULT,
+  SURFACE_TONE_DEFAULT,
+  SEARCH_VARIANT_AUTO,
+  TONE_DEFAULT,
+  VARIANT_DEFAULT,
+  choiceOf,
+  errorText,
+  flag,
+  hasHeaderDetails,
+  hasRetry,
+  isError,
+  isLoading,
+  isResizable,
+  numberOf,
+  showsHeader,
+  textValue,
+  withSubItems,
+} from "./splitViewStage";
 
-// The shared control scale, whole — same sizes as every
-// other component.
-const sizeOptions = controlSizeOptions;
+/** The wrapper the printed demo puts the split view in — it is `h-full` (:1066). */
+const DEMO_CLASS = "h-96 w-full";
 
-/** A sub-item list, so a row can expand in place instead of only opening the pane. */
-const Replicas: React.FC<{ names: string[]; tone: TrueColor }> = ({
-  names,
-  tone,
-}) => (
-  <ul className="space-y-1 py-2 pl-9 pr-4">
-    {names.map((name) => (
-      <li
-        key={name}
-        className="flex items-center justify-between gap-2 text-xs text-neutral-600 dark:text-neutral-300"
-      >
-        <span className="truncate">{name}</span>
-        <Pill size="sm" tone={tone} variant="soft">
-          ready
-        </Pill>
-      </li>
-    ))}
-  </ul>
-);
+/** `value=""` selects nothing; the sentinel is this page's, not the component's. */
+const valueOfSelection = (state: PlaygroundState): string | undefined => {
+  const picked = textValue(state, "selection");
+  if (picked === SELECTION_AUTO) return undefined;
+  return picked === "__none" ? "" : picked;
+};
 
-export const SplitViewPlayground: React.FC = () => {
-  const [tone, setTone] = useState<TrueColor>("blue");
-  const [variant, setVariant] = useState<SurfaceVariant>("elevated");
-  const [raisedSurface, setRaisedSurface] = useState(false);
-  const [surfaceTone, setSurfaceTone] = useState<SurfaceTone>("none");
-  const [toneAuto, setToneAuto] = useState(false);
-  const [searchVariant, setSearchVariant] = useState<string>("");
-  const [size, setSize] = useState<ControlSize>("md");
-  const [loaderType, setLoaderType] = useState<SplitViewLoader>("skeleton");
-  const [collapsible, setCollapsible] = useState(true);
-  const [resizable, setResizable] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [errored, setErrored] = useState(false);
-  const [menuVisible, setMenuVisible] = useState(false);
-  // The shared log — the pattern this playground invented, now lifted into
-  // shared/EventLog so every playground reads the same.
-  const [log, pushLog] = useEventLog();
-  const [showHighlightIndicator, setShowHighlightIndicator] = useState(true);
-  const [withSubItems, setWithSubItems] = useState(true);
-  const [autoExpand, setAutoExpand] = useState(false);
+/**
+ * What the frame cannot show, said in words. A playground that only shows pixels
+ * teaches a reader to trust the pixels; these are the facts they would otherwise
+ * learn by debugging.
+ */
+const caption = (state: PlaygroundState): string => {
+  const notes: string[] = [];
 
-  const items: SplitViewItem[] = [
-    {
-      id: "a",
-      label: "api-gateway",
-      subtitle: "eu-west-1",
-      icon: "Container" as const,
-      panel: <div className="p-6 text-sm">Gateway detail</div>,
-      menu: [
-        { label: "Rename", value: "rename" },
-        { label: "Duplicate", value: "duplicate" },
-        { label: "Delete", value: "delete", danger: true },
-      ],
-      subContent: withSubItems ? (
-        <Replicas names={["gateway-7f4c", "gateway-9d21"]} tone={tone} />
-      ) : undefined,
-    },
-    {
-      id: "b",
-      label: "worker-pool",
-      subtitle: "us-east-1",
-      icon: "Container" as const,
-      panel: <div className="p-6 text-sm">Worker detail</div>,
-      menu: [
-        { label: "Rename", value: "rename" },
-        { label: "Duplicate", value: "duplicate" },
-        { label: "Delete", value: "delete", danger: true },
-      ],
-      subContent: withSubItems ? (
-        <Replicas names={["worker-01", "worker-02", "worker-03"]} tone={tone} />
-      ) : undefined,
-    },
-    {
-      id: "c",
-      label: "batch-runner",
-      subtitle: "ap-south-1",
-      icon: "Container" as const,
-      panel: <div className="p-6 text-sm">Batch detail</div>,
-      menu: [
-        { label: "Rename", value: "rename" },
-        { label: "Duplicate", value: "duplicate" },
-        { label: "Delete", value: "delete", danger: true },
-      ],
-      highlight: true,
-      subContent: withSubItems ? (
-        <Replicas names={["batch-nightly"]} tone={tone} />
-      ) : undefined,
-      subItems: withSubItems
-        ? [
-            {
-              id: "c-1",
-              label: "batch-nightly-2f",
-              menu: [{ label: "Restart", value: "restart" }],
-              onClick: (sub) => pushLog(`Sub-item ${String(sub.label)}`),
-            },
-            {
-              id: "c-2",
-              label: "batch-nightly-8a",
-              menu: [{ label: "Restart", value: "restart" }],
-              onClick: (sub) => pushLog(`Sub-item ${String(sub.label)}`),
-            },
-          ]
-        : undefined,
-    },
-  ];
+  const picked = valueOfSelection(state);
+  if (picked === undefined) {
+    notes.push(
+      "nothing is selected by the page — the first visible row is picked on mount (:581-583)",
+    );
+  } else if (picked === "") {
+    notes.push(
+      "value is the empty string, which matches no id, so the detail pane is the no-selection EmptyState (:669,:1538-1547)",
+    );
+  } else {
+    notes.push(
+      `value is controlled to "${picked}", so clicking a row no longer moves the accent (:584,:676-682)`,
+    );
+    if (CAPSULES.some((spec) => spec.id === picked && spec.hidden)) {
+      notes.push(
+        "that row is `hidden`, and `hidden` rows are filtered out before the lookup — selecting one by id selects nothing (:573,:669)",
+      );
+    }
+  }
+
+  notes.push(
+    "legacy-sidecar sits in items with hidden: true — it never paints, and the list title still counts it out",
+  );
+  notes.push(
+    "edge-cache is disabled: aria-disabled, tabIndex -1, and its clicks are dropped (:677,:1190-1194)",
+  );
+
+  if (withSubItems(state)) {
+    notes.push(
+      "batch-runner's first child row has an onClick and is a button; the second has none and is a plain div — no role, no tab stop (:1411-1419)",
+    );
+  } else {
+    notes.push(
+      "no row carries subContent or subItems, so the caret that autoExpand=false would need has nothing to open (:1183-1184)",
+    );
+  }
+
+  if (isResizable(state)) {
+    notes.push(
+      "the divider is a role=separator the reader can Tab to: arrows move it 20px, aria-valuemax is 75% of this frame unless a cap is set (:1478-1508, useResizable :106-136, :614-621)",
+    );
+  }
+  if (flag(state, "panelHeader") && showsHeader(state)) {
+    notes.push(
+      "panelHeader is set and does nothing: panelHeaderProps takes the slot (:875-879)",
+    );
+  }
+  if (isLoading(state)) {
+    notes.push(
+      choiceOf(state, "loaderType", LOADER_DEFAULT) === "skeleton"
+        ? "the skeleton replaces the content and is aria-hidden — nothing announces that the view is loading (:910,:994)"
+        : "the loader covers the content; the layout underneath keeps its measured widths, which is why skeleton is the default (:948-964)",
+    );
+  }
+  if (isError(state)) {
+    notes.push(
+      hasRetry(state)
+        ? "error is a string, so it becomes the EmptyState subtitle — and Retry is the consumer's own button, wired to the consumer's own state (:974-981)"
+        : "error is a string, so it becomes the EmptyState subtitle; without onRetry there is no action button at all (:974-981)",
+    );
+  }
+  if (textValue(state, "searchPlaceholder").length > 0) {
+    notes.push(
+      "the placeholder here is the prop, not the catalog: kit.splitview.search is what you get when it is omitted (:190,:1157)",
+    );
+  }
+  if (flag(state, "emptyState") === false) {
+    notes.push(
+      "type into the search and match nothing: the fallback is the hardcoded English string “No items found”, not a catalog entry (:1177)",
+    );
+  }
+
+  return `${notes.join(". ")}.`;
+};
+
+const Stage: React.FC<PlaygroundPreviewProps> = ({ state, set }) => {
+  const picked = valueOfSelection(state);
+  const searchPlaceholder = textValue(state, "searchPlaceholder");
+  const searchVariant = choiceOf(state, "searchVariant", SEARCH_VARIANT_AUTO);
+  const listWidth = choiceOf(state, "listWidth", LIST_WIDTH_AUTO);
+  const maxListWidth = choiceOf(state, "maxListWidth", MAX_LIST_WIDTH_AUTO);
+  const loaderType = choiceOf(state, "loaderType", LOADER_DEFAULT);
+  const collapsible = flag(state, "collapsible");
+  const collapse = choiceOf(state, "collapse", "self");
 
   return (
-    <PlaygroundPanel
-      controls={
-        <div className="space-y-3">
-          <ControlAccordion
-            groups={[
-              {
-                id: "core",
-                title: "Core",
-                controls: (
-                  <>
-                    <ChoiceControl
-                      label="Variant"
-                      options={surfaceVariantOptions}
-                      value={variant}
-                      onChange={(v) => setVariant(v as SurfaceVariant)}
-                    />
-                    {/* Both are colour decisions — pick them from colour
-                        swatches, not from a dropdown of colour names. */}
-                    <Control label="Accent tone">
-                      <ColorSwatches
-                        selectable
-                        size="sm"
-                        value={tone}
-                        onSelect={setTone}
-                        defaultExpanded
-                      />
-                    </Control>
-                    <Control label="Surface tone">
-                      <SurfaceToneSwatches value={surfaceTone} onSelect={setSurfaceTone} />
-                    </Control>
-                    <ToggleRow
-                      label="Surface tone follows accent"
-                      checked={toneAuto}
-                      onChange={setToneAuto}
-                    />
-                    {/* The shell's first depth step — for split views that vanish into the page. */}
-                    <ToggleRow
-                      label="Raised surface"
-                      checked={raisedSurface}
-                      onChange={setRaisedSurface}
-                    />
-                    <ChoiceControl
-                      label="Size"
-                      options={sizeOptions}
-                      value={size}
-                      onChange={(v) => setSize(v as ControlSize)}
-                    />
-                  </>
-                ),
-              },
-              {
-                id: "search",
-                title: "Search",
-                controls: (
-                  <ChoiceControl
-                    label="Search variant"
-                    options={[
-                      { label: "(follows surface)", value: "" },
-                      ...inputVariantOptions,
-                    ]}
-                    value={searchVariant}
-                    onChange={setSearchVariant}
-                  />
-                ),
-              },
-              {
-                id: "loader",
-                title: "Loader",
-                controls: (
-                  <ChoiceControl
-                    label="Loader"
-                    options={SPLIT_VIEW_LOADERS.map((v) => ({
-                      label: v,
-                      value: v,
-                    }))}
-                    value={loaderType}
-                    onChange={(v) => setLoaderType(v as SplitViewLoader)}
-                  />
-                ),
-              },
-              {
-                id: "layout",
-                title: "Layout",
-                controls: (
-                  <>
-                    <Control label="Layout">
-                      <div className="space-y-1.5">
-                        <ToggleRow
-                          label="Collapsible"
-                          checked={collapsible}
-                          onChange={setCollapsible}
-                        />
-                        <ToggleRow
-                          label="Resizable"
-                          checked={resizable}
-                          onChange={setResizable}
-                        />
-                      </div>
-                    </Control>
-                    <Control label="Rows">
-                      <div className="space-y-1.5">
-                        <ToggleRow
-                          label="Sub-items"
-                          checked={withSubItems}
-                          onChange={setWithSubItems}
-                        />
-                        <ToggleRow
-                          label="Dots always visible"
-                          checked={menuVisible}
-                          onChange={setMenuVisible}
-                        />
-                        <ToggleRow
-                          label="Expand on select"
-                          checked={autoExpand}
-                          onChange={setAutoExpand}
-                        />
-                        <ToggleRow
-                          label="New-item indicator"
-                          checked={showHighlightIndicator}
-                          onChange={setShowHighlightIndicator}
-                        />
-                      </div>
-                    </Control>
-                  </>
-                ),
-              },
-              {
-                id: "states",
-                title: "States",
-                controls: (
-                  <Control label="State">
-                    <div className="space-y-1.5">
-                      <ToggleRow
-                        label="Loading"
-                        checked={loading}
-                        onChange={setLoading}
-                      />
-                      <ToggleRow
-                        label="Error"
-                        checked={errored}
-                        onChange={setErrored}
-                      />
-                    </div>
-                  </Control>
-                ),
-              },
-            ]}
-          />
-          <EventLogControl
-            log={log}
-            emptyText="No events yet — click rows, sub-items or menu options."
-          />
-          <p className="text-xs text-neutral-500 dark:text-neutral-400">
-            <strong>Accent tone</strong> drives the active row, the resizer and
-            the search field; <strong>surface tone</strong> always paints the
-            divider between the panes and colours the surface the way the
-            variant handles a tone — fill, wash or rule. The surface comes from
-            the same family as <code>Panel</code>, and the search field follows
-            it unless you override it — try <strong>glass</strong>. Turn{" "}
-            <strong>Expand on select</strong> off and a caret appears on rows
-            that have sub-items, so a row can open in place instead of only
-            filling the pane. <strong>New-item indicator</strong> drops the
-            pulsing dot on <code>highlight</code> rows while keeping their
-            accent tint. Row menus sit just before the caret — turn{" "}
-            <strong>Dots always visible</strong> to keep them in place instead
-            of on hover — and the <strong>Event log</strong> below records what
-            you clicked.
-          </p>
-        </div>
-      }
-      preview={
-        // No border of its own: variants that carry an edge (outlined,
-        // liquid-glass) were doubling it against the wrapper's grey hairline.
-        <div className="h-96 w-full overflow-hidden rounded-lg">
-          <SplitView
-            items={items}
-            tone={tone}
-            surfaceTone={toneAuto ? "auto" : surfaceTone}
-            variant={variant}
-            raisedSurface={raisedSurface}
-            searchVariant={
-              (searchVariant || undefined) as InputVariant | undefined
-            }
-            size={size}
-            listTitle="Capsules"
-            collapsible={collapsible}
-            resizable={resizable}
-            autoExpand={autoExpand}
-            showHighlightIndicator={showHighlightIndicator}
-            loading={loading}
-            loaderType={loaderType}
-            loadingProgress={loaderType === "progress" ? 62 : undefined}
-            error={errored ? "Could not reach the registry" : undefined}
-            onRetry={() => {}}
-            onChange={(_id, item) => pushLog(`Selected ${String(item.label)}`)}
-            onMenuSelect={(item, option) =>
-              pushLog(`Menu "${String(option.label)}" → ${String(item.label)}`)
-            }
-            menuVisibility={menuVisible ? "always" : "hover"}
-          />
-        </div>
-      }
+    <div className="flex w-full flex-col gap-2">
+      <p className="text-xs leading-relaxed text-neutral-500 dark:text-neutral-400">
+        {caption(state)}
+      </p>
+      <div className={STAGE_CLASS}>
+        <SplitView
+          items={buildItems(withSubItems(state))}
+          value={picked}
+          listTitle={flag(state, "listTitle") ? LIST_TITLE : undefined}
+          listActions={flag(state, "listActions") ? LIST_ACTIONS : undefined}
+          searchPlaceholder={searchPlaceholder.length > 0 ? searchPlaceholder : undefined}
+          searchVariant={
+            searchVariant === SEARCH_VARIANT_AUTO
+              ? undefined
+              : (searchVariant as InputVariant)
+          }
+          menuVisibility={
+            choiceOf(state, "menuVisibility", MENU_VISIBILITY_DEFAULT) ===
+            MENU_VISIBILITY_DEFAULT
+              ? undefined
+              : "always"
+          }
+          showHighlightIndicator={
+            flag(state, "showHighlightIndicator") ? undefined : false
+          }
+          resizable={isResizable(state) || undefined}
+          minListWidth={
+            isResizable(state) &&
+            numberOf(state, "minListWidth", MIN_LIST_WIDTH_DEFAULT) !==
+              MIN_LIST_WIDTH_DEFAULT
+              ? numberOf(state, "minListWidth", MIN_LIST_WIDTH_DEFAULT)
+              : undefined
+          }
+          maxListWidth={
+            maxListWidth === MAX_LIST_WIDTH_AUTO ? undefined : Number(maxListWidth)
+          }
+          listWidth={listWidth === LIST_WIDTH_AUTO ? undefined : listWidth}
+          collapsible={collapsible || undefined}
+          collapsed={collapse === "self" ? undefined : collapse === "collapsed"}
+          onCollapsedChange={
+            collapsible && flag(state, "collapseReport")
+              ? (next: boolean) => set("collapse", next ? "collapsed" : "expanded")
+              : undefined
+          }
+          variant={
+            choiceOf(state, "variant", VARIANT_DEFAULT) === VARIANT_DEFAULT
+              ? undefined
+              : (choiceOf(state, "variant", VARIANT_DEFAULT) as SplitViewVariant)
+          }
+          tone={
+            choiceOf(state, "tone", TONE_DEFAULT) === TONE_DEFAULT
+              ? undefined
+              : (choiceOf(state, "tone", TONE_DEFAULT) as TrueColor)
+          }
+          surfaceTone={
+            choiceOf(state, "surfaceTone", SURFACE_TONE_DEFAULT) === SURFACE_TONE_DEFAULT
+              ? undefined
+              : (choiceOf(state, "surfaceTone", SURFACE_TONE_DEFAULT) as SurfaceTone)
+          }
+          size={
+            choiceOf(state, "size", SIZE_DEFAULT) === SIZE_DEFAULT
+              ? undefined
+              : (choiceOf(state, "size", SIZE_DEFAULT) as ControlSize)
+          }
+          raisedSurface={flag(state, "raisedSurface") || undefined}
+          borderLeft={flag(state, "borderLeft") || undefined}
+          panelHeaderProps={
+            showsHeader(state) ? panelHeaderProps(hasHeaderDetails(state)) : undefined
+          }
+          panelHeader={flag(state, "panelHeader") ? PANEL_HEADER : undefined}
+          panelEmptyState={flag(state, "panelEmptyState") ? PANEL_EMPTY : undefined}
+          emptyState={flag(state, "emptyState") ? EMPTY_LIST : undefined}
+          panelScrollable={flag(state, "panelScrollable") ? undefined : false}
+          loading={isLoading(state) || undefined}
+          loaderType={
+            isLoading(state) && loaderType !== LOADER_DEFAULT
+              ? (loaderType as SplitViewLoader)
+              : undefined
+          }
+          loadingProgress={
+            isLoading(state) && loaderType === "progress"
+              ? numberOf(state, "loadingProgress", 62)
+              : undefined
+          }
+          loadingState={
+            isLoading(state) && flag(state, "loadingState") ? LOADING_STATE : undefined
+          }
+          error={isError(state) ? errorText(state) : undefined}
+          onRetry={hasRetry(state) ? () => set("error", false) : undefined}
+        />
+      </div>
+    </div>
+  );
+};
+
+/** Kit components a printed block mounts, found in the text rather than guessed. */
+const kitNamesIn = (printed: string): string[] =>
+  ["Button", "Pill"].filter((name) => printed.includes(`<${name}`));
+
+export const splitViewCode = ({
+  state,
+  h,
+}: PlaygroundCodeContext): string => {
+  const decls: string[] = [];
+
+  // Rows first: they are what the component is, and everything else decorates them.
+  decls.push(h.const("ROW_MENU", { value: FIXTURE_CONSTS.ROW_MENU }));
+  if (withSubItems(state)) {
+    decls.push(h.const("SUB_MENU", { value: FIXTURE_CONSTS.SUB_MENU }));
+    decls.push(REPLICAS_SOURCE);
+  }
+  decls.push(h.decl("items"));
+
+  for (const [name, node, on] of [
+    ["LIST_ACTIONS", FIXTURE_CONSTS.LIST_ACTIONS, flag(state, "listActions")],
+    ["PANEL_HEADER", FIXTURE_CONSTS.PANEL_HEADER, flag(state, "panelHeader")],
+    ["PANEL_EMPTY", FIXTURE_CONSTS.PANEL_EMPTY, flag(state, "panelEmptyState")],
+    ["EMPTY_LIST", FIXTURE_CONSTS.EMPTY_LIST, flag(state, "emptyState")],
+    ["LOADING_STATE", FIXTURE_CONSTS.LOADING_STATE, isLoading(state) && flag(state, "loadingState")],
+  ] as const) {
+    if (!on) continue;
+    decls.push(
+      h.const(name, {
+        source: h.jsx(node, { names: SLOT_NAMES }),
+        label: `the ${name.toLowerCase().replace(/_/g, " ").trim()} slot`,
+      }),
+    );
+  }
+
+  if (showsHeader(state)) {
+    decls.push(
+      h.const("PANEL_HEADER_PROPS", {
+        source: panelHeaderPropsSource(hasHeaderDetails(state)),
+        label: "the built-in header's slots",
+        note: "every slot may also be a function of the active row (:722-730)",
+      }),
+    );
+  }
+
+  const panel = h.element("SplitView", [...h.props()], 0);
+  const root = h.element(
+    "div",
+    [`className=${JSON.stringify(DEMO_CLASS)}`],
+    0,
+    panel,
+  );
+
+  const hostState = hostStateLines(state);
+  const demo = [
+    "export default function Demo() {",
+    ...hostState.map((line) => `  ${line}`),
+    "  return (",
+    h.indent(root, 2),
+    "  );",
+    "}",
+  ].join("\n");
+
+  const printed = decls.join("\n");
+  const imports = ["SplitView", ...kitNamesIn(printed)].sort((a, b) =>
+    a.localeCompare(b),
+  );
+
+  const snippet = h.snippet({ imports, decls, body: demo });
+  return hostState.length > 0
+    ? `import { useState } from "react";\n${snippet}`
+    : snippet;
+};
+
+const SplitViewPlayground: React.FC = () => {
+  const playground = usePlayground(splitViewConfig);
+  return (
+    <Playground
+      playground={playground}
+      preview={Stage}
+      code={splitViewCode}
+      filename="SplitViewDemo.tsx"
+      hint={<SplitViewHint />}
     />
   );
 };
+
+const SplitViewHint: React.FC = () => (
+  <>
+    <p>
+      <strong>A list of buttons, not a listbox.</strong> Each row is{" "}
+      <C>role=&quot;button&quot;</C> with <C>tabIndex</C>, Enter and Space, and a
+      focus ring (:1188-1204) — there is no <C>role=&quot;listbox&quot;</C>, no{" "}
+      <C>aria-selected</C>, no roving tabindex and no arrow keys, so a 200-row list
+      is 200 tab stops. The active row carries <C>aria-current=&quot;true&quot;</C>{" "}
+      (:1192), which is what a screen reader has to go on.
+    </p>
+    <p>
+      <strong>Two rows in one list are not equal.</strong> A row with{" "}
+      <C>disabled</C> is still focusable-adjacent (:1190) but{" "}
+      <C>pointer-events-none</C>, and its clicks are dropped in the handler as well
+      (:677). A child row is a <C>button</C> only when it has an <C>onClick</C>; the
+      other half of that branch is a <C>div</C> that cannot be reached by keyboard at
+      all (:1411-1419) — and when it is a button, its overflow dots nest{" "}
+      <em>inside</em> it (:1413-1446).
+    </p>
+    <p>
+      <strong>The search is a filter over strings.</strong> It matches{" "}
+      <C>label</C> and <C>subtitle</C> only, and only when they are strings
+      (:656-663) — a row whose label is an element can never be found by it. It
+      debounces 400ms, Enter commits, Escape clears (SearchBar.tsx:142,:252-261), and
+      it disappears entirely once one row is visible (:1153).
+    </p>
+    <p>
+      <strong>Two defaults are not what the comments say.</strong>{" "}
+      <C>surfaceTone</C> opens at <C>&quot;none&quot;</C> where the JSDoc promises{" "}
+      <C>&quot;neutral&quot;</C> (:211,:450), and <C>raisedSurface</C> is documented
+      as reaching &ldquo;the body Panel&rdquo; when the detail body is a plain{" "}
+      <C>div</C> (:1526-1533) and the only <C>Panel</C> it reaches is the header
+      details one (:830).
+    </p>
+  </>
+);
+
+export { SplitViewPlayground };
+export default SplitViewPlayground;

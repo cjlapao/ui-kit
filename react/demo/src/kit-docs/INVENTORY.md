@@ -112,12 +112,12 @@ would print a page of plumbing; a static `ExampleCard` set is honest).
 ## Status
 
 <!-- BEGIN GENERATED TABLE — npm --prefix react/demo run audit -->
-- **143 pages** in the side menu, **24 fully done** — run `npm --prefix react/demo run audit` after every conversion to refresh this table.
-- Playground: 24 on the engine · 111 legacy `PlaygroundPanel` · 1 inline · 7 without one.
+- **143 pages** in the side menu, **25 fully done** — run `npm --prefix react/demo run audit` after every conversion to refresh this table.
+- Playground: 25 on the engine · 110 legacy `PlaygroundPanel` · 1 inline · 7 without one.
 - Standard sections: API 82 · Screen reader 70 · Keyboard 69 · i18n 67.
-- Tests: 24 pages have one · examples missing on 12 pages.
+- Tests: 25 pages have one · examples missing on 12 pages.
 
-### Layout — 22/24 done
+### Layout — 23/24 done
 
 |  | Page | Slug | Playground | Fields | API | SR | Kbd | i18n | Ex | Tests |
 |:--:|---|---|---|---|:--:|:--:|:--:|:--:|:--:|---|
@@ -143,7 +143,7 @@ would print a page of plumbing; a static `ExampleCard` set is honest).
 | ✅ | [Tag Panel](tag-panel/TagPanelPage.tsx) | `tag-panel` | 🟢 engine | 17 fields | ✅ | ✅ | ✅ | ✅ | 1 | `tagPanelPreview.test.tsx` `tagPanelSnippet.test.ts` |
 | ✅ | [Smart Grid Layout](smart-grid-layout/SmartGridLayoutPage.tsx) | `smart-grid-layout` | 🟢 engine | 19 fields | ✅ | ✅ | ✅ | ✅ | 5 | `smartGridPreview.test.tsx` `smartGridSnippet.test.ts` |
 | ✅ | [Side Panel](side-panel/SidePanelPage.tsx) | `side-panel` | 🟢 engine | 23 fields | ✅ | ✅ | ✅ | ✅ | 3 | `sidePanelPreview.test.tsx` `sidePanelSnippet.test.ts` |
-| ☐ | [Split View](split-view/SplitViewPage.tsx) | `split-view` | 🟡 panel | — | ✅ | ✅ | ✅ | ✅ | 4 | — |
+| ✅ | [Split View](split-view/SplitViewPage.tsx) | `split-view` | 🟢 engine | 34 fields | ✅ | ✅ | ✅ | ✅ | 4 | `splitViewPreview.test.tsx` `splitViewSnippet.test.ts` |
 | ☐ | [Info Row](info-row/InfoRowPage.tsx) | `info-row` | 🟡 panel | — | ✅ | ✅ | ✅ | ✅ | 7 | — |
 
 ### Basics — 0/12 done
