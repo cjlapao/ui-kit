@@ -2,11 +2,15 @@ import React from "react";
 import { PageHeader } from "../../shared/PageHeader";
 import { ExampleCard } from "../../shared/ExampleCard";
 import {
+  A11yCode,
   A11ySection,
   A11yTopic,
   C,
   Kbd,
+  KeyboardSupportTable,
   PropsTable,
+  type KeyboardBinding,
+  type PropDoc,
 } from "../../shared/A11ySections";
 import { TogglePlayground } from "./TogglePlayground";
 import Basic from "./examples/Basic";
@@ -21,6 +25,227 @@ import Sizes from "./examples/Sizes";
 import sizesCode from "./examples/Sizes.tsx?raw";
 import Disabled from "./examples/Disabled";
 import disabledCode from "./examples/Disabled.tsx?raw";
+
+/**
+ * Every row here was read off `react/src/components/Toggle.tsx`; the defaults are the
+ * component's own destructured defaults (:194-215) or, for the two legacy spellings,
+ * the fallback that actually decides (:247,:251).
+ */
+export const TOGGLE_PROPS: PropDoc[] = [
+  {
+    name: "label",
+    type: "ReactNode",
+    description:
+      "Rendered as a real `label htmlFor` (:394-410) — the switch's accessible name, and part of the row that invites the click. With none, and no `aria-label`, a development build warns (:221-225).",
+  },
+  {
+    name: "description",
+    type: "ReactNode",
+    description:
+      "Helper line attached to the input with `aria-describedby` (:229,:325,:412-424). With no `label` it renders as a bare span instead, still carrying the id (:427-439).",
+  },
+  {
+    name: "descriptionPlacement",
+    type: '"stacked" | "inline"',
+    default: '"stacked"',
+    description:
+      "Below the label, or flowing inline beside it (:197,:398-400,:433).",
+  },
+  {
+    name: "size",
+    type: "ControlSize",
+    default: '"md"',
+    description:
+      "The shared control scale — track, thumb, glyph and label type all derive from it (:198,:244,:110-167), so a Toggle lines up with the Input and Button beside it.",
+  },
+  {
+    name: "padding",
+    type: "SurfacePadding",
+    default: '"sm"',
+    description:
+      "Around the whole row, from the kit's shared padding scale (:199,:49-56). It is hit area, not decoration: the padded edge still toggles (:291-309).",
+  },
+  {
+    name: "variant",
+    type: "ToggleVariant",
+    default: '"solid"',
+    description:
+      "solid · soft · outline · ghost · glass (:200,:3221-3227). The off-state track is neutral in every one of them; only the on-state fill carries the treatment (:252-256).",
+  },
+  {
+    name: "tone",
+    type: "TrueColor",
+    default: '"blue"',
+    description:
+      "On-state fill and focus ring, from the 21 true colours (:251,:252-256). The glass variant tints with the full-chroma 500 step at a translucent alpha, because the pastel big glass surfaces use washes out at pill size (Theme:3277-3286).",
+  },
+  {
+    name: "color",
+    type: "TrueColor",
+    description:
+      "Deprecated spelling of `tone` (:71-75). `tone` wins when both are given (:249-251), and neither is read for anything but colour.",
+  },
+  {
+    name: "alignLabel",
+    type: '"left" | "right"',
+    default: '"right"',
+    description:
+      "`left` is the settings-row layout, label first — it is spelled `flex-row-reverse` on the row, not a second layout (:203,:277).",
+  },
+  {
+    name: "iconOn",
+    type: "string | ReactElement",
+    description:
+      "Glyph in the half of the track the thumb is not in while checked (:78,:371-381). A string is a registry name; an element is painted as given.",
+  },
+  {
+    name: "iconOff",
+    type: "string | ReactElement",
+    description:
+      "The other half, visible while unchecked (:80,:359-369). Both are inside the `aria-hidden` track (:337), so they are decoration only.",
+  },
+  {
+    name: "fullWidth",
+    type: "boolean",
+    default: "false",
+    description: "Stretches the row to `w-full` (:206,:280).",
+  },
+  {
+    name: "className",
+    type: "string",
+    description: "Appended last to the row's class list (:82,:284).",
+  },
+  {
+    name: "tooltip",
+    type: "string",
+    description:
+      "When set, the whole row is wrapped in `TooltipWrapper` (:84,:443-448). It appears on hover of the row and on focus of whatever is focusable inside it.",
+  },
+  {
+    name: "tooltipPosition",
+    type: "TooltipPosition",
+    default: '"top"',
+    description:
+      "Forwarded to the wrapper (:86,:445); the default is `TooltipWrapper`'s own (TooltipWrapper:85), not Toggle's.",
+  },
+  {
+    name: "glass",
+    type: "boolean",
+    default: "false",
+    description:
+      "Deprecated shorthand for `variant=\"glass\"` (:91,:247-248). Either spelling sets `data-glass` and `data-variant` on the row (:273-274) and wakes the three knobs below.",
+  },
+  {
+    name: "vibrancy",
+    type: "GlassVibrancy",
+    default: '"medium"',
+    description:
+      "Backdrop saturation while the surface is glass (:93,:262) — inert at rest, because the neutral fill is opaque and there is no backdrop-filter chain to compose into (:258-261).",
+  },
+  {
+    name: "glassOpacity",
+    type: "GlassOpacity",
+    default: '"frosted"',
+    description:
+      "How sheer the checked fill is; handed to `getToggleVariantTokens` with the tone (:95,:252-256).",
+  },
+  {
+    name: "specularMode",
+    type: "SpecularMode",
+    default: '"none"',
+    description:
+      "Adds the `aria-hidden` sheen overlay inside the track (:97,:263-265,:349-357).",
+  },
+  {
+    name: "disabled",
+    type: "boolean",
+    default: "false",
+    description:
+      "The real attribute on the input (:208,:326) — out of the tab order and skipped by the form — plus muted row, track and text (:281,:345,:407).",
+  },
+  {
+    name: "readOnly",
+    type: "boolean",
+    default: "false",
+    description:
+      "Reads like a toggle, resists like a readout: the row click is cancelled (:292-294) and so is the input's own (:328-332), while the cursor is the only thing that changes (:282-283).",
+  },
+  {
+    name: "checked / defaultChecked / onChange",
+    type: "native input props",
+    description:
+      "Spread straight onto the checkbox (:333). Uncontrolled is the out-of-the-box mode: `defaultChecked` seeds it and the browser owns the state, which is why the row calls `input.click()` instead of faking an event (:303-308).",
+  },
+  {
+    name: "id",
+    type: "string",
+    default: "generated",
+    description:
+      "`id ?? useId()` (:194,:227-228) — the label's `htmlFor` (:395) and the description's `<id>-description` both derive from it (:229).",
+  },
+  {
+    name: "aria-label",
+    type: "string",
+    description:
+      "The substitute name when there is genuinely no visible label; the component reads it for nothing but the development warning (:221-225).",
+  },
+  {
+    name: "…",
+    type: "InputHTMLAttributes<HTMLInputElement>",
+    description:
+      "…minus `size`, `color` and `children`, which the interface takes over (:58-61). Everything else — `name`, `value`, `required`, `data-*`, the rest of `aria-*` — lands on the input (:216,:333).",
+  },
+];
+
+/**
+ * Only what the source actually makes possible: there is no key handler anywhere in
+ * `Toggle.tsx`, so every binding below is the native checkbox's, cited to the element
+ * that carries it.
+ */
+export const KEYBOARD: KeyboardBinding[] = [
+  {
+    keys: ["Tab"],
+    action:
+      "Reaches the switch. The row is a `div` (:272-310) and the track is `aria-hidden` (:337), so the only tab stop is the `sr-only` checkbox itself (:312-324); the ring is drawn on the visible track by `peer-focus-visible` (:339).",
+  },
+  {
+    keys: ["Space"],
+    action:
+      "Flips it. The native checkbox's own activation — nothing in the file intercepts the key (:269-271,:312-333), so state, thumb and `onChange` cannot drift apart.",
+  },
+  {
+    keys: ["Enter", "in a form"],
+    action:
+      "Submits the form the way a native checkbox does. It does not flip the switch (:312-333) — a checkbox has never done that.",
+  },
+];
+
+const NAMING_CODE = `import { Toggle } from "@cjlapao/ui-kit";
+
+// The name comes from the visible label; the description rides along on
+// aria-describedby, so it is read with the name rather than instead of it.
+<Toggle label="Email me a digest" description="Sent once a day, at 09:00" />
+
+// No visible label anywhere: the aria-label is the name, which is also the
+// only thing keeping the development warning quiet (:221-225).
+<Toggle aria-label="Reduce motion" />`;
+
+const I18N_CODE = `// Every word a Toggle shows is the caller's, so translation happens upstream:
+// the component takes strings, never keys.
+import { Toggle } from "@cjlapao/ui-kit";
+import { useT } from "./i18n";
+
+export function DigestRow() {
+  const t = useT();
+  return (
+    <Toggle
+      alignLabel="left"
+      fullWidth
+      label={t("settings.digest")}
+      description={t("settings.digestHint")}
+    />
+  );
+}`;
 
 export const TogglePage: React.FC = () => (
   <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
@@ -86,166 +311,76 @@ export const TogglePage: React.FC = () => (
     <A11ySection>
       <A11yTopic title="Screen reader">
         <p>
-          Under the track is a native <code>checkbox</code> with{" "}
-          <C>role="switch"</C> — so readers announce{" "}
-          <em>&ldquo;on&rdquo;/&ldquo;off&rdquo;</em>, not{" "}
-          <em>&ldquo;checked&rdquo;</em>, which is what a toggle means. The
-          visible <C>label</C> is a real <code>label htmlFor</code>, the{" "}
-          <C>description</C> is attached via <C>aria-describedby</C>, and the
-          decorative track, thumb and icons are <C>aria-hidden</C> — the state
-          lives in the input, nowhere else. An unlabeled Toggle warns in
-          development like every kit control (<C>warnIfMissingName</C>);{" "}
-          <C>aria-label</C> substitutes when there is genuinely no visible
-          label.
+          Under the track is one native <code>checkbox</code> with{" "}
+          <C>role=&quot;switch&quot;</C> (:315-316) — so readers announce the state as
+          on/off, which is what a toggle means, and the state itself lives in the input
+          and nowhere else. The track, thumb and both glyph slots sit inside{" "}
+          <C>aria-hidden</C> (:337,:349-357,:359-381): they are a picture of what the
+          input already says. The visible <C>label</C> is a real{" "}
+          <code>label htmlFor</code> fed by <C>id ?? useId()</C> (:227-228,:395), and the{" "}
+          <C>description</C> is joined to the input with <C>aria-describedby</C> (:229,:325)
+          so it is read with the name rather than instead of it.
         </p>
         <p>
-          A <C>tooltip</C> is portalled with <C>role="tooltip"</C> and linked
-          via <C>aria-describedby</C> while visible, spoken alongside the switch
-          state.
+          There is no second name to collide with: <C>aria-label</C> is read by the
+          component for exactly one purpose — deciding whether to warn in development that
+          the switch has no accessible name at all (:221-225, <C>warnIfMissingName</C>{" "}
+          warn:63-73). A <C>tooltip</C> is portalled with <C>role=&quot;tooltip&quot;</C>{" "}
+          and linked by <C>aria-describedby</C> while visible (TooltipWrapper:279,:299), so
+          it joins the announcement instead of replacing it.
         </p>
+        <A11yCode filename="Naming.tsx" code={NAMING_CODE} />
       </A11yTopic>
 
-      <A11yTopic title="Keyboard Support">
+      <A11yTopic title="Keyboard support">
         <p>
-          All of it is native: <Kbd>Tab</Kbd> reaches the checkbox,{" "}
-          <Kbd>Space</Kbd> toggles it — no hand-rolled key handlers to drift
-          from browser behaviour. The row (track plus label plus padding) is the
-          click target, and clicking it performs a <em>real</em> programmatic
-          click on the input, so uncontrolled state, the thumb and{" "}
-          <C>onChange</C> all move together; clicks the browser already handled
-          — the input and its label — are ignored on the way up so nothing
-          double-fires. <C>readOnly</C> prevents the flip rather than ignoring
-          the key, and <C>disabled</C> leaves the tab order entirely.
+          All of it is native, because there is no key handler in the file to drift. The
+          row carries a click handler with the a11y lint switched off and a comment saying
+          why (:271): the keyboard belongs to the input, and giving the row its own would
+          have meant two ways to disagree.
         </p>
+        <KeyboardSupportTable bindings={KEYBOARD} />
         <p>
-          The focus indicator is <C>peer-focus-visible</C> on the track —
-          keyboard focus rings the switch itself, a mouse click does not, and
-          the ring sits on the visible control rather than the invisible input
-          behind it.
+          That is the whole list. No <Kbd>Enter</Kbd> toggle, no arrow keys,{" "}
+          <Kbd>Escape</Kbd>, <Kbd>Home</Kbd> or <Kbd>End</Kbd>: the comment at :269-271
+          names arrows next to <Kbd>Space</Kbd>, but a checkbox binds none — each Toggle
+          is its own tab stop, not an option in a radio group. <C>readOnly</C> prevents the
+          flip rather than ignoring the key (:292-294,:328-332), and <C>disabled</C> leaves
+          the tab order entirely (:326).
         </p>
       </A11yTopic>
 
       <A11yTopic title="Internationalization">
         <p>
-          Toggle is entirely language-free: no built-in strings exist to
-          localize — the label, description and tooltip are all the
-          caller&rsquo;s text and pass through untouched, and <C>iconOn</C>/
-          <C>iconOff</C> are registry glyphs, which carry no words. On/off
-          itself is communicated by the platform (the switch role&rsquo;s
-          state), so there is nothing to translate and nothing to mistranslate.
-          Localized labels come free from your i18n layer — the i18n page shows
-          how kit-level strings are overridden when a component does have them.
+          Toggle contributes no strings of its own. Its imports (:1-28) include no
+          translation hook and there is no <C>kit.toggle.*</C> key anywhere in the catalog
+          (<C>common/i18n/builtIn/en.ts</C>): <C>label</C>, <C>description</C> and{" "}
+          <C>tooltip</C> are the caller&rsquo;s text and pass through untouched (:62-63,:84),
+          while <C>iconOn</C>/<C>iconOff</C> are registry glyphs, which carry no words
+          (:78,:80). The one English sentence the component can produce is the
+          development-only missing-name warning, built from the literal{" "}
+          <C>&quot;Toggle&quot;</C> (:221-225, warn:71) — it never reaches a user.
         </p>
+        <p>
+          On and off are spoken by the platform: <C>role=&quot;switch&quot;</C> maps to the
+          OS switch pattern, so a French screen reader says son own thing for the state
+          without the kit holding a dictionary (:316). What translation does stress is
+          layout — a German label is longer than an English one, and the row is a flex
+          line with the track pinned <C>shrink-0</C> (:311): <C>alignLabel=&quot;left&quot;</C>{" "}
+          with <C>fullWidth</C> (:203,:206,:277,:280) is the arrangement that survives it,
+          because the label wraps and the track does not.
+        </p>
+        <A11yCode filename="Settings.tsx" code={I18N_CODE} />
       </A11yTopic>
     </A11ySection>
 
-    <PropsTable
-      props={[
-        {
-          name: "label",
-          type: "ReactNode",
-          description:
-            "Rendered as a real <label htmlFor> — the accessible name, and part of the click target.",
-        },
-        {
-          name: "description",
-          type: "ReactNode",
-          description:
-            "Helper line under (or beside) the label, attached with `aria-describedby`.",
-        },
-        {
-          name: "descriptionPlacement",
-          type: '"stacked" | "inline"',
-          default: '"stacked"',
-          description: "Below the label, or flowing inline beside it.",
-        },
-        {
-          name: "alignLabel",
-          type: '"left" | "right"',
-          default: '"right"',
-          description:
-            "Label beside the track on either side — `left` is the settings-row layout (label first), `right` puts it after the switch.",
-        },
-        {
-          name: "variant",
-          type: "ToggleVariant",
-          default: '"solid"',
-          description:
-            "The Button family: solid · soft · outline · ghost · glass. The off-state track is neutral in every variant; the on-state fill carries the treatment.",
-        },
-        {
-          name: "tone",
-          type: "TrueColor",
-          default: '"blue"',
-          description:
-            "On-state fill and focus ring, from the 21 true colours. The glass variant tints with the full-chroma 500 step at a translucent alpha — the pastel big glass surfaces use washes out at pill size.",
-        },
-        {
-          name: "color",
-          type: "TrueColor",
-          description:
-            "Deprecated spelling of `tone`; `tone` wins when both are given.",
-        },
-        {
-          name: "size",
-          type: "ControlSize",
-          default: '"md"',
-          description:
-            "The shared control scale — track, thumb, glyph and label type all derive from it, and the thumb always travels the full track to land flush against the far wall.",
-        },
-        {
-          name: "padding",
-          type: "SurfacePadding",
-          default: '"sm"',
-          description: "Around the row — the kit's shared padding scale.",
-        },
-        {
-          name: "iconOn / iconOff",
-          type: "string | ReactElement",
-          description:
-            "Glyphs in the half of the track the thumb is not in, cross-fading with it, scaled to the toggle.",
-        },
-        {
-          name: "fullWidth",
-          type: "boolean",
-          description:
-            "Stretch the row — label to the left edge, switch to the right.",
-        },
-        {
-          name: "disabled",
-          type: "boolean",
-          description:
-            "Native attribute; the position, not the fill, still carries the state.",
-        },
-        {
-          name: "readOnly",
-          type: "boolean",
-          description:
-            "Reads like a toggle, resists like a readout — clicks and Space are prevented, not ignored.",
-        },
-        {
-          name: "checked / defaultChecked / onChange",
-          type: "native",
-          description:
-            "The input's own — uncontrolled out of the box, controlled whenever the app wants.",
-        },
-        {
-          name: "tooltip / tooltipPosition",
-          type: "string / TooltipPosition",
-          description:
-            "Portalled tooltip on hover and focus, described while visible.",
-        },
-        {
-          name: "glass / vibrancy / glassOpacity / specularMode",
-          type: "deprecated / GlassVibrancy / GlassOpacity / SpecularMode",
-          description:
-            '`glass` is the legacy spelling of `variant="glass"`; the tuning knobs apply to the variant.',
-        },
-      ]}
-    />
+    <PropsTable props={TOGGLE_PROPS} />
     <p className="text-sm text-neutral-500 dark:text-neutral-400">
       Spreads native input attributes — <code>name</code>, <code>value</code>,{" "}
-      <code>aria-*</code> pass straight through to the checkbox underneath.
+      <code>required</code>, <code>data-*</code> and the rest of <code>aria-*</code> pass
+      straight through to the checkbox underneath (:216,:333). The three the interface
+      takes back are <code>size</code>, <code>color</code> and <code>children</code>{" "}
+      (:58-61).
     </p>
   </div>
 );

@@ -112,10 +112,10 @@ would print a page of plumbing; a static `ExampleCard` set is honest).
 ## Status
 
 <!-- BEGIN GENERATED TABLE — npm --prefix react/demo run audit -->
-- **143 pages** in the side menu, **27 fully done** — run `npm --prefix react/demo run audit` after every conversion to refresh this table.
-- Playground: 27 on the engine · 108 legacy `PlaygroundPanel` · 1 inline · 7 without one.
+- **143 pages** in the side menu, **28 fully done** — run `npm --prefix react/demo run audit` after every conversion to refresh this table.
+- Playground: 28 on the engine · 107 legacy `PlaygroundPanel` · 1 inline · 7 without one.
 - Standard sections: API 82 · Screen reader 70 · Keyboard 69 · i18n 67.
-- Tests: 27 pages have one · examples missing on 12 pages.
+- Tests: 28 pages have one · examples missing on 12 pages.
 
 ### Layout — 24/24 done
 
@@ -146,12 +146,12 @@ would print a page of plumbing; a static `ExampleCard` set is honest).
 | ✅ | [Split View](split-view/SplitViewPage.tsx) | `split-view` | 🟢 engine | 34 fields | ✅ | ✅ | ✅ | ✅ | 4 | `splitViewPreview.test.tsx` `splitViewSnippet.test.ts` |
 | ✅ | [Info Row](info-row/InfoRowPage.tsx) | `info-row` | 🟢 engine | 39 fields | ✅ | ✅ | ✅ | ✅ | 7 | `infoRowPreview.test.tsx` `infoRowSnippet.test.ts` |
 
-### Basics — 1/12 done
+### Basics — 2/12 done
 
 |  | Page | Slug | Playground | Fields | API | SR | Kbd | i18n | Ex | Tests |
 |:--:|---|---|---|---|:--:|:--:|:--:|:--:|:--:|---|
 | ✅ | [Button](button/ButtonPage.tsx) | `button` | 🟢 engine | 31 fields | ✅ | ✅ | ✅ | ✅ | 6 | `buttonPreview.test.tsx` `buttonSnippet.test.ts` |
-| ☐ | [Toggle](toggle/TogglePage.tsx) | `toggle` | 🟡 panel | — | ✅ | ✅ | ✅ | ✅ | 6 | — |
+| ✅ | [Toggle](toggle/TogglePage.tsx) | `toggle` | 🟢 engine | 23 fields | ✅ | ✅ | ✅ | ✅ | 6 | `togglePreview.test.tsx` `toggleSnippet.test.ts` |
 | ☐ | [Checkbox](checkbox/CheckboxPage.tsx) | `checkbox` | 🟡 panel | — | ✅ | ✅ | ✅ | ✅ | 6 | — |
 | ☐ | [Custom Icon](custom-icon/CustomIconPage.tsx) | `custom-icon` | 🟡 panel | — | ✅ | ✅ | ✅ | ✅ | 5 | — |
 | ☐ | [Icon Registry](icons/IconsPage.tsx) | `icons` | 🔴 none | — | ⬜ | ⬜ | ⬜ | ⬜ | 0 | — |

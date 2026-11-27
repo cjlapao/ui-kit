@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { ColorSwatches, MultiToggle, Panel, Toggle } from "@cjlapao/ui-kit";
+import React from "react";
+import { Toggle } from "@cjlapao/ui-kit";
 import type {
   GlassOpacity,
   GlassVibrancy,
@@ -9,284 +9,219 @@ import type {
   TogglePadding,
   ToggleSize,
   ToggleVariant,
+  TooltipPosition,
   TrueColor,
 } from "@cjlapao/ui-kit";
+import { Playground } from "../../shared/playground/Playground";
+import { usePlayground } from "../../shared/playground/state";
+import type {
+  PlaygroundCodeContext,
+  PlaygroundPreviewProps,
+  PlaygroundState,
+} from "../../shared/playground/schema";
+import { C } from "../../shared/A11ySections";
 import {
-  Control,
-  PlaygroundPanel,
-  SelectControl,
-  ToggleRow,
-} from "../../shared/PlaygroundPanel";
-import { ControlAccordion } from "../../shared/ControlAccordion";
-import { EventLogControl, useEventLog } from "../../shared/EventLog";
+  hostStateLines,
+  stageCaption,
+  toggleConfig,
+} from "./togglePlayground";
 import {
-  controlSizeOptions,
-  glassOpacityOptions,
-  glassVibrancyOptions,
-  panelSpecularOptions,
-  toggleVariantOptions,
-} from "../../shared/options";
+  ALIGN_DEFAULT,
+  GLASS_OPACITY_DEFAULT,
+  PADDING_DEFAULT,
+  PLACEMENT_DEFAULT,
+  SIZE_DEFAULT,
+  SPECULAR_DEFAULT,
+  STAGE_CLASS,
+  TONE_DEFAULT,
+  TOOLTIP_POSITION_DEFAULT,
+  VARIANT_DEFAULT,
+  VIBRANCY_DEFAULT,
+  changeReport,
+  flag,
+  hasDescription,
+  iconOf,
+  isControlled,
+  textValue,
+  usesLegacyColor,
+} from "./toggleStage";
 
-const alignOptions = [
-  { label: "Left", value: "left" },
-  { label: "Right", value: "right" },
-];
+/**
+ * The engine-driven playground for one `Toggle`. The tag the Code view prints and the
+ * tag that paints come from the same config, so the only difference between the two
+ * panes is that one of them is alive.
+ */
 
-const placementOptions = [
-  { label: "Stacked", value: "stacked" },
-  { label: "Inline", value: "inline" },
-];
+/**
+ * A knob left at the component's own default is not passed at all: the destructured
+ * default (:194-215) has to earn its keep in front of the reader.
+ */
+const atDefault = <T extends string | number>(
+  state: PlaygroundState,
+  id: string,
+  documented: T,
+): T | undefined => {
+  const raw = state[id];
+  if (typeof raw !== "string" && typeof raw !== "number") return undefined;
+  return String(raw) === String(documented) ? undefined : (raw as unknown as T);
+};
 
-// The shared surface padding scale — `sm` is the kit default the component
-// stands on.
-const paddingOptions = [
-  { label: "None", value: "none" },
-  { label: "Xs", value: "xs" },
-  { label: "Sm", value: "sm" },
-  { label: "Md", value: "md" },
-  { label: "Lg", value: "lg" },
-  { label: "Xl", value: "xl" },
-];
+/** The same question for a boolean, whose kit default is `false` (:206-215). */
+const on = (state: PlaygroundState, id: string): true | undefined =>
+  flag(state, id) ? true : undefined;
 
-type VibrancyPreset = "low" | "medium" | "high";
-type OpacityPreset = "frosted" | "light" | "clear";
+const Stage: React.FC<PlaygroundPreviewProps> = ({ state, set }) => {
+  const legacy = usesLegacyColor(state);
+  const tone = textValue(state, "tone") || TONE_DEFAULT;
+  const painted = tone === TONE_DEFAULT ? undefined : (tone as TrueColor);
+  const controlled = isControlled(state);
+  const reported = changeReport(state);
 
-export const TogglePlayground: React.FC = () => {
-  const [variant, setVariant] = useState<ToggleVariant>("solid");
-  const [size, setSize] = useState<ToggleSize>("md");
-  const [align, setAlign] = useState<ToggleAlign>("left");
-  const [placement, setPlacement] =
-    useState<ToggleDescriptionPlacement>("stacked");
-  const [tone, setTone] = useState<TrueColor>("blue");
-  const [padding, setPadding] = useState<TogglePadding>("sm");
-  const [showLabel, setShowLabel] = useState(true);
-  const [showDescription, setShowDescription] = useState(true);
-  const [showIcons, setShowIcons] = useState(false);
-  const [fullWidth, setFullWidth] = useState(false);
-  const [disabled, setDisabled] = useState(false);
-  const [log, pushLog] = useEventLog();
-  const [glassPanel, setGlassPanel] = useState(false);
-  const [vibrancy, setVibrancy] = useState<VibrancyPreset>("medium");
-  const [glassOpacity, setGlassOpacity] = useState<OpacityPreset>("frosted");
-  const [specularMode, setSpecularMode] = useState<SpecularMode>("none");
+  // `defaultChecked` and `checked` are decided at mount (:333), so changing one of
+  // them has to remount the switch — otherwise the DOM node keeps the state it was
+  // created with and the knob looks broken.
+  const mount = `${controlled ? "controlled" : "free"}:${
+    flag(state, "defaultChecked") ? "on" : "off"
+  }`;
 
-  const sharedToggle = {
-    variant,
-    size,
-    tone,
-    padding,
-    alignLabel: align,
-    descriptionPlacement: placement,
-    fullWidth,
-    vibrancy: vibrancy as GlassVibrancy,
-    glassOpacity: glassOpacity as GlassOpacity,
-    specularMode,
-    iconOn: showIcons ? "Sun" : undefined,
-    iconOff: showIcons ? "Moon" : undefined,
-    disabled,
-  };
+  const toggle = (
+    <Toggle
+      key={mount}
+      variant={atDefault<ToggleVariant>(state, "variant", VARIANT_DEFAULT)}
+      size={atDefault<ToggleSize>(state, "size", SIZE_DEFAULT)}
+      padding={atDefault<TogglePadding>(state, "padding", PADDING_DEFAULT)}
+      alignLabel={atDefault<ToggleAlign>(state, "alignLabel", ALIGN_DEFAULT)}
+      descriptionPlacement={atDefault<ToggleDescriptionPlacement>(
+        state,
+        "descriptionPlacement",
+        PLACEMENT_DEFAULT,
+      )}
+      tooltipPosition={atDefault<TooltipPosition>(
+        state,
+        "tooltipPosition",
+        TOOLTIP_POSITION_DEFAULT,
+      )}
+      vibrancy={atDefault<GlassVibrancy>(state, "vibrancy", VIBRANCY_DEFAULT)}
+      glassOpacity={atDefault<GlassOpacity>(
+        state,
+        "glassOpacity",
+        GLASS_OPACITY_DEFAULT,
+      )}
+      specularMode={atDefault<SpecularMode>(
+        state,
+        "specularMode",
+        SPECULAR_DEFAULT,
+      )}
+      tone={legacy ? undefined : painted}
+      color={legacy ? painted : undefined}
+      label={textValue(state, "label") || undefined}
+      description={
+        hasDescription(state) ? textValue(state, "description") : undefined
+      }
+      iconOn={iconOf(state, "iconOn")}
+      iconOff={iconOf(state, "iconOff")}
+      tooltip={textValue(state, "tooltip") || undefined}
+      fullWidth={on(state, "fullWidth")}
+      disabled={on(state, "disabled")}
+      readOnly={on(state, "readOnly")}
+      glass={on(state, "glass")}
+      defaultChecked={
+        !controlled && flag(state, "defaultChecked") ? true : undefined
+      }
+      checked={controlled ? reported === "true" : undefined}
+      onChange={(event) => set("report", String(event.target.checked))}
+    />
+  );
 
   return (
-    <PlaygroundPanel
-      controls={
-        <>
-          <ControlAccordion
-            groups={[
-              {
-                id: "core",
-                title: "Core",
-                controls: (
-                  <>
-                    <SelectControl
-                      label="Variant"
-                      options={toggleVariantOptions}
-                      value={variant}
-                      onChange={(value) => setVariant(value as ToggleVariant)}
-                    />
-                    <div className="grid grid-cols-2 gap-3">
-                      <SelectControl
-                        label="Size"
-                        options={controlSizeOptions}
-                        value={size}
-                        onChange={(value) => setSize(value as ToggleSize)}
-                      />
-                      <SelectControl
-                        label="Padding"
-                        options={paddingOptions}
-                        value={padding}
-                        onChange={(value) => setPadding(value as TogglePadding)}
-                      />
-                    </div>
-                    <Control label="Label alignment">
-                      <MultiToggle
-                        fullWidth
-                        size="sm"
-                        options={alignOptions}
-                        value={align}
-                        onChange={(value) => setAlign(value as ToggleAlign)}
-                      />
-                    </Control>
-                    <Control label="Description">
-                      <MultiToggle
-                        fullWidth
-                        size="sm"
-                        options={placementOptions}
-                        value={placement}
-                        onChange={(value) =>
-                          setPlacement(value as ToggleDescriptionPlacement)
-                        }
-                      />
-                    </Control>
-                    {/* A colour decision — pick it from swatches, not from a
-                      dropdown of colour names. */}
-                    <Control label="Tone">
-                      <ColorSwatches
-                        selectable
-                        size="sm"
-                        value={tone}
-                        onSelect={setTone}
-                        defaultExpanded
-                      />
-                    </Control>
-                  </>
-                ),
-              },
-              ...(variant === "glass"
-                ? [
-                    {
-                      id: "glass",
-                      title: "Glass",
-                      controls: (
-                        <div className="flex flex-col gap-3">
-                          <Control label="Vibrancy">
-                            <MultiToggle
-                              fullWidth
-                              size="sm"
-                              options={glassVibrancyOptions}
-                              value={vibrancy}
-                              onChange={(value) =>
-                                setVibrancy(value as VibrancyPreset)
-                              }
-                            />
-                          </Control>
-                          <Control label="Fill">
-                            <MultiToggle
-                              fullWidth
-                              size="sm"
-                              options={glassOpacityOptions}
-                              value={glassOpacity}
-                              onChange={(value) =>
-                                setGlassOpacity(value as OpacityPreset)
-                              }
-                            />
-                          </Control>
-                          <Control label="Specular">
-                            <MultiToggle
-                              fullWidth
-                              size="sm"
-                              options={panelSpecularOptions}
-                              value={specularMode}
-                              onChange={(value) =>
-                                setSpecularMode(value as SpecularMode)
-                              }
-                            />
-                          </Control>
-                        </div>
-                      ),
-                    },
-                  ]
-                : []),
-              {
-                id: "content",
-                title: "Content",
-                controls: (
-                  <div className="grid grid-cols-2 gap-2">
-                    <ToggleRow
-                      label="Label"
-                      checked={showLabel}
-                      onChange={setShowLabel}
-                    />
-                    <ToggleRow
-                      label="Description"
-                      checked={showDescription}
-                      onChange={setShowDescription}
-                    />
-                    <ToggleRow
-                      label="Icons"
-                      checked={showIcons}
-                      onChange={setShowIcons}
-                    />
-                    <ToggleRow
-                      label="Full width"
-                      checked={fullWidth}
-                      onChange={setFullWidth}
-                    />
-                    <ToggleRow
-                      label="Disabled"
-                      checked={disabled}
-                      onChange={setDisabled}
-                    />
-                    <ToggleRow
-                      label="Glass panel"
-                      checked={glassPanel}
-                      onChange={setGlassPanel}
-                    />
-                  </div>
-                ),
-              },
-            ]}
-          />
-          <EventLogControl
-            log={log}
-            emptyText="No events yet — flip a switch."
-          />
-          <p className="text-xs text-neutral-500 dark:text-neutral-400">
-            <strong>Solid</strong> in <strong>blue</strong> at <code>md</code>{" "}
-            with <code>sm</code> row padding is the kit default — track, thumb
-            and glyph all scale from the shared control scale, so a{" "}
-            <code>md</code> toggle lines up with an <code>md</code> input and
-            button. The switch itself is a native checkbox with{" "}
-            <code>role="switch"</code>: uncontrolled out of the box, Space and
-            arrows for free, and the whole row is its click target.
-          </p>
-        </>
-      }
-      preview={
-        /*
-          The settings live on a real `Panel` — `elevated`, the kit default —
-          instead of a hand-painted gradient. "Glass panel" in the Content
-          group swaps the host to `glass`: the question under test is the
-          switch reading clearly *on a translucent surface* (pair it with the
-          playground's background-image toggle to give the blur something to
-          blur).
-        */
-        <div className="w-full">
-          <Panel variant={glassPanel ? "glass" : "elevated"} padding="md">
-            <div className="flex flex-col gap-4">
-              <Toggle
-                {...sharedToggle}
-                label={showLabel ? "Two-factor authentication" : undefined}
-                description={
-                  showDescription
-                    ? "Require a code from your phone to sign in."
-                    : undefined
-                }
-                defaultChecked
-                onChange={(value) =>
-                  pushLog(`Two-factor → ${value ? "on" : "off"}`)
-                }
-              />
-              <Toggle
-                {...sharedToggle}
-                label={showLabel ? "Marketing emails" : undefined}
-                onChange={(value) =>
-                  pushLog(`Marketing → ${value ? "on" : "off"}`)
-                }
-              />
-            </div>
-          </Panel>
-        </div>
-      }
+    <div className={STAGE_CLASS}>
+      {toggle}
+      <p className="text-xs text-neutral-500 dark:text-neutral-400">
+        {stageCaption(state)}
+      </p>
+      {controlled ? (
+        <p className="text-xs text-neutral-500 dark:text-neutral-400">
+          <C>isOn</C> is {reported === "true" ? "true" : "false"} — the input carries{" "}
+          <C>checked</C>, so the thumb only moves when your own state does (:333).
+        </p>
+      ) : null}
+    </div>
+  );
+};
+
+export const toggleCode = ({ state, h }: PlaygroundCodeContext): string => {
+  const root = h.element("Toggle", [...h.props()], 1);
+  const hostState = hostStateLines(state);
+  const demo = [
+    "export default function Demo() {",
+    ...hostState.map((line) => `  ${line}`),
+    "  return (",
+    h.indent(root, 2),
+    "  );",
+    "}",
+  ].join("\n");
+
+  const snippet = h.snippet({ imports: ["Toggle"], decls: [], body: demo });
+  return hostState.length > 0
+    ? `import { useState } from "react";\n${snippet}`
+    : snippet;
+};
+
+const ToggleHint: React.FC = () => (
+  <>
+    <p>
+      <strong>The row is a hit area, not a second control.</strong> There is one
+      interactive element here: an <C>sr-only</C> checkbox (:312-324). The row around it
+      carries a click handler with the a11y lint switched off (:271-309) because the
+      keyboard already lives on the input. It deliberately ignores the clicks the browser
+      has already handled — the input itself and the <C>&lt;label htmlFor&gt;</C>{" "}
+      (:301) — and otherwise calls <C>input.click()</C> (:308) rather than fabricating a
+      change event, so an uncontrolled thumb really moves (:303-307).
+    </p>
+    <p>
+      <strong>Two props still spell one decision.</strong> The colour is <C>tone</C>;{" "}
+      <C>color</C> is the deprecated spelling, and <C>tone</C> wins when both are present
+      (:75,:251) — flip <em>Use the deprecated</em> <C>color</C> and the snippet switches
+      to the old name, which is the only way to see what you are being asked to stop
+      writing. <C>glass</C> (:91) is the same shape of thing for{" "}
+      <C>variant=&quot;glass&quot;</C> (:247), and the three glass knobs are inert until
+      one of those two is set (:262-265).
+    </p>
+    <p>
+      <strong>What a screen reader gets.</strong>{" "}
+      <C>role=&quot;switch&quot;</C> on the checkbox (:316) makes the checked state an
+      announced state rather than a picture; the name comes from the{" "}
+      <C>&lt;label htmlFor&gt;</C> (:394-410) and the description is wired with{" "}
+      <C>aria-describedby</C> (:229,:325). Clear the label and nothing is left to read,
+      which is what the dev-only warning at :221-225 is for.
+    </p>
+    <p>
+      <strong>Two ways to say &ldquo;don&rsquo;t touch this&rdquo;.</strong>{" "}
+      <C>disabled</C> puts the real attribute on the input (:326): unfocusable, skipped
+      by the form. <C>readOnly</C> keeps it focusable and still submitted, and instead
+      cancels the row click (:292-294) and the input&rsquo;s own (:328-332) — the cursor
+      is the only thing that changes (:282-283).
+    </p>
+    <p>
+      <strong>Two of these props are decided at mount.</strong> <C>defaultChecked</C>{" "}
+      seeds the browser&rsquo;s own state and <C>checked</C> takes it over (:333) — the
+      playground therefore remounts the switch when either changes, which is the only
+      honest way to watch a seed take effect.
+    </p>
+  </>
+);
+
+export const TogglePlayground: React.FC = () => {
+  const playground = usePlayground(toggleConfig);
+  return (
+    <Playground
+      playground={playground}
+      preview={Stage}
+      code={toggleCode}
+      filename="ToggleDemo.tsx"
+      hint={<ToggleHint />}
     />
   );
 };
+
+export default TogglePlayground;
