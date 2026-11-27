@@ -168,7 +168,7 @@ export const smartGridConfig: PlaygroundConfig = {
   fields: [
     {
       id: "tiles",
-      label: "Tiles (:40-51)",
+      label: "Tiles",
       group: "board",
       kind: "choice",
       options: TILE_OPTIONS,
@@ -178,7 +178,7 @@ export const smartGridConfig: PlaygroundConfig = {
     },
     {
       id: "layout",
-      label: "Layout (:78-88)",
+      label: "Layout",
       group: "board",
       kind: "choice",
       options: LAYOUT_OPTIONS,
@@ -188,7 +188,7 @@ export const smartGridConfig: PlaygroundConfig = {
     },
     {
       id: "columns",
-      label: "Columns (:986-989)",
+      label: "Columns",
       group: "board",
       kind: "choice",
       options: COLUMN_OPTIONS,
@@ -209,7 +209,7 @@ export const smartGridConfig: PlaygroundConfig = {
     },
     {
       id: "responsive",
-      label: "Per-breakpoint counts (:209-250)",
+      label: "Per-breakpoint counts",
       group: "board",
       kind: "toggle",
       prop: "maxColumns",
@@ -223,7 +223,7 @@ export const smartGridConfig: PlaygroundConfig = {
     },
     {
       id: "variant",
-      label: "Variant (:948)",
+      label: "Variant",
       group: "surface",
       kind: "choice",
       options: plainSurfaceVariantOptions,
@@ -235,7 +235,7 @@ export const smartGridConfig: PlaygroundConfig = {
     },
     {
       id: "surfaceTone",
-      label: "Surface tone (:949)",
+      label: "Surface tone",
       group: "surface",
       kind: "choice",
       options: SURFACE_TONE_OPTIONS,
@@ -250,7 +250,7 @@ export const smartGridConfig: PlaygroundConfig = {
     },
     {
       id: "tone",
-      label: "Edit accent (:965)",
+      label: "Edit accent",
       group: "surface",
       kind: "choice",
       options: TONE_OPTIONS,
@@ -262,7 +262,7 @@ export const smartGridConfig: PlaygroundConfig = {
     },
     {
       id: "size",
-      label: "Size (:950)",
+      label: "Size",
       group: "surface",
       kind: "choice",
       options: controlSizeOptions,
@@ -274,7 +274,7 @@ export const smartGridConfig: PlaygroundConfig = {
     },
     {
       id: "controlVariant",
-      label: "Control surface (:1004-1005)",
+      label: "Control surface",
       group: "surface",
       kind: "choice",
       options: [
@@ -290,7 +290,7 @@ export const smartGridConfig: PlaygroundConfig = {
     },
     {
       id: "editMode",
-      label: "Edit mode (:1281-1295)",
+      label: "Edit mode",
       group: "editing",
       kind: "choice",
       options: EDIT_MODE_OPTIONS,
@@ -304,7 +304,7 @@ export const smartGridConfig: PlaygroundConfig = {
     },
     {
       id: "onEditModeChange",
-      label: "Report edit mode (:1289-1295)",
+      label: "Report edit mode",
       group: "editing",
       kind: "toggle",
       prop: "onEditModeChange",
@@ -314,7 +314,7 @@ export const smartGridConfig: PlaygroundConfig = {
     },
     {
       id: "defaultEditMode",
-      label: "Start in edit mode (:956)",
+      label: "Start in edit mode",
       group: "editing",
       kind: "toggle",
       prop: "defaultEditMode",
@@ -325,7 +325,7 @@ export const smartGridConfig: PlaygroundConfig = {
     },
     {
       id: "readOnly",
-      label: "Read-only (:952,:1285-1287)",
+      label: "Read-only",
       group: "editing",
       kind: "toggle",
       prop: "readOnly",
@@ -335,7 +335,7 @@ export const smartGridConfig: PlaygroundConfig = {
     },
     {
       id: "historyLimit",
-      label: "Undo steps (:954)",
+      label: "Undo steps",
       group: "editing",
       kind: "number",
       prop: "historyLimit",
@@ -351,7 +351,7 @@ export const smartGridConfig: PlaygroundConfig = {
     },
     {
       id: "storageKey",
-      label: "Storage key (:1015-1020)",
+      label: "Storage key",
       group: "persistence",
       kind: "text",
       prop: "storageKey",
@@ -364,7 +364,7 @@ export const smartGridConfig: PlaygroundConfig = {
     },
     {
       id: "storagePrefix",
-      label: "Storage prefix (:1017)",
+      label: "Storage prefix",
       group: "persistence",
       kind: "text",
       prop: "storagePrefix",
@@ -385,7 +385,7 @@ export const smartGridConfig: PlaygroundConfig = {
     },
     {
       id: "autoSave",
-      label: "Write on change (:1434-1442)",
+      label: "Write on change",
       group: "persistence",
       kind: "toggle",
       prop: "autoSave",
@@ -396,7 +396,7 @@ export const smartGridConfig: PlaygroundConfig = {
     },
     {
       id: "autoSaveDebounceMs",
-      label: "Save delay, ms (:962)",
+      label: "Save delay, ms",
       group: "persistence",
       kind: "number",
       prop: "autoSaveDebounceMs",
@@ -413,7 +413,7 @@ export const smartGridConfig: PlaygroundConfig = {
     },
     {
       id: "className",
-      label: "Class name (:945)",
+      label: "Class name",
       group: "classes",
       kind: "text",
       prop: "className",

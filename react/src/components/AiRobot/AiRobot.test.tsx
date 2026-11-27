@@ -121,4 +121,41 @@ describe("AiRobot", () => {
     expect(container.querySelector("svg")?.getAttribute("data-paused")).toBe("true");
   });
 
+  it("renders Andy with an animated wave and visor in both styles", () => {
+    const { container, rerender } = render(<AiRobot identity="andy" tone="blue" size="lg" label="Andy" />);
+    const robot = screen.getByRole("img", { name: "Andy" });
+    expect(robot.getAttribute("viewBox")).toBe("0 -77.5 1179 1179");
+    expect(robot.getAttribute("class")).toContain("text-blue-500");
+    expect(robot.style.width).toBe("96px");
+    expect(robot.querySelector(".cj-ai-robot-wave")).toBeTruthy();
+    expect(robot.querySelector(".cj-ai-robot-eyes")).toBeTruthy();
+    expect(robot.querySelector("mask")).toBeNull();
+    rerender(<><AiRobot identity="andy" variant="solid" paused /><AiRobot identity="andy" variant="solid" /></>);
+    const masks = container.querySelectorAll("mask");
+    expect(masks).toHaveLength(2);
+    expect(masks[0].id).not.toBe(masks[1].id);
+    expect(masks[0].querySelector(".cj-ai-robot-eyes")).toBeTruthy();
+    expect(container.querySelector("svg")?.getAttribute("data-paused")).toBe("true");
+  });
+
+  it("renders Spark with animated eyes and arms in both styles", () => {
+    const { container, rerender } = render(<AiRobot identity="spark" tone="blue" size="lg" label="Spark" />);
+    const robot = screen.getByRole("img", { name: "Spark" });
+    expect(robot.getAttribute("viewBox")).toBe("0 0 24 24");
+    expect(robot.getAttribute("class")).toContain("text-blue-500");
+    expect(robot.style.width).toBe("96px");
+    expect(robot.querySelector(".cj-ai-robot-spark-left")).toBeTruthy();
+    expect(robot.querySelector(".cj-ai-robot-spark-right")).toBeTruthy();
+    expect(robot.querySelector(".cj-ai-robot-spark-head .cj-ai-robot-eyes")).toBeTruthy();
+    expect(robot.querySelector(".cj-ai-robot-eyes")).toBeTruthy();
+    expect(robot.querySelector("mask")).toBeNull();
+    rerender(<><AiRobot identity="spark" variant="solid" paused /><AiRobot identity="spark" variant="solid" /></>);
+    const masks = container.querySelectorAll("mask");
+    expect(masks).toHaveLength(2);
+    expect(masks[0].id).not.toBe(masks[1].id);
+    expect(masks[0].querySelector(".cj-ai-robot-eyes")).toBeTruthy();
+    expect(container.querySelectorAll(".cj-ai-robot-spark-head polygon[mask]")).toHaveLength(2);
+    expect(container.querySelector("svg")?.getAttribute("data-paused")).toBe("true");
+  });
+
 });

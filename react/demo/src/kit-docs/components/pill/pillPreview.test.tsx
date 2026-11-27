@@ -81,20 +81,43 @@ const tableWithHeader = (
   return table as HTMLElement;
 };
 
+/**
+ * The controls column prints a field label in a `<span>`, and an accordion
+ * group title is a `<span>` too — so a field named "Source" and a group named
+ * "Source" are otherwise interchangeable. The group title lives inside the
+ * disclosure button (`Accordion.tsx:343`, `:383`); a field label never does.
+ */
+const CONTROL_ROW =
+  'select, input, textarea, [role="switch"], [role="radiogroup"], [role="group"]';
+
+const labelBoxes = (view: ReturnType<typeof render>, label: string): HTMLElement[] =>
+  Array.from(view.container.querySelectorAll("span"))
+    .filter(
+      (node) =>
+        (node.textContent ?? "").trim() === label &&
+        !node.closest("button") &&
+        !node.closest("[aria-expanded]"),
+    )
+    .map((span) => span.parentElement)
+    .filter((box): box is HTMLElement => box !== null);
+
+/** The box holding a field's control, preferring one that actually has a control. */
+const controlBox = (
+  view: ReturnType<typeof render>,
+  label: string,
+): HTMLElement | undefined => {
+  const boxes = labelBoxes(view, label);
+  return boxes.find((box) => box.querySelector(CONTROL_ROW)) ?? boxes[0];
+};
+
 const fieldBox = (view: ReturnType<typeof render>, label: string): HTMLElement => {
-  const span = Array.from(view.container.querySelectorAll("span")).find(
-    (node) => (node.textContent ?? "").trim() === label,
-  );
-  const box = span?.parentElement;
+  const box = controlBox(view, label);
   if (!box) throw new Error(`no control labelled "${label}" in the controls`);
-  return box as HTMLElement;
+  return box;
 };
 
 const hasField = (view: ReturnType<typeof render>, label: string): boolean =>
-  Array.from(view.container.querySelectorAll("span")).some(
-    (node) => (node.textContent ?? "").trim() === label,
-  );
-
+  controlBox(view, label) !== undefined;
 /** A choice, however the chrome chose to render it: a `MultiToggle` or a `Select`. */
 const choose = (
   view: ReturnType<typeof render>,
@@ -160,25 +183,25 @@ const showPreview = (view: ReturnType<typeof render>): void => {
   fireEvent.click(within(group as HTMLElement).getByRole("radio", { name: "Preview" }));
 };
 
-const VARIANT = "variant (:79-80,:129)";
-const TONE = "tone (:78,:128)";
-const SIZE = "size (:81-82,:130)";
-const CORNER = "corner (:83-84,:131)";
-const LABEL = "The label — children (:147,:244-253)";
-const UPPERCASE = "uppercase (:85,:286)";
-const ICON = "icon (:95-96,:246-250)";
-const TRAILING = "trailingIcon (:97-98,:254-258)";
-const MAX_WIDTH = "maxWidth (:118-119,:293-295)";
-const DOT = "dot — a bare status dot (:99-103,:218-242)";
-const DOT_LABEL = "label — names the dot (:120-124,:236-238)";
-const PULSE = "pulse (:104-110,:285)";
-const CLICK = "onClick — makes it a button (:115-116,:299-316)";
-const REMOVE = "onRemove — adds the remove button (:111-112,:259-273)";
-const REMOVE_LABEL = "removeLabel (:113-114,:268)";
-const DISABLED = "disabled (:117,:287)";
-const OPACITY = "glassOpacity (:86-87,:133)";
-const VIBRANCY = "vibrancy (:88-89,:134)";
-const SPECULAR = "specularMode (:90-94,:197-198)";
+const VARIANT = "variant";
+const TONE = "tone";
+const SIZE = "size";
+const CORNER = "corner";
+const LABEL = "The label — children";
+const UPPERCASE = "uppercase";
+const ICON = "icon";
+const TRAILING = "trailingIcon";
+const MAX_WIDTH = "maxWidth";
+const DOT = "dot — a bare status dot";
+const DOT_LABEL = "label — names the dot";
+const PULSE = "pulse";
+const CLICK = "onClick — makes it a button";
+const REMOVE = "onRemove — adds the remove button";
+const REMOVE_LABEL = "removeLabel";
+const DISABLED = "disabled";
+const OPACITY = "glassOpacity";
+const VIBRANCY = "vibrancy";
+const SPECULAR = "specularMode";
 const LOCALE = "Preview locale (not a prop)";
 const BACKDROP = "Give it something to see through (not a prop)";
 

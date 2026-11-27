@@ -64,7 +64,7 @@ export const iconsRegistryConfig: PlaygroundConfig = {
     {
       id: "batch",
       group: "registry",
-      label: "Glyphs in the batch (:40)",
+      label: "Glyphs in the batch",
       kind: "number",
       prop: null,
       // Not a prop of anything — it is how many entries the reader puts in the
@@ -78,7 +78,7 @@ export const iconsRegistryConfig: PlaygroundConfig = {
     {
       id: "stack",
       group: "registry",
-      label: "Claim the target name too (:26,:50)",
+      label: "Claim the target name too",
       kind: "toggle",
       prop: null,
       emit: () => null,
@@ -87,7 +87,7 @@ export const iconsRegistryConfig: PlaygroundConfig = {
     {
       id: "override",
       group: "registry",
-      label: "{ override: true } (:38,:44)",
+      label: "{ override: true }",
       kind: "toggle",
       prop: null,
       emit: () => null,
@@ -99,7 +99,7 @@ export const iconsRegistryConfig: PlaygroundConfig = {
     {
       id: "afterPaint",
       group: "registry",
-      label: "Register after first paint (:12-15,:78)",
+      label: "Register after first paint",
       kind: "toggle",
       prop: null,
       emit: () => null,
@@ -109,7 +109,7 @@ export const iconsRegistryConfig: PlaygroundConfig = {
     {
       id: "target",
       group: "resolve",
-      label: "Resolve this name (:24-28)",
+      label: "Resolve this name",
       kind: "choice",
       prop: null,
       // Always printed: `icon` has no default to fall back to (:14), and which
@@ -128,7 +128,7 @@ export const iconsRegistryConfig: PlaygroundConfig = {
     {
       id: "alt",
       group: "preview",
-      label: "alt (:20,:125-128)",
+      label: "alt",
       kind: "text",
       prop: null,
       // Only printed once there is a name to print — an empty `alt` is how you
@@ -141,7 +141,7 @@ export const iconsRegistryConfig: PlaygroundConfig = {
     {
       id: "size",
       group: "preview",
-      label: "Size (:24,:51-57,:105-106)",
+      label: "Size",
       kind: "choice",
       prop: "size",
       default: SIZE_DEFAULT,
@@ -151,7 +151,7 @@ export const iconsRegistryConfig: PlaygroundConfig = {
     {
       id: "tone",
       group: "preview",
-      label: "Tone (:26,:108-111)",
+      label: "Tone",
       kind: "custom",
       prop: null,
       // `tone` has no documented default, and an empty swatch strip must print

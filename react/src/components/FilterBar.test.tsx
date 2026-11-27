@@ -561,7 +561,14 @@ describe("FilterBar", () => {
     // the row had already made, ~900ms after a chip had arrived.
     const lefts = new Map([["status", 100], ["user", 220]]);
     const rects = Element.prototype.getBoundingClientRect;
-    const animate = vi.fn(() => null as unknown as Animation);
+    // The FLIP's calls, as seen by the element: which chip, and what it was made
+    // to travel from. `keyframes` is typed loosely because it is the DOM's
+    // `Keyframe[]`, which jsdom has no opinion about.
+    const animated: { chip: string; from: string }[] = [];
+    const animate = vi.fn(function (this: HTMLElement, keyframes: unknown) {
+      animated.push({ chip: this.dataset.chip ?? "?", from: (keyframes as { transform: string }[])[0].transform });
+      return null as unknown as Animation;
+    });
     Element.prototype.animate = animate as unknown as typeof Element.prototype.animate;
     Element.prototype.getBoundingClientRect = function () {
       const left = (this as HTMLElement).dataset?.chip ? lefts.get((this as HTMLElement).dataset.chip!) ?? 0 : 0;
@@ -586,8 +593,7 @@ describe("FilterBar", () => {
       lefts.set("user", 52);
       fireEvent.click(screen.getByRole("button", { name: "Remove Status: Online filter" }));
       expect(animate).toHaveBeenCalledTimes(1);
-      expect((animate.mock.contexts[0] as HTMLElement).dataset.chip).toBe("user");
-      expect((animate.mock.calls[0][0] as { transform: string }[])[0].transform).toBe("translateX(120px)");
+      expect(animated).toEqual([{ chip: "user", from: "translateX(120px)" }]);
 
       // The ghost unmounts one motion later and re-renders the row: it is
       // measured again, and measuring is not animating.

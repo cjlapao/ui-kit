@@ -118,7 +118,7 @@ export const pagedPanelData: PlaygroundDataSource[] = [
     id: "titles",
     constName: "TITLES",
     prop: "title",
-    label: "One title per page — the array must match the pages (:36-39)",
+    label: "One title per page — the array must match the pages",
     note: "title[current] is read per page (:343), so with no pages there is no title to show",
     emit: "literal",
     value: (state: PlaygroundState) => titlesFor(state),
@@ -133,7 +133,7 @@ export const pagedPanelConfig: PlaygroundConfig = {
     // ── Pages & header ───────────────────────────────────────────────────────
     {
       id: "pageCount",
-      label: "Pages — nav appears only past one (:175)",
+      label: "Pages — nav appears only past one",
       group: "content",
       kind: "choice",
       prop: null,
@@ -192,7 +192,7 @@ export const pagedPanelConfig: PlaygroundConfig = {
     },
     {
       id: "loaderType",
-      label: "Loader — skeleton keeps the height (:18-21)",
+      label: "Loader — skeleton keeps the height",
       group: "states",
       kind: "choice",
       prop: "loaderType",
@@ -204,7 +204,7 @@ export const pagedPanelConfig: PlaygroundConfig = {
     },
     {
       id: "progress",
-      label: "progress — 0–100 (:46-47)",
+      label: "progress — 0–100",
       group: "states",
       kind: "number",
       prop: "progress",
@@ -229,7 +229,7 @@ export const pagedPanelConfig: PlaygroundConfig = {
     },
     {
       id: "loadingState",
-      label: "loadingState — replaces all three treatments (:50-51)",
+      label: "loadingState — replaces all three treatments",
       group: "states",
       kind: "toggle",
       prop: "loadingState",
@@ -260,7 +260,7 @@ export const pagedPanelConfig: PlaygroundConfig = {
     },
     {
       id: "emptyState",
-      label: "emptyState — bring your own block (:54-55)",
+      label: "emptyState — bring your own block",
       group: "states",
       kind: "toggle",
       prop: "emptyState",
@@ -287,7 +287,7 @@ export const pagedPanelConfig: PlaygroundConfig = {
     },
     {
       id: "onPageChange",
-      label: "onPageChange — hear the index move (:66-67)",
+      label: "onPageChange — hear the index move",
       group: "paging",
       kind: "toggle",
       prop: "onPageChange",
@@ -299,7 +299,7 @@ export const pagedPanelConfig: PlaygroundConfig = {
     // ── Surface ──────────────────────────────────────────────────────────────
     {
       id: "tone",
-      label: "tone — the nav buttons and the Panel, one knob (:334,:378)",
+      label: "tone — the nav buttons and the Panel, one knob",
       group: "surface",
       kind: "choice",
       prop: "tone",
@@ -310,7 +310,7 @@ export const pagedPanelConfig: PlaygroundConfig = {
     },
     {
       id: "size",
-      label: "size — header type, counter and buttons together (:78-123)",
+      label: "size — header type, counter and buttons together",
       group: "surface",
       kind: "choice",
       prop: "size",
@@ -321,7 +321,7 @@ export const pagedPanelConfig: PlaygroundConfig = {
     },
     {
       id: "variant",
-      label: "variant — the wrapping Panel's own (:376-382)",
+      label: "variant — the wrapping Panel's own",
       group: "surface",
       kind: "choice",
       prop: "variant",
@@ -333,7 +333,7 @@ export const pagedPanelConfig: PlaygroundConfig = {
     },
     {
       id: "bare",
-      label: "bare — no Panel, for inside one you already own (:67-72)",
+      label: "bare — no Panel, for inside one you already own",
       group: "surface",
       kind: "toggle",
       prop: "bare",
@@ -341,7 +341,7 @@ export const pagedPanelConfig: PlaygroundConfig = {
     },
     {
       id: "className",
-      label: "className — onto the Panel, or the bare div (:369,:381)",
+      label: "className — onto the Panel, or the bare div",
       group: "surface",
       kind: "text",
       prop: "className",

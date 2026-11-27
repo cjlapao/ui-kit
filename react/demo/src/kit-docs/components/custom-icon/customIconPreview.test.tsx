@@ -59,20 +59,43 @@ const theMonogram = (view: ReturnType<typeof render>): HTMLElement => {
   return node;
 };
 
+/**
+ * The controls column prints a field label in a `<span>`, and an accordion
+ * group title is a `<span>` too — so a field named "Source" and a group named
+ * "Source" are otherwise interchangeable. The group title lives inside the
+ * disclosure button (`Accordion.tsx:343`, `:383`); a field label never does.
+ */
+const CONTROL_ROW =
+  'select, input, textarea, [role="switch"], [role="radiogroup"], [role="group"]';
+
+const labelBoxes = (view: ReturnType<typeof render>, label: string): HTMLElement[] =>
+  Array.from(view.container.querySelectorAll("span"))
+    .filter(
+      (node) =>
+        (node.textContent ?? "").trim() === label &&
+        !node.closest("button") &&
+        !node.closest("[aria-expanded]"),
+    )
+    .map((span) => span.parentElement)
+    .filter((box): box is HTMLElement => box !== null);
+
+/** The box holding a field's control, preferring one that actually has a control. */
+const controlBox = (
+  view: ReturnType<typeof render>,
+  label: string,
+): HTMLElement | undefined => {
+  const boxes = labelBoxes(view, label);
+  return boxes.find((box) => box.querySelector(CONTROL_ROW)) ?? boxes[0];
+};
+
 const fieldBox = (view: ReturnType<typeof render>, label: string): HTMLElement => {
-  const span = Array.from(view.container.querySelectorAll("span")).find(
-    (node) => (node.textContent ?? "").trim() === label,
-  );
-  const box = span?.parentElement;
+  const box = controlBox(view, label);
   if (!box) throw new Error(`no control labelled "${label}" in the controls`);
-  return box as HTMLElement;
+  return box;
 };
 
 const hasField = (view: ReturnType<typeof render>, label: string): boolean =>
-  Array.from(view.container.querySelectorAll("span")).some(
-    (node) => (node.textContent ?? "").trim() === label,
-  );
-
+  controlBox(view, label) !== undefined;
 /** A choice, however the chrome chose to render it: a `MultiToggle` or a `Select`. */
 const choose = (
   view: ReturnType<typeof render>,
@@ -120,18 +143,18 @@ const typeInto = (
   fireEvent.change(input, { target: { value } });
 };
 
-const ICON = "Icon (:14,:79,:141-144)";
-const ALT = "alt (:20,:125-128)";
-const CUSTOM_SIZE = "customSize (:22,:81-91)";
-const SIZE = "Size (:24,:51-57,:66,:105-106)";
-const CLASS_NAME = "className (:45,:105-106,:122)";
-const TONE = "Tone (:26,:108-111)";
-const COLOR = "color (:31,:97,:109)";
-const HOVER = "hoverColor (:33,:98-100,:119)";
-const COLORED = "colored — keep its own colours (:35,:70,:92-101)";
-const SPIN = "spin (:37,:71,:120)";
-const ACTIVATABLE = "onClick — make it a button (:43,:146-164)";
-const DISABLED = "Disabled (:44,:73,:121,:151)";
+const ICON = "Icon";
+const ALT = "alt";
+const CUSTOM_SIZE = "customSize";
+const SIZE = "Size";
+const CLASS_NAME = "className";
+const TONE = "Tone";
+const COLOR = "color";
+const HOVER = "hoverColor";
+const COLORED = "colored — keep its own colours";
+const SPIN = "spin";
+const ACTIVATABLE = "onClick — make it a button";
+const DISABLED = "Disabled";
 
 const wrapperClasses = (view: ReturnType<typeof render>): string =>
   theIcon(view).getAttribute("class") ?? "";

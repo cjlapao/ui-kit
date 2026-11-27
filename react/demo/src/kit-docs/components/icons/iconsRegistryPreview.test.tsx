@@ -56,20 +56,43 @@ const notes = (view: ReturnType<typeof render>): string =>
     .map((node) => node.textContent ?? "")
     .join(" ");
 
+/**
+ * The controls column prints a field label in a `<span>`, and an accordion
+ * group title is a `<span>` too — so a field named "Source" and a group named
+ * "Source" are otherwise interchangeable. The group title lives inside the
+ * disclosure button (`Accordion.tsx:343`, `:383`); a field label never does.
+ */
+const CONTROL_ROW =
+  'select, input, textarea, [role="switch"], [role="radiogroup"], [role="group"]';
+
+const labelBoxes = (view: ReturnType<typeof render>, label: string): HTMLElement[] =>
+  Array.from(view.container.querySelectorAll("span"))
+    .filter(
+      (node) =>
+        (node.textContent ?? "").trim() === label &&
+        !node.closest("button") &&
+        !node.closest("[aria-expanded]"),
+    )
+    .map((span) => span.parentElement)
+    .filter((box): box is HTMLElement => box !== null);
+
+/** The box holding a field's control, preferring one that actually has a control. */
+const controlBox = (
+  view: ReturnType<typeof render>,
+  label: string,
+): HTMLElement | undefined => {
+  const boxes = labelBoxes(view, label);
+  return boxes.find((box) => box.querySelector(CONTROL_ROW)) ?? boxes[0];
+};
+
 const fieldBox = (view: ReturnType<typeof render>, label: string): HTMLElement => {
-  const span = Array.from(view.container.querySelectorAll("span")).find(
-    (node) => (node.textContent ?? "").trim() === label,
-  );
-  const box = span?.parentElement;
+  const box = controlBox(view, label);
   if (!box) throw new Error(`no control labelled "${label}" in the controls`);
-  return box as HTMLElement;
+  return box;
 };
 
 const hasField = (view: ReturnType<typeof render>, label: string): boolean =>
-  Array.from(view.container.querySelectorAll("span")).some(
-    (node) => (node.textContent ?? "").trim() === label,
-  );
-
+  controlBox(view, label) !== undefined;
 /** A choice, however the chrome chose to render it: a `MultiToggle` or a `Select`. */
 const choose = (
   view: ReturnType<typeof render>,
@@ -139,14 +162,14 @@ const typeInto = (
   fireEvent.change(input, { target: { value } });
 };
 
-const BATCH = "Glyphs in the batch (:40)";
-const STACK = "Claim the target name too (:26,:50)";
-const OVERRIDE = "{ override: true } (:38,:44)";
-const AFTER_PAINT = "Register after first paint (:12-15,:78)";
-const TARGET = "Resolve this name (:24-28)";
-const ALT = "alt (:20,:125-128)";
-const SIZE = "Size (:24,:51-57,:105-106)";
-const TONE = "Tone (:26,:108-111)";
+const BATCH = "Glyphs in the batch";
+const STACK = "Claim the target name too";
+const OVERRIDE = "{ override: true }";
+const AFTER_PAINT = "Register after first paint";
+const TARGET = "Resolve this name";
+const ALT = "alt";
+const SIZE = "Size";
+const TONE = "Tone";
 
 /** A glyph for the tests' own registrations — never one the stage owns. */
 const FOREIGN = () => (

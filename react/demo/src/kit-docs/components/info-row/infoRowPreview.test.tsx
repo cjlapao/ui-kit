@@ -21,13 +21,39 @@ const stage = (view: ReturnType<typeof render>): HTMLElement => {
  * captions as plain `<span>`s — a `Select` carries no accessible name of its own
  * — so the label is the way in.
  */
+/**
+ * The controls column prints a field label in a `<span>`, and an accordion
+ * group title is a `<span>` too — so a field named "Source" and a group named
+ * "Source" are otherwise interchangeable. The group title lives inside the
+ * disclosure button (`Accordion.tsx:343`, `:383`); a field label never does.
+ */
+const CONTROL_ROW =
+  'select, input, textarea, [role="switch"], [role="radiogroup"], [role="group"]';
+
+const labelBoxes = (view: ReturnType<typeof render>, label: string): HTMLElement[] =>
+  Array.from(view.container.querySelectorAll("span"))
+    .filter(
+      (node) =>
+        (node.textContent ?? "").trim() === label &&
+        !node.closest("button") &&
+        !node.closest("[aria-expanded]"),
+    )
+    .map((span) => span.parentElement)
+    .filter((box): box is HTMLElement => box !== null);
+
+/** The box holding a field's control, preferring one that actually has a control. */
+const controlBox = (
+  view: ReturnType<typeof render>,
+  label: string,
+): HTMLElement | undefined => {
+  const boxes = labelBoxes(view, label);
+  return boxes.find((box) => box.querySelector(CONTROL_ROW)) ?? boxes[0];
+};
+
 const fieldBox = (view: ReturnType<typeof render>, label: string): HTMLElement => {
-  const span = Array.from(view.container.querySelectorAll("span")).find(
-    (node) => (node.textContent ?? "").trim() === label,
-  );
-  const box = span?.parentElement;
+  const box = controlBox(view, label);
   if (!box) throw new Error(`no control labelled "${label}" in the controls`);
-  return box as HTMLElement;
+  return box;
 };
 
 /** A choice, however the chrome chose to render it: a `MultiToggle` or a `Select`. */
@@ -123,20 +149,20 @@ describe("InfoRowPlayground preview", () => {
 
   it("paints the four shapes of one prop as four different things (:312-329)", () => {
     const view = open();
-    choose(view, "Value (:95,:312-329)", "number");
+    choose(view, "Value", "number");
     expect(valueSpan(view, "3")).toBeTruthy();
-    choose(view, "Value (:95,:312-329)", "boolean");
+    choose(view, "Value", "boolean");
     // The catalog's word, not the literal `true` (:319-323,:957-960).
     expect(within(stage(view)).getByText("Yes")).toBeTruthy();
     expect(stage(view).textContent).not.toContain("true");
-    choose(view, "Value (:95,:312-329)", "ReactNode");
+    choose(view, "Value", "ReactNode");
     expect(within(stage(view)).getByText("healthy")).toBeTruthy();
   });
 
   it("withholds the copy button from a value with no string in it (:328,:436)", () => {
     const view = open();
     expect(copyButton(view)).toBeTruthy();
-    choose(view, "Value (:95,:312-329)", "ReactNode");
+    choose(view, "Value", "ReactNode");
     expect(
       within(stage(view)).queryByRole("button", { name: "Copy to clipboard" }),
     ).toBeNull();
@@ -144,59 +170,59 @@ describe("InfoRowPlayground preview", () => {
 
   it("keeps the documented default placeholder and paints an empty value with it (:378)", () => {
     const view = open();
-    choose(view, "Value (:95,:312-329)", "empty");
-    flip(view, "Hide if empty (:137,:965-974)");
+    choose(view, "Value", "empty");
+    flip(view, "Hide if empty");
     expect(within(stage(view)).getByText("—")).toBeTruthy();
-    choose(view, "Empty placeholder (:144,:378,:572)", "none at all (null)");
+    choose(view, "Empty placeholder", "none at all (null)");
     expect(within(stage(view)).queryByText("—")).toBeNull();
-    choose(view, "Empty placeholder (:144,:378,:572)", "written text");
+    choose(view, "Empty placeholder", "written text");
     expect(within(stage(view)).getByText("Not set")).toBeTruthy();
   });
 
   it("removes the whole row when an empty value has nothing else to show (:965-974)", () => {
     const view = open();
-    choose(view, "Value (:95,:312-329)", "empty");
+    choose(view, "Value", "empty");
     expect(within(stage(view)).queryByText("Image digest")).toBeNull();
     expect(within(stage(view)).getByText(/returned/)).toBeTruthy();
     // Anything to say, and the row stands back up.
-    flip(view, "Sub-items (:190,:798-844)");
+    flip(view, "Sub-items");
     expect(within(stage(view)).getByText("Image digest")).toBeTruthy();
   });
 
   it("keeps a row that is loading or broken visible even with no value (:968-969)", () => {
     const view = open();
-    choose(view, "Value (:95,:312-329)", "empty");
-    flip(view, "Loading (:153,:629,:681-701)");
+    choose(view, "Value", "empty");
+    flip(view, "Loading");
     expect(within(stage(view)).getByText("Image digest")).toBeTruthy();
     expect(rowRoot(view).getAttribute("aria-busy")).toBe("true");
   });
 
   it("announces a spinner and says nothing for a skeleton (:681-701)", () => {
     const view = open();
-    flip(view, "Loading (:153,:629,:681-701)");
+    flip(view, "Loading");
     // The skeleton is decorative: one status region, the empty copy confirmation.
     expect(within(stage(view)).queryByRole("status", { name: "Loading" })).toBeNull();
-    choose(view, "Loader (:155,:382)", "spinner");
+    choose(view, "Loader", "spinner");
     expect(within(stage(view)).getByRole("status", { name: "Loading" })).toBeTruthy();
   });
 
   it("replaces the value with the error, visibly and once for the screen reader", () => {
     const view = open();
-    flip(view, "Error (:161,:526-530,:771-775)");
+    flip(view, "Error");
     const shown = within(stage(view)).getAllByText(ERROR_TEXT);
     // Once for the eye, once for the screen reader (:572,:771-775).
     expect(shown).toHaveLength(2);
     expect(shown[0]?.className).toContain("text-rose-600");
     expect(shown[1]?.getAttribute("role")).toBe("status");
     expect(stage(view).textContent).not.toContain(DIGEST_TEXT);
-    type(view, "Error message (:161,:572)", "Quota exceeded");
+    type(view, "Error message", "Quota exceeded");
     expect(within(stage(view)).getAllByText("Quota exceeded")).toHaveLength(2);
   });
 
   it("reports a failed copy instead of throwing, and never calls onCopy (:500)", async () => {
     const view = open();
     // jsdom ships no `navigator.clipboard`, which is the ordinary case :340 asks about.
-    flip(view, "onCopy callback (:130,:500)");
+    flip(view, "onCopy callback");
     fireEvent.click(copyButton(view));
     await waitFor(() =>
       expect(within(stage(view)).getByRole("button", { name: "Copy failed" })).toBeTruthy(),
@@ -213,7 +239,7 @@ describe("InfoRowPlayground preview", () => {
   it("confirms a successful copy through the button, the wash and the live region", async () => {
     stubClipboard(true);
     const view = open();
-    flip(view, "onCopy callback (:130,:500)");
+    flip(view, "onCopy callback");
     fireEvent.click(copyButton(view));
     await waitFor(() =>
       expect(within(stage(view)).getAllByText("Copied to clipboard")).toHaveLength(2),
@@ -271,13 +297,13 @@ describe("InfoRowPlayground preview", () => {
     // jsdom reports no overflow and ships no ResizeObserver, so `truncated` never
     // flips — and the span keeps no tab stop, which is the point of measuring lazily.
     expect(valueSpan(view, DIGEST_TEXT).hasAttribute("tabindex")).toBe(false);
-    flip(view, "Wrap instead of truncate (:146,:565)");
+    flip(view, "Wrap instead of truncate");
     expect(valueSpan(view, DIGEST_TEXT).hasAttribute("tabindex")).toBe(false);
   });
 
   it("paints the sub-items it was given, and nothing for the line with neither (:814)", () => {
     const view = open();
-    flip(view, "Sub-items (:190,:798-844)");
+    flip(view, "Sub-items");
     expect(within(stage(view)).getByText("Policy:")).toBeTruthy();
     expect(
       within(stage(view)).getByText("trigger_access.all-agents.sdsd.allow"),
@@ -291,7 +317,7 @@ describe("InfoRowPlayground preview", () => {
 
   it("makes the whole row the toggle only when there is a body to toggle (:585-594)", () => {
     const view = open();
-    flip(view, "Body node (:212,:853)");
+    flip(view, "Body node");
     const root = within(stage(view)).getByRole("button", { name: /Image digest/ });
     expect(root.getAttribute("tabindex")).toBe("0");
     expect(root.getAttribute("aria-expanded")).toBe("false");
@@ -305,7 +331,7 @@ describe("InfoRowPlayground preview", () => {
 
   it("answers click, Enter and Space on the row, and nothing on the copy button", () => {
     const view = open();
-    flip(view, "Body node (:212,:853)");
+    flip(view, "Body node");
     const root = within(stage(view)).getByRole("button", { name: /Image digest/ });
     fireEvent.click(root);
     expect(root.getAttribute("aria-expanded")).toBe("true");
@@ -321,7 +347,7 @@ describe("InfoRowPlayground preview", () => {
 
   it("keeps a folded body out of the tree and out of the tab order (:874-882)", () => {
     const view = open();
-    flip(view, "Body node (:212,:853)");
+    flip(view, "Body node");
     // `inert`, not `hidden`: the 0fr→1fr transition still has something to animate (:878-881).
     const region = within(stage(view)).getByRole("region", { hidden: true });
     expect(region.getAttribute("inert")).toBe("");
@@ -334,7 +360,7 @@ describe("InfoRowPlayground preview", () => {
 
   it("leaves aria-controls pointing at nothing when asked to fold an empty row", () => {
     const view = open();
-    choose(view, "Collapsible (:199,:450)", "true");
+    choose(view, "Collapsible", "true");
     const row = within(stage(view)).getByRole("button", { name: /Image digest/ });
     // The row advertises a region that the component never renders (:590 vs :853).
     expect(row.getAttribute("aria-controls")).toBeTruthy();
@@ -343,8 +369,8 @@ describe("InfoRowPlayground preview", () => {
 
   it("renders a body that cannot fold, because collapsible overrides the implication (:455)", () => {
     const view = open();
-    flip(view, "Body node (:212,:853)");
-    choose(view, "Collapsible (:199,:450)", "false");
+    flip(view, "Body node");
+    choose(view, "Collapsible", "false");
     expect(within(stage(view)).queryByRole("button", { name: /Image digest/ })).toBeNull();
     const region = within(stage(view)).getByRole("region");
     expect(region.hasAttribute("inert")).toBe(false);
@@ -353,8 +379,8 @@ describe("InfoRowPlayground preview", () => {
 
   it("writes the disclosure report to the page's own state, and reads it back", () => {
     const view = open();
-    flip(view, "Body node (:212,:853)");
-    flip(view, "Report toggle (:205,:461)");
+    flip(view, "Body node");
+    flip(view, "Report toggle");
     const root = within(stage(view)).getByRole("button", { name: /Image digest/ });
     expect(root.getAttribute("aria-expanded")).toBe("false");
     fireEvent.click(root);
@@ -362,16 +388,16 @@ describe("InfoRowPlayground preview", () => {
     expect(
       within(view.container).getByRole("radio", { name: "host says open" }),
     ).toHaveAttribute("aria-checked", "true");
-    choose(view, "Expanded (:203,:449-452)", "host says folded");
+    choose(view, "Expanded", "host says folded");
     expect(root.getAttribute("aria-expanded")).toBe("false");
   });
 
   it("lets the label column be capped, grown or fixed, and says so in the classes", () => {
     const view = open();
     expect(valueSpan(view, "Image digest").className).toContain("max-w-[30%]");
-    choose(view, "Label column (:87,:657-659)", '"" — grows');
+    choose(view, "Label column", '"" — grows');
     expect(valueSpan(view, "Image digest").className).toContain("grow");
-    choose(view, "Label column (:87,:657-659)", '"w-32" — fixed');
+    choose(view, "Label column", '"w-32" — fixed');
     const fixed = valueSpan(view, "Image digest");
     expect(fixed.className).toContain("w-32");
     expect(fixed.className).not.toContain("max-w-[30%]");
@@ -381,14 +407,14 @@ describe("InfoRowPlayground preview", () => {
     const view = open();
     // A surfaced row draws no rule of its own; the hairline belongs to the row.
     expect(rowRoot(view).className).toContain("last:border-0");
-    flip(view, "Bottom border (:219,:521-524)");
+    flip(view, "Bottom border");
     // A framed variant owns its own edge, so the request is dropped (:521-524).
     expect(rowRoot(view).className).toContain("last:border-0");
-    choose(view, "Variant (:115,:980-1013)", "simple");
+    choose(view, "Variant", "simple");
     expect(rowRoot(view).className).toContain("border-b");
     expect(rowRoot(view).className).not.toContain("last:border-0");
     // … and `noBorder` still outranks the request (:620-624).
-    flip(view, "No hairline (:163,:620)");
+    flip(view, "No hairline");
     expect(rowRoot(view).className).not.toContain("border-b");
   });
 
@@ -397,10 +423,10 @@ describe("InfoRowPlayground preview", () => {
     expect(
       within(view.container).getByRole("switch", { name: /^Raised surface/ }),
     ).toBeTruthy();
-    choose(view, "Variant (:115,:980-1013)", "glass");
-    const select = fieldBox(view, "Glass opacity (:169,:1000)").querySelector("select");
+    choose(view, "Variant", "glass");
+    const select = fieldBox(view, "Glass opacity").querySelector("select");
     expect(select).toBeTruthy();
-    choose(view, "Variant (:115,:980-1013)", "plain");
+    choose(view, "Variant", "plain");
     // A plain row draws no surface: nothing to raise (:980-990), no corner to round,
     // no glass to tune. The controls that ask for those go away with the surface.
     expect(
@@ -408,7 +434,7 @@ describe("InfoRowPlayground preview", () => {
     ).toBeNull();
     expect(
       Array.from(view.container.querySelectorAll("span")).some(
-        (node) => (node.textContent ?? "").trim() === "Glass opacity (:169,:1000)",
+        (node) => (node.textContent ?? "").trim() === "Glass opacity",
       ),
     ).toBe(false);
     expect(within(stage(view)).getByText("Image digest")).toBeTruthy();

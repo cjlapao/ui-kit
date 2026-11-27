@@ -146,7 +146,7 @@ export const tagPanelConfig: PlaygroundConfig = {
     },
     {
       id: "deck",
-      label: "Deck — per-tag tone, variant, size, icon (:21-33)",
+      label: "Deck — per-tag tone, variant, size, icon",
       group: "content",
       kind: "choice",
       prop: null,
@@ -201,7 +201,7 @@ export const tagPanelConfig: PlaygroundConfig = {
     },
     {
       id: "emptyState",
-      label: "emptyState — bring your own block (:50,:242)",
+      label: "emptyState — bring your own block",
       group: "content",
       kind: "toggle",
       prop: "emptyState",
@@ -213,7 +213,7 @@ export const tagPanelConfig: PlaygroundConfig = {
     // ── The fold ─────────────────────────────────────────────────────────────
     {
       id: "tagLimit",
-      label: "tagLimit — 0 shows every pill (:44,:139)",
+      label: "tagLimit — 0 shows every pill",
       group: "fold",
       kind: "number",
       prop: "tagLimit",
@@ -227,7 +227,7 @@ export const tagPanelConfig: PlaygroundConfig = {
     },
     {
       id: "overflowTone",
-      label: "overflowTone — the chip's own tone (:48,:285)",
+      label: "overflowTone — the chip's own tone",
       group: "fold",
       kind: "choice",
       prop: "overflowTone",
@@ -241,7 +241,7 @@ export const tagPanelConfig: PlaygroundConfig = {
     // ── Pills ────────────────────────────────────────────────────────────────
     {
       id: "tagSize",
-      label: "tagSize — the pills' scale, not the header's (:63,:102)",
+      label: "tagSize — the pills' scale, not the header's",
       group: "pills",
       kind: "choice",
       prop: "tagSize",
@@ -253,7 +253,7 @@ export const tagPanelConfig: PlaygroundConfig = {
     // ── Header scale ─────────────────────────────────────────────────────────
     {
       id: "size",
-      label: "size — the header's scale; also picks the empty size (:245)",
+      label: "size — the header's scale; also picks the empty size",
       group: "header",
       kind: "choice",
       prop: "size",
@@ -263,7 +263,7 @@ export const tagPanelConfig: PlaygroundConfig = {
     },
     {
       id: "variant",
-      label: "variant — header style (Section.tsx:128)",
+      label: "variant — header style",
       group: "header",
       kind: "choice",
       prop: "variant",
@@ -273,7 +273,7 @@ export const tagPanelConfig: PlaygroundConfig = {
     },
     {
       id: "noPadding",
-      label: "noPadding — header padding off (Section.tsx:149)",
+      label: "noPadding — header padding off",
       group: "header",
       kind: "toggle",
       prop: "noPadding",
@@ -282,7 +282,7 @@ export const tagPanelConfig: PlaygroundConfig = {
     },
     {
       id: "actions",
-      label: "actions — the right side of the header (:54,:220)",
+      label: "actions — the right side of the header",
       group: "header",
       kind: "toggle",
       prop: "actions",
@@ -294,7 +294,7 @@ export const tagPanelConfig: PlaygroundConfig = {
     // ── Spacing & classes ────────────────────────────────────────────────────
     {
       id: "className",
-      label: "className — the root, a plain flex column (:215)",
+      label: "className — the root, a plain flex column",
       group: "surface",
       kind: "text",
       prop: "className",
@@ -303,7 +303,7 @@ export const tagPanelConfig: PlaygroundConfig = {
     },
     {
       id: "bodyClassName",
-      label: "bodyClassName — the pill row, which keeps its own px-0 pb-1 (:233-236)",
+      label: "bodyClassName — the pill row, which keeps its own px-0 pb-1",
       group: "surface",
       kind: "text",
       prop: "bodyClassName",

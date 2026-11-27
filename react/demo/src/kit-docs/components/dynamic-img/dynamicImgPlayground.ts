@@ -80,7 +80,7 @@ export const dynamicImgConfig: PlaygroundConfig = {
     {
       id: "sample",
       group: "source",
-      label: "Source (:23,:64)",
+      label: "Source",
       kind: "choice",
       prop: null,
       // Not a value of its own: the reader picked *which* string reaches `src`.
@@ -99,7 +99,7 @@ export const dynamicImgConfig: PlaygroundConfig = {
     {
       id: "alt",
       group: "label",
-      label: "alt (:31,:83)",
+      label: "alt",
       kind: "text",
       prop: null,
       // Blank is a real answer — it is what makes the image decoration (:83) —
@@ -111,7 +111,7 @@ export const dynamicImgConfig: PlaygroundConfig = {
     {
       id: "fallbackIcon",
       group: "label",
-      label: "fallbackIcon (:33,:52)",
+      label: "fallbackIcon",
       kind: "choice",
       prop: "fallbackIcon",
       emit: (value, state, h) => {
@@ -132,7 +132,7 @@ export const dynamicImgConfig: PlaygroundConfig = {
     {
       id: "size",
       group: "paint",
-      label: "size (:34-35,:66)",
+      label: "size",
       kind: "choice",
       prop: "size",
       default: SIZE_DEFAULT,
@@ -142,7 +142,7 @@ export const dynamicImgConfig: PlaygroundConfig = {
     {
       id: "tone",
       group: "paint",
-      label: "tone (:37,:67)",
+      label: "tone",
       kind: "custom",
       prop: null,
       emit: (_value, state, h) =>
@@ -156,7 +156,7 @@ export const dynamicImgConfig: PlaygroundConfig = {
     {
       id: "fill",
       group: "paint",
-      label: "fill (:39,:79)",
+      label: "fill",
       kind: "text",
       prop: null,
       emit: (_value, state, h) => (hasFill(state) ? `fill=${h.lit(fillText(state))}` : null),
@@ -166,7 +166,7 @@ export const dynamicImgConfig: PlaygroundConfig = {
     {
       id: "stroke",
       group: "paint",
-      label: "stroke (:41,:79)",
+      label: "stroke",
       kind: "text",
       prop: null,
       emit: (_value, state, h) =>
@@ -177,7 +177,7 @@ export const dynamicImgConfig: PlaygroundConfig = {
     {
       id: "colored",
       group: "paint",
-      label: "colored — keep its own colours (:43,:77)",
+      label: "colored — keep its own colours",
       kind: "toggle",
       prop: "colored",
       default: false,
@@ -186,7 +186,7 @@ export const dynamicImgConfig: PlaygroundConfig = {
     {
       id: "title",
       group: "label",
-      label: "title (:44,:98,:122)",
+      label: "title",
       kind: "text",
       prop: null,
       emit: (_value, state, h) =>
@@ -198,7 +198,7 @@ export const dynamicImgConfig: PlaygroundConfig = {
     {
       id: "customSource",
       group: "source",
-      label: "…or type a source of your own (:23)",
+      label: "…or type a source of your own",
       kind: "custom",
       prop: null,
       // Whatever is typed becomes the value of the `src` constant, which the

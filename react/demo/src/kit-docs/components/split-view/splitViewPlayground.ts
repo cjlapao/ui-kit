@@ -196,7 +196,7 @@ export const splitViewConfig: PlaygroundConfig = {
     /* ---------------------------------------------------------------- list */
     {
       id: "listTitle",
-      label: "List title (:188,:1126)",
+      label: "List title",
       group: "list",
       kind: "toggle",
       prop: "listTitle",
@@ -206,7 +206,7 @@ export const splitViewConfig: PlaygroundConfig = {
     },
     {
       id: "listActions",
-      label: "List actions (:273,:1136)",
+      label: "List actions",
       group: "list",
       kind: "toggle",
       prop: "listActions",
@@ -215,7 +215,7 @@ export const splitViewConfig: PlaygroundConfig = {
     },
     {
       id: "searchPlaceholder",
-      label: "Search placeholder (:190,:1157)",
+      label: "Search placeholder",
       group: "list",
       kind: "text",
       prop: "searchPlaceholder",
@@ -224,7 +224,7 @@ export const splitViewConfig: PlaygroundConfig = {
     },
     {
       id: "searchVariant",
-      label: "Search surface (:67-77,:571)",
+      label: "Search surface",
       group: "list",
       kind: "choice",
       prop: "searchVariant",
@@ -237,7 +237,7 @@ export const splitViewConfig: PlaygroundConfig = {
     },
     {
       id: "menuVisibility",
-      label: "Row menu dots (:293-298,:544-548)",
+      label: "Row menu dots",
       group: "list",
       kind: "choice",
       prop: "menuVisibility",
@@ -250,7 +250,7 @@ export const splitViewConfig: PlaygroundConfig = {
     },
     {
       id: "showHighlightIndicator",
-      label: "New-item dot (:225-231,:1294)",
+      label: "New-item dot",
       group: "list",
       kind: "toggle",
       prop: "showHighlightIndicator",
@@ -259,7 +259,7 @@ export const splitViewConfig: PlaygroundConfig = {
     },
     {
       id: "subItems",
-      label: "Sub-items (:104-117)",
+      label: "Sub-items",
       group: "list",
       kind: "toggle",
       prop: null,
@@ -269,7 +269,7 @@ export const splitViewConfig: PlaygroundConfig = {
     },
     {
       id: "resizable",
-      label: "Draggable divider (:245,:626-635)",
+      label: "Draggable divider",
       group: "list",
       kind: "toggle",
       prop: "resizable",
@@ -278,7 +278,7 @@ export const splitViewConfig: PlaygroundConfig = {
     },
     {
       id: "minListWidth",
-      label: "Min list width (:247,:460)",
+      label: "Min list width",
       group: "list",
       kind: "number",
       prop: "minListWidth",
@@ -291,7 +291,7 @@ export const splitViewConfig: PlaygroundConfig = {
     },
     {
       id: "maxListWidth",
-      label: "Max list width (:249,:614-621)",
+      label: "Max list width",
       group: "list",
       kind: "choice",
       prop: "maxListWidth",
@@ -303,7 +303,7 @@ export const splitViewConfig: PlaygroundConfig = {
     },
     {
       id: "listWidth",
-      label: "List width (:191,:623,:700)",
+      label: "List width",
       group: "list",
       kind: "choice",
       prop: "listWidth",
@@ -316,7 +316,7 @@ export const splitViewConfig: PlaygroundConfig = {
     },
     {
       id: "collapsible",
-      label: "Collapsible list (:236,:598-609)",
+      label: "Collapsible list",
       group: "list",
       kind: "toggle",
       prop: "collapsible",
@@ -325,7 +325,7 @@ export const splitViewConfig: PlaygroundConfig = {
     },
     {
       id: "collapse",
-      label: "Collapse state (:239,:600)",
+      label: "Collapse state",
       group: "list",
       kind: "choice",
       prop: "collapsed",
@@ -341,7 +341,7 @@ export const splitViewConfig: PlaygroundConfig = {
     },
     {
       id: "collapseReport",
-      label: "Report collapse (:243,:605-609)",
+      label: "Report collapse",
       group: "list",
       kind: "toggle",
       prop: "onCollapsedChange",
@@ -356,7 +356,7 @@ export const splitViewConfig: PlaygroundConfig = {
     /* ------------------------------------------------------------- surface */
     {
       id: "variant",
-      label: "Variant (:197,:449)",
+      label: "Variant",
       group: "surface",
       kind: "choice",
       prop: "variant",
@@ -367,7 +367,7 @@ export const splitViewConfig: PlaygroundConfig = {
     },
     {
       id: "tone",
-      label: "Accent tone (:193,:485)",
+      label: "Accent tone",
       group: "surface",
       kind: "choice",
       prop: "tone",
@@ -377,7 +377,7 @@ export const splitViewConfig: PlaygroundConfig = {
     },
     {
       id: "surfaceTone",
-      label: "Surface tone (:199-213,:450)",
+      label: "Surface tone",
       group: "surface",
       kind: "choice",
       prop: "surfaceTone",
@@ -389,7 +389,7 @@ export const splitViewConfig: PlaygroundConfig = {
     },
     {
       id: "size",
-      label: "Size (:219-224,:452)",
+      label: "Size",
       group: "surface",
       kind: "choice",
       prop: "size",
@@ -399,7 +399,7 @@ export const splitViewConfig: PlaygroundConfig = {
     },
     {
       id: "raisedSurface",
-      label: "Raised surface (:311-312,:830)",
+      label: "Raised surface",
       group: "surface",
       kind: "toggle",
       prop: "raisedSurface",
@@ -408,7 +408,7 @@ export const splitViewConfig: PlaygroundConfig = {
     },
     {
       id: "borderLeft",
-      label: "Left rule (:300-301,:1004)",
+      label: "Left rule",
       group: "surface",
       kind: "toggle",
       prop: "borderLeft",
@@ -419,7 +419,7 @@ export const splitViewConfig: PlaygroundConfig = {
     /* -------------------------------------------------------------- detail */
     {
       id: "panelHeaderProps",
-      label: "Built-in header (:262-270,:875)",
+      label: "Built-in header",
       group: "detail",
       kind: "toggle",
       prop: "panelHeaderProps",
@@ -429,7 +429,7 @@ export const splitViewConfig: PlaygroundConfig = {
     },
     {
       id: "headerDetails",
-      label: "Header details block (:167-170,:817)",
+      label: "Header details block",
       group: "detail",
       kind: "toggle",
       prop: null,
@@ -440,7 +440,7 @@ export const splitViewConfig: PlaygroundConfig = {
     },
     {
       id: "panelHeader",
-      label: "panelHeader node (:258-261,:879)",
+      label: "panelHeader node",
       group: "detail",
       kind: "toggle",
       prop: "panelHeader",
@@ -449,7 +449,7 @@ export const splitViewConfig: PlaygroundConfig = {
     },
     {
       id: "selection",
-      label: "Selected row (:180,:584)",
+      label: "Selected row",
       group: "detail",
       kind: "choice",
       prop: "value",
@@ -465,7 +465,7 @@ export const splitViewConfig: PlaygroundConfig = {
     },
     {
       id: "panelEmptyState",
-      label: "Detail placeholder (:275-276,:1532)",
+      label: "Detail placeholder",
       group: "detail",
       kind: "toggle",
       prop: "panelEmptyState",
@@ -475,7 +475,7 @@ export const splitViewConfig: PlaygroundConfig = {
     },
     {
       id: "emptyState",
-      label: "Filter-empty node (:271-272,:1177)",
+      label: "Filter-empty node",
       group: "detail",
       kind: "toggle",
       prop: "emptyState",
@@ -484,7 +484,7 @@ export const splitViewConfig: PlaygroundConfig = {
     },
     {
       id: "panelScrollable",
-      label: "Detail scrolls (:303-310,:1529)",
+      label: "Detail scrolls",
       group: "detail",
       kind: "toggle",
       prop: "panelScrollable",
@@ -495,7 +495,7 @@ export const splitViewConfig: PlaygroundConfig = {
     /* -------------------------------------------------------------- states */
     {
       id: "loading",
-      label: "Loading (:278-279,:470)",
+      label: "Loading",
       group: "states",
       kind: "toggle",
       prop: "loading",
@@ -504,7 +504,7 @@ export const splitViewConfig: PlaygroundConfig = {
     },
     {
       id: "loaderType",
-      label: "Loader (:280-281,:471)",
+      label: "Loader",
       group: "states",
       kind: "choice",
       prop: "loaderType",
@@ -515,7 +515,7 @@ export const splitViewConfig: PlaygroundConfig = {
     },
     {
       id: "loadingProgress",
-      label: "Progress value (:282-283,:957)",
+      label: "Progress value",
       group: "states",
       kind: "number",
       prop: "loadingProgress",
@@ -535,7 +535,7 @@ export const splitViewConfig: PlaygroundConfig = {
     },
     {
       id: "loadingState",
-      label: "Custom loader (:284-285,:951)",
+      label: "Custom loader",
       group: "states",
       kind: "toggle",
       prop: "loadingState",
@@ -545,7 +545,7 @@ export const splitViewConfig: PlaygroundConfig = {
     },
     {
       id: "error",
-      label: "Error state (:287-288,:966-990)",
+      label: "Error state",
       group: "states",
       kind: "toggle",
       prop: null,
@@ -562,7 +562,7 @@ export const splitViewConfig: PlaygroundConfig = {
     },
     {
       id: "errorText",
-      label: "Error message (:287,:974-978)",
+      label: "Error message",
       group: "states",
       kind: "text",
       prop: null,
@@ -573,7 +573,7 @@ export const splitViewConfig: PlaygroundConfig = {
     },
     {
       id: "onRetry",
-      label: "Retry action (:291-292,:980)",
+      label: "Retry action",
       group: "states",
       kind: "toggle",
       prop: "onRetry",

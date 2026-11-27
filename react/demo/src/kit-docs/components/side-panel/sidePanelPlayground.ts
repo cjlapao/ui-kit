@@ -122,7 +122,7 @@ export const SIDE_PANEL_SLOTS: SidePanelSlot[] = [
     id: "headerActions",
     // `[collapse] [headerActions] [headerPills] [close]` — the row the header
     // builds around the buttons it owns (:259).
-    label: "Header actions (:259)",
+    label: "Header actions",
     constName: "HEADER_ACTIONS",
     node: HEADER_ACTIONS,
     imports: ["Button"],
@@ -130,7 +130,7 @@ export const SIDE_PANEL_SLOTS: SidePanelSlot[] = [
   },
   {
     id: "headerPills",
-    label: "Header pills (:261)",
+    label: "Header pills",
     constName: "HEADER_PILLS",
     node: HEADER_PILLS,
     imports: ["Pill"],
@@ -138,7 +138,7 @@ export const SIDE_PANEL_SLOTS: SidePanelSlot[] = [
   },
   {
     id: "subHeader",
-    label: "Sub-header strip (:269)",
+    label: "Sub-header strip",
     constName: "SUB_HEADER",
     node: SUB_HEADER,
     imports: ["Button"],
@@ -146,7 +146,7 @@ export const SIDE_PANEL_SLOTS: SidePanelSlot[] = [
   },
   {
     id: "footer",
-    label: "Footer (:274)",
+    label: "Footer",
     constName: "FOOTER",
     node: FOOTER,
     imports: ["Button"],
@@ -189,7 +189,7 @@ export const sidePanelConfig: PlaygroundConfig = {
     /* ── On the board: who owns it, where it sits ───────────────────────── */
     {
       id: "side",
-      label: "Docked edge (:136,:493)",
+      label: "Docked edge",
       group: "board",
       kind: "choice",
       options: SIDE_OPTIONS,
@@ -199,7 +199,7 @@ export const sidePanelConfig: PlaygroundConfig = {
     },
     {
       id: "open",
-      label: "Open (:839)",
+      label: "Open",
       group: "board",
       kind: "toggle",
       prop: "isOpen",
@@ -219,7 +219,7 @@ export const sidePanelConfig: PlaygroundConfig = {
     },
     {
       id: "closable",
-      label: "Close affordance (:1080)",
+      label: "Close affordance",
       group: "board",
       kind: "toggle",
       prop: "onClose",
@@ -229,7 +229,7 @@ export const sidePanelConfig: PlaygroundConfig = {
     },
     {
       id: "docked",
-      label: "In the flow (:1283)",
+      label: "In the flow",
       group: "board",
       kind: "toggle",
       prop: "docked",
@@ -238,7 +238,7 @@ export const sidePanelConfig: PlaygroundConfig = {
     },
     {
       id: "overlay",
-      label: "Overlay scrim (:1162)",
+      label: "Overlay scrim",
       group: "board",
       kind: "toggle",
       prop: "overlay",
@@ -249,7 +249,7 @@ export const sidePanelConfig: PlaygroundConfig = {
     },
     {
       id: "collapsible",
-      label: "Collapsible (:702)",
+      label: "Collapsible",
       group: "board",
       kind: "toggle",
       prop: "collapsible",
@@ -258,7 +258,7 @@ export const sidePanelConfig: PlaygroundConfig = {
     },
     {
       id: "collapse",
-      label: "Collapse state (:702)",
+      label: "Collapse state",
       group: "board",
       kind: "choice",
       options: COLLAPSE_OPTIONS,
@@ -281,7 +281,7 @@ export const sidePanelConfig: PlaygroundConfig = {
     },
     {
       id: "collapseReport",
-      label: "Report collapse (:706)",
+      label: "Report collapse",
       group: "board",
       kind: "toggle",
       prop: "onCollapsedChange",
@@ -295,7 +295,7 @@ export const sidePanelConfig: PlaygroundConfig = {
     },
     {
       id: "collapsedLabel",
-      label: "Rail label (:1138)",
+      label: "Rail label",
       group: "board",
       kind: "text",
       prop: "collapsedLabel",
@@ -312,7 +312,7 @@ export const sidePanelConfig: PlaygroundConfig = {
     /* ── Surface: what it is made of ────────────────────────────────────── */
     {
       id: "variant",
-      label: "Variant (:461,:497)",
+      label: "Variant",
       group: "surface",
       kind: "choice",
       options: [...surfaceVariantOptions, ...LEGACY_VARIANT_OPTIONS],
@@ -323,7 +323,7 @@ export const sidePanelConfig: PlaygroundConfig = {
     },
     {
       id: "surfaceTone",
-      label: "Surface tone (:467)",
+      label: "Surface tone",
       group: "surface",
       kind: "choice",
       options: SURFACE_TONE_OPTIONS,
@@ -336,7 +336,7 @@ export const sidePanelConfig: PlaygroundConfig = {
     },
     {
       id: "tone",
-      label: "Handle accent (:494)",
+      label: "Handle accent",
       group: "surface",
       kind: "choice",
       options: trueColorOptions,
@@ -347,7 +347,7 @@ export const sidePanelConfig: PlaygroundConfig = {
     },
     {
       id: "size",
-      label: "Size (:468,:171-216)",
+      label: "Size",
       group: "surface",
       kind: "choice",
       options: controlSizeOptions,
@@ -357,7 +357,7 @@ export const sidePanelConfig: PlaygroundConfig = {
     },
     {
       id: "corner",
-      label: "Corner (:474,:520)",
+      label: "Corner",
       group: "surface",
       kind: "choice",
       options: panelCornerOptions,
@@ -370,7 +370,7 @@ export const sidePanelConfig: PlaygroundConfig = {
     },
     {
       id: "flush",
-      label: "Square the docked edge (:520)",
+      label: "Square the docked edge",
       group: "surface",
       kind: "toggle",
       prop: "flush",
@@ -379,7 +379,7 @@ export const sidePanelConfig: PlaygroundConfig = {
     },
     {
       id: "inset",
-      label: "Inset (:513)",
+      label: "Inset",
       group: "surface",
       kind: "choice",
       options: INSET_OPTIONS,
@@ -396,7 +396,7 @@ export const sidePanelConfig: PlaygroundConfig = {
     },
     {
       id: "noise",
-      label: "Noise layer (:546)",
+      label: "Noise layer",
       group: "surface",
       kind: "toggle",
       prop: "noise",
@@ -410,7 +410,7 @@ export const sidePanelConfig: PlaygroundConfig = {
     /* ── Size: one number, and the bounds the handle obeys ──────────────── */
     {
       id: "resizable",
-      label: "Resizable (:1195,:809-832)",
+      label: "Resizable",
       group: "geometry",
       kind: "toggle",
       prop: "resizable",
@@ -419,7 +419,7 @@ export const sidePanelConfig: PlaygroundConfig = {
     },
     {
       id: "width",
-      label: "Width px (:697)",
+      label: "Width px",
       group: "geometry",
       kind: "number",
       prop: "width",
@@ -432,7 +432,7 @@ export const sidePanelConfig: PlaygroundConfig = {
     },
     {
       id: "height",
-      label: "Height px (:698)",
+      label: "Height px",
       group: "geometry",
       kind: "number",
       prop: "height",
@@ -445,7 +445,7 @@ export const sidePanelConfig: PlaygroundConfig = {
     },
     {
       id: "minWidth",
-      label: "Min px (:827-833)",
+      label: "Min px",
       group: "geometry",
       kind: "number",
       prop: "minWidth",
@@ -458,7 +458,7 @@ export const sidePanelConfig: PlaygroundConfig = {
     },
     {
       id: "maxWidth",
-      label: "Max px (:827-833)",
+      label: "Max px",
       group: "geometry",
       kind: "number",
       prop: "maxWidth",

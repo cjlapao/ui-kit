@@ -3,12 +3,14 @@ import { Bip } from "./Bip";
 import { Bit } from "./Bit";
 import { Hex } from "./Hex";
 import { Io } from "./Io";
+import { Andy } from "./Andy";
+import { Spark } from "./Spark";
 import { getTrueColorTextClass, type ControlSize, type TrueColor } from "../../theme/Theme";
 
 export type AiRobotSize = ControlSize;
 export type AiRobotTone = TrueColor;
 export type AiRobotVariant = "outline" | "solid";
-export type AiRobotIdentity = "bop" | "bip" | "bit" | "hex" | "io";
+export type AiRobotIdentity = "bop" | "bip" | "bit" | "hex" | "io" | "andy" | "spark";
 
 const SIZES: Record<AiRobotSize, number> = { xs: 32, sm: 48, md: 64, lg: 96, xl: 128 };
 
@@ -34,7 +36,7 @@ export const AiRobot = memo(function AiRobot({ size = "md", tone = "neutral", id
   const safeSize = typeof size === "number" ? (Number.isFinite(size) && size > 0 ? size : SIZES.md) : (SIZES[size] ?? SIZES.md);
   const maskId = useId();
   return (
-    <svg viewBox={identity === "bit" ? "0 0 15 15" : (identity === "bip" || identity === "hex" || identity === "io") ? "0 0 24 24" : "0 0 64 64"} xmlns="http://www.w3.org/2000/svg" className={[getTrueColorTextClass(tone), className].filter(Boolean).join(" ")}
+    <svg viewBox={identity === "andy" ? "0 -77.5 1179 1179" : identity === "bit" ? "0 0 15 15" : (identity === "bip" || identity === "hex" || identity === "io" || identity === "spark") ? "0 0 24 24" : "0 0 64 64"} xmlns="http://www.w3.org/2000/svg" className={[getTrueColorTextClass(tone), className].filter(Boolean).join(" ")}
       role={label ? "img" : undefined} aria-label={label || undefined} aria-hidden={label ? undefined : true}
       data-paused={paused ? "true" : undefined}
       style={{ display: "inline-block", width: safeSize, height: "auto", maxWidth: "100%", verticalAlign: "middle", ...style }}>
@@ -42,6 +44,8 @@ export const AiRobot = memo(function AiRobot({ size = "md", tone = "neutral", id
         @keyframes cj-ai-robot-wave { 0%, 100% { transform: scaleY(.82); } 50% { transform: scaleY(1.08); } }
         @keyframes cj-ai-robot-mouth { 0%, 100% { transform: scaleY(.55); } 50% { transform: scaleY(1); } }
         @keyframes cj-ai-robot-bit-mouth { 0%, 100% { transform: scaleX(.75); } 50% { transform: scaleX(1); } }
+        @keyframes cj-ai-robot-spark-arm { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } }
+        @keyframes cj-ai-robot-spark-head { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } }
         @keyframes cj-ai-robot-io-mouth { 0%, 100% { transform: scaleY(.82); } 50% { transform: scaleY(1); } }
         @keyframes cj-ai-robot-antenna { 0%, 100% { transform: rotate(-5deg); } 50% { transform: rotate(5deg); } }
         @keyframes cj-ai-robot-blink { 0%, 44%, 48%, 100% { transform: scaleY(1); } 46% { transform: scaleY(.08); } }
@@ -51,10 +55,14 @@ export const AiRobot = memo(function AiRobot({ size = "md", tone = "neutral", id
         .cj-ai-robot-antenna { transform-box: fill-box; transform-origin: center bottom; animation: cj-ai-robot-antenna 3s ease-in-out infinite; }
         .cj-ai-robot-bit-mouth { transform-box: fill-box; transform-origin: center; animation: cj-ai-robot-bit-mouth 1.8s ease-in-out infinite; }
         .cj-ai-robot-io-mouth { transform-box: fill-box; transform-origin: center bottom; animation: cj-ai-robot-io-mouth 1.4s ease-in-out infinite; }
-        [data-paused="true"] .cj-ai-robot-io-mouth, [data-paused="true"] .cj-ai-robot-bit-mouth, [data-paused="true"] .cj-ai-robot-antenna, [data-paused="true"] .cj-ai-robot-wave, [data-paused="true"] .cj-ai-robot-eyes, [data-paused="true"] .cj-ai-robot-bar { animation: none; }
-        @media (prefers-reduced-motion: reduce) { .cj-ai-robot-io-mouth, .cj-ai-robot-bit-mouth, .cj-ai-robot-antenna, .cj-ai-robot-wave, .cj-ai-robot-eyes, .cj-ai-robot-bar { animation: none; } }
+        .cj-ai-robot-spark-left, .cj-ai-robot-spark-right { transform-box: view-box; animation: cj-ai-robot-spark-arm 2.6s ease-in-out infinite; }
+        .cj-ai-robot-spark-left { transform-origin: 6.8px 17.7px; }
+        .cj-ai-robot-spark-right { transform-origin: 17.2px 17.7px; animation-direction: reverse; }
+        .cj-ai-robot-spark-head { transform-box: view-box; transform-origin: 12px 10.5px; animation: cj-ai-robot-spark-head 4s ease-in-out infinite; }
+        [data-paused="true"] .cj-ai-robot-spark-head, [data-paused="true"] .cj-ai-robot-spark-left, [data-paused="true"] .cj-ai-robot-spark-right, [data-paused="true"] .cj-ai-robot-io-mouth, [data-paused="true"] .cj-ai-robot-bit-mouth, [data-paused="true"] .cj-ai-robot-antenna, [data-paused="true"] .cj-ai-robot-wave, [data-paused="true"] .cj-ai-robot-eyes, [data-paused="true"] .cj-ai-robot-bar { animation: none; }
+        @media (prefers-reduced-motion: reduce) { .cj-ai-robot-spark-head, .cj-ai-robot-spark-left, .cj-ai-robot-spark-right, .cj-ai-robot-io-mouth, .cj-ai-robot-bit-mouth, .cj-ai-robot-antenna, .cj-ai-robot-wave, .cj-ai-robot-eyes, .cj-ai-robot-bar { animation: none; } }
       `}</style>
-      {identity === "io" ? <Io variant={variant} maskId={maskId} /> : identity === "hex" ? <Hex variant={variant} maskId={maskId} /> : identity === "bit" ? <Bit variant={variant} maskId={maskId} /> : identity === "bip" ? <Bip variant={variant} maskId={maskId} /> : <>
+      {identity === "spark" ? <Spark variant={variant} maskId={maskId} /> : identity === "andy" ? <Andy variant={variant} maskId={maskId} /> : identity === "io" ? <Io variant={variant} maskId={maskId} /> : identity === "hex" ? <Hex variant={variant} maskId={maskId} /> : identity === "bit" ? <Bit variant={variant} maskId={maskId} /> : identity === "bip" ? <Bip variant={variant} maskId={maskId} /> : <>
       {variant === "solid" && <defs>
         <mask id={maskId} maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
           <rect width="64" height="64" fill="white" />

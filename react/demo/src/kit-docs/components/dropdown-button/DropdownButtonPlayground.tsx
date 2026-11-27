@@ -1,213 +1,203 @@
-import React, { useState } from "react";
-import { ColorSwatches, DropdownButton, Panel } from "@cjlapao/ui-kit";
+import React from "react";
+import { DropdownButton, I18nProvider, Panel } from "@cjlapao/ui-kit";
 import type {
   ButtonSize,
   ButtonVariant,
   DropdownButtonOption,
+  MessageCatalog,
   TrueColor,
 } from "@cjlapao/ui-kit";
+import { Playground } from "../../shared/playground/Playground";
+import { usePlayground } from "../../shared/playground/state";
+import type { PlaygroundPreviewProps } from "../../shared/playground/schema";
+import { C, Kbd } from "../../shared/A11ySections";
 import {
-  Control,
-  PlaygroundPanel,
-  SelectControl,
-  ToggleRow,
-} from "../../shared/PlaygroundPanel";
-import { ControlAccordion } from "../../shared/ControlAccordion";
-import { EventLogControl, useEventLog } from "../../shared/EventLog";
-import { Kbd } from "../../shared/A11ySections";
+  caretGlyphNote,
+  dropdownButtonCode,
+  dropdownButtonConfig,
+} from "./dropdownButtonPlayground";
 import {
-  controlSizeOptions,
-  dropdownButtonVariantOptions,
-  dropdownMenuWidthOptions,
-} from "../../shared/options";
+  DROPDOWN_ICON_DEFAULT,
+  SIZE_DEFAULT,
+  STAGE_CLASS,
+  VARIANT_DEFAULT,
+  caretCaption,
+  caretLabelValue,
+  choiceValue,
+  colorName,
+  elementCaption,
+  fixtureChoice,
+  hasItems,
+  isDisabled,
+  isFullWidth,
+  isSized,
+  isLoading,
+  isSplit,
+  isTranslated,
+  keepsEmptyCaret,
+  labelValue,
+  loadingCaption,
+  localeCaption,
+  localeValue,
+  maxWidthValue,
+  menuCaption,
+  sizeName,
+  tooltipValue,
+  variantName,
+  widthCaption,
+  widthValue,
+} from "./dropdownButtonStage";
 
-const DEPLOY_OPTIONS: DropdownButtonOption[] = [
-  {
-    label: "Deploy latest",
-    value: "latest",
-    description: "Use the newest stable build",
-  },
-  {
-    label: "Deploy canary",
-    value: "canary",
-    description: "Test the canary build in staging",
-  },
-  {
-    label: "Advanced…",
-    value: "advanced",
-    description: "Pick a specific version or channel",
-  },
-];
+/**
+ * The stage. A dropdown is two buttons and a portal, so the only honest preview
+ * is the real component with real handlers: whatever the reader sees is what the
+ * config asked for, and the Code view prints the same state.
+ */
 
-type MenuWidthChoice = "trigger" | "240" | "320";
+/** The user supplies no messages: the point is the kit's own catalog (:83,:155). */
+const NO_USER_CATALOGS: Record<string, MessageCatalog> = {};
 
-export const DropdownButtonPlayground: React.FC = () => {
-  const [variant, setVariant] =
-    useState<Exclude<ButtonVariant, "clear">>("solid");
-  const [size, setSize] = useState<ButtonSize>("md");
-  const [color, setColor] = useState<TrueColor>("blue");
-  const [menuWidth, setMenuWidth] = useState<MenuWidthChoice>("trigger");
-  const [triggerWidth, setTriggerWidth] = useState("auto");
-  const [longLabel, setLongLabel] = useState(false);
-  const [split, setSplit] = useState(true);
-  const [fullWidth, setFullWidth] = useState(false);
-  const [disabled, setDisabled] = useState(false);
-  const [emptyMenu, setEmptyMenu] = useState(false);
-  const [glassPanel, setGlassPanel] = useState(false);
-  const [log, pushLog] = useEventLog();
+/**
+ * Hand the component `undefined` rather than the value it already defaults to
+ * (:62-82), so the preview exercises the component's own default instead of a
+ * playground's opinion of it.
+ */
+const atDefault = <T extends string>(
+  raw: string,
+  documented: string,
+): T | undefined => (raw === documented ? undefined : (raw as T));
+
+const Stage: React.FC<PlaygroundPreviewProps> = ({ state, data, set }) => {
+  const items = (data.menu as DropdownButtonOption[] | undefined) ?? [];
+  const glyph = choiceValue(state, "dropdownIcon", DROPDOWN_ICON_DEFAULT);
+  const clickReport =
+    typeof state.clickReport === "string" ? state.clickReport : "";
+  const pickReport = typeof state.pickReport === "string" ? state.pickReport : "";
+
+  const control = (
+    <DropdownButton
+      label={labelValue(state)}
+      options={items}
+      variant={atDefault<Exclude<ButtonVariant, "clear">>(
+        variantName(state),
+        VARIANT_DEFAULT,
+      )}
+      color={colorName(state) as TrueColor}
+      size={atDefault<ButtonSize>(sizeName(state), SIZE_DEFAULT)}
+      dropdownIcon={glyph === DROPDOWN_ICON_DEFAULT ? undefined : glyph}
+      caretLabel={caretLabelValue(state) || undefined}
+      split={isSplit(state) ? undefined : false}
+      fullWidth={isFullWidth(state) ? true : undefined}
+      disabled={isDisabled(state) ? true : undefined}
+      loading={isLoading(state) ? true : undefined}
+      width={widthValue(state)}
+      maxWidth={maxWidthValue(state)}
+      hideDropdownTriggerWhenEmpty={
+        keepsEmptyCaret(state) ? false : undefined
+      }
+      tooltip={tooltipValue(state) || undefined}
+      menuWidth={
+        choiceValue(state, "menuWidth", "220") === "trigger"
+          ? "trigger"
+          : Number(choiceValue(state, "menuWidth", "220"))
+      }
+      onPrimaryClick={
+        state.onPrimaryClick === true
+          ? () => set("clickReport", "the primary action fired")
+          : undefined
+      }
+      onOptionSelect={
+        state.onOptionSelect === true && hasItems(state)
+          ? (option) =>
+              set("pickReport", `picked “${String(option.label)}” (${option.value})`)
+          : undefined
+      }
+    />
+  );
+
+  const body = (
+    <Panel variant="elevated" padding="md">
+      {control}
+    </Panel>
+  );
 
   return (
-    <PlaygroundPanel
-      controls={
-        <div className="space-y-3">
-          <ControlAccordion
-            groups={[
-              {
-                id: "core",
-                title: "Core",
-                controls: (
-                  <>
-                    <SelectControl
-                      label="Variant"
-                      options={dropdownButtonVariantOptions}
-                      value={variant}
-                      onChange={(v) =>
-                        setVariant(v as Exclude<ButtonVariant, "clear">)
-                      }
-                    />
-                    <SelectControl
-                      label="Size"
-                      options={controlSizeOptions}
-                      value={size}
-                      onChange={(v) => setSize(v as ButtonSize)}
-                    />
-                    {/* Colour is a palette, not a dropdown of colour names. */}
-                    <Control label="Tone">
-                      <ColorSwatches
-                        selectable
-                        size="sm"
-                        value={color}
-                        onSelect={setColor}
-                        defaultExpanded
-                      />
-                    </Control>
-                  </>
-                ),
-              },
-              {
-                id: "layout",
-                title: "Layout",
-                controls: (
-                  <>
-                    <SelectControl
-                      label="Menu width"
-                      options={dropdownMenuWidthOptions}
-                      value={menuWidth}
-                      onChange={(v) => setMenuWidth(v as MenuWidthChoice)}
-                    />
-                    <SelectControl
-                      label="Trigger width"
-                      options={[
-                        { value: "auto", label: "Auto (content)" },
-                        { value: "160", label: "160 px" },
-                        { value: "220", label: "220 px" },
-                        { value: "fill", label: "100% of the row" },
-                      ]}
-                      value={triggerWidth}
-                      onChange={setTriggerWidth}
-                    />
-                    <p className="px-1 text-[11px] leading-snug text-neutral-500">
-                      A pinned width covers main button <em>and</em> caret — the
-                      caret keeps its room, the label takes the ellipsis. Flip on{" "}
-                      <strong>Long label</strong> to see it.
-                    </p>
-                    <div className="grid grid-cols-2 gap-2">
-                      <ToggleRow
-                        label="Long label"
-                        checked={longLabel}
-                        onChange={setLongLabel}
-                      />
-                      <ToggleRow
-                        label="Split trigger"
-                        checked={split}
-                        onChange={setSplit}
-                      />
-                      <ToggleRow
-                        label="Full width"
-                        checked={fullWidth}
-                        onChange={setFullWidth}
-                      />
-                      <ToggleRow
-                        label="Disabled"
-                        checked={disabled}
-                        onChange={setDisabled}
-                      />
-                      <ToggleRow
-                        label="Empty menu"
-                        checked={emptyMenu}
-                        onChange={setEmptyMenu}
-                      />
-                      <ToggleRow
-                        label="Glass panel"
-                        checked={glassPanel}
-                        onChange={setGlassPanel}
-                      />
-                    </div>
-                  </>
-                ),
-              },
-            ]}
-          />
-          <EventLogControl
-            log={log}
-            emptyText="No events yet — press the button or pick a menu option."
-          />
-          <p className="text-xs opacity-70">
-            <strong>Split trigger</strong> gives the caret its own button width;
-            without it the caret collapses into a compact trigger. An empty menu
-            hides the caret entirely, so the control renders as a plain button.
-            The primary button fires the action; the caret opens
-            <code> role=menu</code> — <Kbd>ArrowUp</Kbd>/<Kbd>ArrowDown</Kbd>{" "}
-            walk its items (skipping disabled ones), <Kbd>Home</Kbd>/
-            <Kbd>End</Kbd> jump, <Kbd>Escape</Kbd> closes and hands focus back
-            to the caret. The caret itself is named through the kit catalogs;
-            override it with <code>caretLabel</code> when &ldquo;Deploy
-            options&rdquo; beats &ldquo;Toggle dropdown menu&rdquo;.
-          </p>
-        </div>
-      }
-      preview={
-        <div className="flex w-full flex-col gap-3">
-          <Panel variant={glassPanel ? "glass" : "elevated"} padding="md">
-            <DropdownButton
-              label={
-                longLabel
-                  ? "Deploy to the production cluster"
-                  : "Deploy"
-              }
-              options={emptyMenu ? [] : DEPLOY_OPTIONS}
-              variant={variant}
-              color={color}
-              size={size}
-              disabled={disabled}
-              fullWidth={fullWidth}
-              split={split}
-              width={
-                triggerWidth === "auto"
-                  ? undefined
-                  : triggerWidth === "fill"
-                    ? "100%"
-                    : Number(triggerWidth)
-              }
-              menuWidth={
-                menuWidth === "trigger" ? "trigger" : Number(menuWidth)
-              }
-              onPrimaryClick={() => pushLog("primary action fired")}
-              onOptionSelect={(option) => pushLog(`selected "${option.value}"`)}
-            />
-          </Panel>
-        </div>
-      }
-    ></PlaygroundPanel>
+    <div className={STAGE_CLASS}>
+      {isTranslated(state) ? (
+        <I18nProvider
+          locale={localeValue(state)}
+          locales={NO_USER_CATALOGS}
+          detect={false}
+          storageKey={null}
+          updateDocument={false}
+        >
+          {body}
+        </I18nProvider>
+      ) : (
+        body
+      )}
+
+      {clickReport !== "" && (
+        <p className="text-xs text-neutral-500 dark:text-neutral-400" data-report="click">
+          {clickReport} (:104-107,:182)
+        </p>
+      )}
+      {pickReport !== "" && (
+        <p className="text-xs text-neutral-500 dark:text-neutral-400" data-report="pick">
+          {pickReport} (:97-100,:211)
+        </p>
+      )}
+
+      <div className="flex flex-col gap-1 text-xs leading-5 text-neutral-500 dark:text-neutral-400">
+        <p>{elementCaption(state)}</p>
+        <p>{caretCaption(state)}</p>
+        <p>{menuCaption(state)}</p>
+        <p>{widthCaption(state)}</p>
+        <p>{loadingCaption(state)}</p>
+        <p>{caretGlyphNote(state)}</p>
+        <p>{localeCaption(state)}</p>
+      </div>
+    </div>
   );
 };
+
+/** The paragraph the controls column ends with, written for what is on screen now. */
+const Hint: React.FC<{ state: PlaygroundPreviewProps["state"] }> = ({ state }) => (
+  <p className="text-xs opacity-70">
+    The two halves never interfere: the caret calls <C>stopPropagation</C> before it
+    toggles, so opening the menu cannot fire the action, and the primary button never
+    opens anything (:109-113). What the menu is — <C>role=&quot;menu&quot;</C> of{" "}
+    <C>role=&quot;menuitem&quot;</C>s — comes from <C>DropdownMenu</C>, which is teleported
+    to <C>document.body</C> and positioned against the caret with <C>align=&quot;end&quot;</C>{" "}
+    and <C>side=&quot;auto&quot;</C> hardcoded (:213-214): they are not props here.
+    {!hasItems(state) &&
+      " With no items the caret is hidden entirely (:117) — flip hideDropdownTriggerWhenEmpty to see the other answer, a caret that stays and is disabled (:166)."}
+    {hasItems(state) && fixtureChoice(state) === "flagged" &&
+      " The locked item is first on purpose: the menu's roving tabindex then has to start on the second row (Menu:191-192,:498)."}
+    {isSized(state)
+      ? " The inline width sits on the wrapper, so the caret keeps its room and the label takes the ellipsis (:179,:190,:200)."
+      : " Nothing is sized, so a long label widens the control — pin width to watch the truncate chain arrive (:123)."}
+    {isLoading(state) &&
+      " loading disables the primary button but not the caret: the caret reads the disabled prop, not loading (:166)."}
+    {" Press the caret, then walk the open list with "}
+    <Kbd>ArrowDown</Kbd>/<Kbd>ArrowUp</Kbd>, <Kbd>Home</Kbd>/<Kbd>End</Kbd>, and close it with{" "}
+    <Kbd>Escape</Kbd> — focus goes back to the caret (Menu:159-164,:207-219).
+  </p>
+);
+
+export const DropdownButtonPlayground: React.FC = () => {
+  const playground = usePlayground(dropdownButtonConfig);
+
+  return (
+    <Playground
+      playground={playground}
+      preview={Stage}
+      code={dropdownButtonCode}
+      filename="DropdownButtonDemo.tsx"
+      hint={(state) => <Hint state={state} />}
+    />
+  );
+};
+
+export { Stage };
+export default DropdownButtonPlayground;

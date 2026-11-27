@@ -36,20 +36,43 @@ const theTrack = (view: ReturnType<typeof render>): HTMLElement => {
   return node;
 };
 
+/**
+ * The controls column prints a field label in a `<span>`, and an accordion
+ * group title is a `<span>` too — so a field named "Source" and a group named
+ * "Source" are otherwise interchangeable. The group title lives inside the
+ * disclosure button (`Accordion.tsx:343`, `:383`); a field label never does.
+ */
+const CONTROL_ROW =
+  'select, input, textarea, [role="switch"], [role="radiogroup"], [role="group"]';
+
+const labelBoxes = (view: ReturnType<typeof render>, label: string): HTMLElement[] =>
+  Array.from(view.container.querySelectorAll("span"))
+    .filter(
+      (node) =>
+        (node.textContent ?? "").trim() === label &&
+        !node.closest("button") &&
+        !node.closest("[aria-expanded]"),
+    )
+    .map((span) => span.parentElement)
+    .filter((box): box is HTMLElement => box !== null);
+
+/** The box holding a field's control, preferring one that actually has a control. */
+const controlBox = (
+  view: ReturnType<typeof render>,
+  label: string,
+): HTMLElement | undefined => {
+  const boxes = labelBoxes(view, label);
+  return boxes.find((box) => box.querySelector(CONTROL_ROW)) ?? boxes[0];
+};
+
 const fieldBox = (view: ReturnType<typeof render>, label: string): HTMLElement => {
-  const span = Array.from(view.container.querySelectorAll("span")).find(
-    (node) => (node.textContent ?? "").trim() === label,
-  );
-  const box = span?.parentElement;
+  const box = controlBox(view, label);
   if (!box) throw new Error(`no control labelled "${label}" in the controls`);
-  return box as HTMLElement;
+  return box;
 };
 
 const hasField = (view: ReturnType<typeof render>, label: string): boolean =>
-  Array.from(view.container.querySelectorAll("span")).some(
-    (node) => (node.textContent ?? "").trim() === label,
-  );
-
+  controlBox(view, label) !== undefined;
 /** A choice, however the chrome chose to render it: a `MultiToggle` or a `Select`. */
 const choose = (
   view: ReturnType<typeof render>,
@@ -97,26 +120,26 @@ const typeInto = (
   fireEvent.change(input, { target: { value } });
 };
 
-const VARIANT = "Variant (:200,:247-248,:3221-3227)";
-const SIZE = "Size (:198,:244)";
-const PADDING = "Padding (:199,:49-56)";
-const SIDE = "Label side (:203,:277)";
-const TONE = "Tone (:251,:252-256)";
-const LEGACY = "Use the deprecated `color` (:75,:251)";
-const FULL_WIDTH = "Full width (:206,:280)";
-const LABEL = "Label (:62,:394-410)";
-const DESCRIPTION = "Description (:63,:412-424)";
-const PLACEMENT = "Description layout (:197,:398-400)";
-const ICON_ON = "Icon when on (:78,:371-381)";
-const STARTS_ON = "Starts on (:333,:386-389)";
-const CONTROLLED = "Controlled by state (:327,:333)";
-const DISABLED = "Disabled (:208,:281,:326,:345)";
-const READ_ONLY = "Read only (:282-283,:292-294,:328-332)";
-const TOOLTIP = "Tooltip (:84,:443-448)";
-const TOOLTIP_POSITION = "Tooltip position (:86,:445)";
-const GLASS = "Glass (:91,:247-248,:273)";
-const VIBRANCY = "Vibrancy (:93,:262)";
-const SPECULAR = "Specular (:97,:263-265,:349-357)";
+const VARIANT = "Variant";
+const SIZE = "Size";
+const PADDING = "Padding";
+const SIDE = "Label side";
+const TONE = "Tone";
+const LEGACY = "Use the deprecated `color`";
+const FULL_WIDTH = "Full width";
+const LABEL = "Label";
+const DESCRIPTION = "Description";
+const PLACEMENT = "Description layout";
+const ICON_ON = "Icon when on";
+const STARTS_ON = "Starts on";
+const CONTROLLED = "Controlled by state";
+const DISABLED = "Disabled";
+const READ_ONLY = "Read only";
+const TOOLTIP = "Tooltip";
+const TOOLTIP_POSITION = "Tooltip position";
+const GLASS = "Glass";
+const VIBRANCY = "Vibrancy";
+const SPECULAR = "Specular";
 
 /** The open, ready-to-use playground. */
 const open = (): ReturnType<typeof render> => {

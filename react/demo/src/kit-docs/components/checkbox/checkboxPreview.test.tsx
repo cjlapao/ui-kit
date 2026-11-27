@@ -68,20 +68,43 @@ const theLabelSpan = (view: ReturnType<typeof render>): HTMLElement => {
   return node;
 };
 
+/**
+ * The controls column prints a field label in a `<span>`, and an accordion
+ * group title is a `<span>` too — so a field named "Source" and a group named
+ * "Source" are otherwise interchangeable. The group title lives inside the
+ * disclosure button (`Accordion.tsx:343`, `:383`); a field label never does.
+ */
+const CONTROL_ROW =
+  'select, input, textarea, [role="switch"], [role="radiogroup"], [role="group"]';
+
+const labelBoxes = (view: ReturnType<typeof render>, label: string): HTMLElement[] =>
+  Array.from(view.container.querySelectorAll("span"))
+    .filter(
+      (node) =>
+        (node.textContent ?? "").trim() === label &&
+        !node.closest("button") &&
+        !node.closest("[aria-expanded]"),
+    )
+    .map((span) => span.parentElement)
+    .filter((box): box is HTMLElement => box !== null);
+
+/** The box holding a field's control, preferring one that actually has a control. */
+const controlBox = (
+  view: ReturnType<typeof render>,
+  label: string,
+): HTMLElement | undefined => {
+  const boxes = labelBoxes(view, label);
+  return boxes.find((box) => box.querySelector(CONTROL_ROW)) ?? boxes[0];
+};
+
 const fieldBox = (view: ReturnType<typeof render>, label: string): HTMLElement => {
-  const span = Array.from(view.container.querySelectorAll("span")).find(
-    (node) => (node.textContent ?? "").trim() === label,
-  );
-  const box = span?.parentElement;
+  const box = controlBox(view, label);
   if (!box) throw new Error(`no control labelled "${label}" in the controls`);
-  return box as HTMLElement;
+  return box;
 };
 
 const hasField = (view: ReturnType<typeof render>, label: string): boolean =>
-  Array.from(view.container.querySelectorAll("span")).some(
-    (node) => (node.textContent ?? "").trim() === label,
-  );
-
+  controlBox(view, label) !== undefined;
 /** A choice, however the chrome chose to render it: a `MultiToggle` or a `Select`. */
 const choose = (
   view: ReturnType<typeof render>,
@@ -131,24 +154,24 @@ const typeInto = (
   fireEvent.change(input, { target: { value } });
 };
 
-const VARIANT = "Variant (:62,:194,:3421-3424)";
-const SIZE = "Size (:58,:193,:247)";
-const SIDE = "Box side (:77,:199,:412)";
-const TONE = "Tone (:248,:3442-3453)";
-const LEGACY = "Use the deprecated `color` (:71,:248)";
-const FULL_WIDTH = "Full width (:75,:372,:405,:414)";
-const LABEL = "Label (:52,:378-396)";
-const DESCRIPTION = "Description (:54,:346-357)";
-const PLACEMENT = "Description layout (:56,:351,:373-375)";
-const REQUIRED = "Required (:86,:294,:387-394)";
-const ARIA_LABEL = "aria-label (:215-219)";
-const VALIDATION = "Validation (:82,:308-310,:428-431)";
-const MESSAGE = "Message (:84,:422-436)";
-const INDETERMINATE = "Indeterminate (:73,:229,:292,:337)";
-const STARTS_CHECKED = "Starts checked (:295)";
-const CONTROLLED = "Controlled by state (:295)";
-const DISABLED = "Disabled (:205,:293,:319,:415)";
-const INPUT_CLASS = "inputClassName (:89,:320)";
+const VARIANT = "Variant";
+const SIZE = "Size";
+const SIDE = "Box side";
+const TONE = "Tone";
+const LEGACY = "Use the deprecated `color`";
+const FULL_WIDTH = "Full width";
+const LABEL = "Label";
+const DESCRIPTION = "Description";
+const PLACEMENT = "Description layout";
+const REQUIRED = "Required";
+const ARIA_LABEL = "aria-label";
+const VALIDATION = "Validation";
+const MESSAGE = "Message";
+const INDETERMINATE = "Indeterminate";
+const STARTS_CHECKED = "Starts checked";
+const CONTROLLED = "Controlled by state";
+const DISABLED = "Disabled";
+const INPUT_CLASS = "inputClassName";
 
 const rowClasses = (view: ReturnType<typeof render>): string =>
   theRow(view).getAttribute("class") ?? "";

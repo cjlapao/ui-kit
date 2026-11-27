@@ -28,20 +28,43 @@ const theButton = (view: ReturnType<typeof render>): HTMLButtonElement => {
  * plain `<span>`s — a `Select` carries no accessible name of its own — so the label
  * is the way in.
  */
+/**
+ * The controls column prints a field label in a `<span>`, and an accordion
+ * group title is a `<span>` too — so a field named "Source" and a group named
+ * "Source" are otherwise interchangeable. The group title lives inside the
+ * disclosure button (`Accordion.tsx:343`, `:383`); a field label never does.
+ */
+const CONTROL_ROW =
+  'select, input, textarea, [role="switch"], [role="radiogroup"], [role="group"]';
+
+const labelBoxes = (view: ReturnType<typeof render>, label: string): HTMLElement[] =>
+  Array.from(view.container.querySelectorAll("span"))
+    .filter(
+      (node) =>
+        (node.textContent ?? "").trim() === label &&
+        !node.closest("button") &&
+        !node.closest("[aria-expanded]"),
+    )
+    .map((span) => span.parentElement)
+    .filter((box): box is HTMLElement => box !== null);
+
+/** The box holding a field's control, preferring one that actually has a control. */
+const controlBox = (
+  view: ReturnType<typeof render>,
+  label: string,
+): HTMLElement | undefined => {
+  const boxes = labelBoxes(view, label);
+  return boxes.find((box) => box.querySelector(CONTROL_ROW)) ?? boxes[0];
+};
+
 const fieldBox = (view: ReturnType<typeof render>, label: string): HTMLElement => {
-  const span = Array.from(view.container.querySelectorAll("span")).find(
-    (node) => (node.textContent ?? "").trim() === label,
-  );
-  const box = span?.parentElement;
+  const box = controlBox(view, label);
   if (!box) throw new Error(`no control labelled "${label}" in the controls`);
-  return box as HTMLElement;
+  return box;
 };
 
 const hasField = (view: ReturnType<typeof render>, label: string): boolean =>
-  Array.from(view.container.querySelectorAll("span")).some(
-    (node) => (node.textContent ?? "").trim() === label,
-  );
-
+  controlBox(view, label) !== undefined;
 /** A choice, however the chrome chose to render it: a `MultiToggle` or a `Select`. */
 const choose = (
   view: ReturnType<typeof render>,
@@ -68,7 +91,7 @@ const choose = (
 
 /** Swatches are named by the tone itself, not by text. */
 const chooseSwatch = (view: ReturnType<typeof render>, tone: string): void => {
-  fireEvent.click(within(fieldBox(view, "Color (:117,:149)")).getByRole("button", { name: tone }));
+  fireEvent.click(within(fieldBox(view, "Color")).getByRole("button", { name: tone }));
 };
 
 const flip = (view: ReturnType<typeof render>, name: RegExp): void => {
@@ -86,7 +109,7 @@ const typeInto = (
 };
 
 const LABEL = "Label (children, :82,:268-273,:324)";
-const TOOLTIP = "Tooltip (:84,:330-341)";
+const TOOLTIP = "Tooltip";
 const TOOLTIP_DELAY = "Tooltip delay (ms, :91,:335)";
 
 /** The open, ready-to-use playground. */
@@ -143,7 +166,7 @@ describe("Button preview", () => {
     typeInto(view, LABEL, "");
     // The last-resort name is the catalog's, not a bare "button" (:322).
     expect(within(stage(view)).getByRole("button", { name: "Button" })).toBeTruthy();
-    typeInto(view, "aria-label (:261-263,:268-273)", ARIA_LABEL_EXAMPLE);
+    typeInto(view, "aria-label", ARIA_LABEL_EXAMPLE);
     expect(
       within(stage(view)).getByRole("button", { name: ARIA_LABEL_EXAMPLE }),
     ).toBeTruthy();
@@ -165,7 +188,7 @@ describe("Button preview", () => {
 
   it("hides the spinner and the icons it replaced from readers (:250-258,:315,:326)", () => {
     const view = open();
-    choose(view, "Trailing icon (:60,:326)", "ArrowDown");
+    choose(view, "Trailing icon", "ArrowDown");
     expect(theButton(view).querySelectorAll("svg")).toHaveLength(1);
     flip(view, /^Loading/);
     expect(theButton(view).querySelectorAll("svg")).toHaveLength(0);
@@ -196,7 +219,7 @@ describe("Button preview", () => {
 
   it("hands the colour to accentColor twice over — hover only, unless active (:180-184,:170-179)", () => {
     const view = open();
-    choose(view, "Accent color (:64,:151,:169-184)", "emerald");
+    choose(view, "Accent color", "emerald");
     expect(classes(view)).toContain("bg-blue");
     expect(classes(view)).toContain("hover:bg-emerald");
     flip(view, /^Active/);
@@ -213,13 +236,13 @@ describe("Button preview", () => {
 
   it("builds the glass surface from the glass helpers and reports it (:189-200,:309)", () => {
     const view = open();
-    choose(view, "Variant (:116,:150,:189)", "glass");
+    choose(view, "Variant", "glass");
     expect(theButton(view).getAttribute("data-glass")).toBe("true");
     expect(classes(view)).toContain("backdrop-blur");
     expect(classes(view)).toContain("relative");
     // The specular overlay is decoration, so it is not in the accessibility tree.
     expect(theButton(view).querySelector('[aria-hidden="true"][class*="pointer-events-none"]')).toBeNull();
-    choose(view, "Specular (:80,:220-235)", "Halo");
+    choose(view, "Specular", "Halo");
     expect(
       theButton(view).querySelector('[aria-hidden="true"][class*="pointer-events-none"]'),
     ).toBeTruthy();
@@ -227,18 +250,18 @@ describe("Button preview", () => {
 
   it("hides the glass knobs until there is a glass surface to tune (:193-200)", () => {
     const view = open();
-    expect(hasField(view, "Vibrancy (:76,:197)")).toBe(false);
-    expect(hasField(view, "Specular (:80,:220-235)")).toBe(false);
+    expect(hasField(view, "Vibrancy")).toBe(false);
+    expect(hasField(view, "Specular")).toBe(false);
     flip(view, /^Glass/);
-    expect(hasField(view, "Vibrancy (:76,:197)")).toBe(true);
-    choose(view, "Vibrancy (:76,:197)", "High");
+    expect(hasField(view, "Vibrancy")).toBe(true);
+    choose(view, "Vibrancy", "High");
     expect(classes(view)).toMatch(/backdrop-blur/);
   });
 
   it("paints the size, weight and width from the shared tokens (:148,:241,:243-244)", () => {
     const view = open();
-    choose(view, "Size (:118,:148,:241)", "xs");
-    choose(view, "Weight (:119,:243)", "bold");
+    choose(view, "Size", "xs");
+    choose(view, "Weight", "bold");
     flip(view, /^Full width/);
     const at = classes(view);
     expect(at).toContain("text-xs");
@@ -249,8 +272,8 @@ describe("Button preview", () => {
 
   it("tints only the glyph, and paints the label with currentColor (:286-294)", () => {
     const view = open();
-    choose(view, "Leading icon (:59,:279-295,:315)", "Search");
-    typeInto(view, "Icon color (:70,:286-294)", ICON_COLOR_EXAMPLE);
+    choose(view, "Leading icon", "Search");
+    typeInto(view, "Icon color", ICON_COLOR_EXAMPLE);
     const tinted = theButton(view).querySelector<HTMLElement>("[style*='color']");
     expect(tinted?.style.color).toBe("rgb(245, 158, 11)");
     expect(theButton(view).querySelector("svg")).toBeTruthy();
@@ -300,7 +323,7 @@ describe("Button preview", () => {
   it("submits the form the moment type says so (:303)", () => {
     const view = open();
     flip(view, /^Sit it in a form/);
-    choose(view, "type (:141,:300-303)", "submit");
+    choose(view, "type", "submit");
     fireEvent.click(theButton(view));
     expect(captions(view)).toContain("The form submitted");
   });

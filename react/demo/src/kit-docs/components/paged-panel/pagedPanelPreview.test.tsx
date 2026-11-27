@@ -99,7 +99,7 @@ describe("PagedPanelPlayground preview", () => {
     const [, next] = navButtons(view);
     fireEvent.click(next);
     expect(counter(view)!.textContent).toBe("2 / 3");
-    fireEvent.click(view.getByText("onPageChange — hear the index move (:66-67)"));
+    fireEvent.click(view.getByText("onPageChange — hear the index move"));
     fireEvent.click(next);
     expect(counter(view)!.textContent).toBe("3 / 3");
   });

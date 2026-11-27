@@ -20,11 +20,37 @@ const stage = (view: ReturnType<typeof render>): HTMLElement => {
  * captions as plain `<span>`s — a `Select` and a number box carry no accessible
  * name of their own — so the label is the way in.
  */
+/**
+ * The controls column prints a field label in a `<span>`, and an accordion
+ * group title is a `<span>` too — so a field named "Source" and a group named
+ * "Source" are otherwise interchangeable. The group title lives inside the
+ * disclosure button (`Accordion.tsx:343`, `:383`); a field label never does.
+ */
+const CONTROL_ROW =
+  'select, input, textarea, [role="switch"], [role="radiogroup"], [role="group"]';
+
+const labelBoxes = (view: ReturnType<typeof render>, label: string): HTMLElement[] =>
+  Array.from(view.container.querySelectorAll("span"))
+    .filter(
+      (node) =>
+        (node.textContent ?? "").trim() === label &&
+        !node.closest("button") &&
+        !node.closest("[aria-expanded]"),
+    )
+    .map((span) => span.parentElement)
+    .filter((box): box is HTMLElement => box !== null);
+
+/** The box holding a field's control, preferring one that actually has a control. */
+const controlBox = (
+  view: ReturnType<typeof render>,
+  label: string,
+): HTMLElement | undefined => {
+  const boxes = labelBoxes(view, label);
+  return boxes.find((box) => box.querySelector(CONTROL_ROW)) ?? boxes[0];
+};
+
 const fieldBox = (view: ReturnType<typeof render>, label: string): HTMLElement => {
-  const span = Array.from(view.container.querySelectorAll("span")).find(
-    (node) => (node.textContent ?? "").trim() === label,
-  );
-  const box = span?.parentElement;
+  const box = controlBox(view, label);
   if (!box) throw new Error(`no control labelled "${label}" in the controls`);
   return box;
 };
@@ -138,7 +164,7 @@ describe("SplitViewPlayground preview", () => {
     const view = render(<SplitViewPlayground />);
     expandAll(view);
     expect(stage(view).textContent).toContain("Gateway build 412");
-    choose(view, "Selected row (:180,:584)", "__none");
+    choose(view, "Selected row", "__none");
     expect(stage(view).textContent).toContain("No item selected");
     expect(stage(view).textContent).toContain(
       "Select an item from the list to view its details.",
@@ -149,7 +175,7 @@ describe("SplitViewPlayground preview", () => {
   it("selects nothing at all when the id it is given names a hidden row (:669)", () => {
     const view = render(<SplitViewPlayground />);
     expandAll(view);
-    choose(view, "Selected row (:180,:584)", "sidecar");
+    choose(view, "Selected row", "sidecar");
     expect(stage(view).textContent).toContain("No item selected");
     expect(stage(view).textContent).not.toContain("Sidecar build 3");
   });
@@ -195,7 +221,7 @@ describe("SplitViewPlayground preview", () => {
     const dot = row(view, "batch-runner").querySelector(".animate-pulse");
     expect(dot).toBeTruthy();
     expandAll(view);
-    flip(view, "New-item dot (:225-231,:1294)");
+    flip(view, "New-item dot");
     expect(row(view, "batch-runner").querySelector(".animate-pulse")).toBeNull();
     // The tint stays — only the dot is gated by the prop.
     expect(row(view, "batch-runner")).toBeTruthy();
@@ -204,7 +230,7 @@ describe("SplitViewPlayground preview", () => {
   it("replaces the list with an aria-hidden skeleton and says nothing (:910,:994)", () => {
     const view = render(<SplitViewPlayground />);
     expandAll(view);
-    flip(view, "Loading (:278-279,:470)");
+    flip(view, "Loading");
     expect(rows(view)).toHaveLength(0);
     expect(stage(view).querySelector('[aria-hidden="true"]')).toBeTruthy();
     expect(stage(view).querySelector("[role=status]")).toBeNull();
@@ -214,8 +240,8 @@ describe("SplitViewPlayground preview", () => {
   it("speaks the catalog when a loader covers the content (:954,:958)", () => {
     const view = render(<SplitViewPlayground />);
     expandAll(view);
-    flip(view, "Loading (:278-279,:470)");
-    choose(view, "Loader (:280-281,:471)", "spinner");
+    flip(view, "Loading");
+    choose(view, "Loader", "spinner");
     expect(stage(view).textContent).toContain("Please wait...");
     expect(stage(view).textContent).toContain("Loading...");
     // The rows are still mounted underneath an overlay — unlike the skeleton.
@@ -225,8 +251,8 @@ describe("SplitViewPlayground preview", () => {
   it("hands the loader slot to the page when asked (:951)", () => {
     const view = render(<SplitViewPlayground />);
     expandAll(view);
-    flip(view, "Loading (:278-279,:470)");
-    flip(view, "Custom loader (:284-285,:951)");
+    flip(view, "Loading");
+    flip(view, "Custom loader");
     expect(stage(view).textContent).toContain("Contacting the registry…");
     expect(stage(view).textContent).not.toContain("Please wait...");
   });
@@ -234,7 +260,7 @@ describe("SplitViewPlayground preview", () => {
   it("turns the error string into the EmptyState subtitle (:974-978)", () => {
     const view = render(<SplitViewPlayground />);
     expandAll(view);
-    flip(view, "Error state (:287-288,:966-990)");
+    flip(view, "Error state");
     expect(stage(view).textContent).toContain("Something went wrong");
     expect(stage(view).textContent).toContain("Could not reach the registry");
     // No Retry without the prop — the reader has a message and no way out (:980).
@@ -244,8 +270,8 @@ describe("SplitViewPlayground preview", () => {
   it("adds the translated Retry action and clears on click (:980)", () => {
     const view = render(<SplitViewPlayground />);
     expandAll(view);
-    flip(view, "Error state (:287-288,:966-990)");
-    flip(view, "Retry action (:291-292,:980)");
+    flip(view, "Error state");
+    flip(view, "Retry action");
     const retry = within(stage(view)).getByRole("button", { name: "Retry" });
     fireEvent.click(retry);
     expect(stage(view).textContent).not.toContain("Something went wrong");
@@ -256,7 +282,7 @@ describe("SplitViewPlayground preview", () => {
     const view = render(<SplitViewPlayground />);
     expect(searchField(view).getAttribute("placeholder")).toBe("Search...");
     expandAll(view);
-    type(view, "Search placeholder (:190,:1157)", "Find a capsule");
+    type(view, "Search placeholder", "Find a capsule");
     expect(searchField(view).getAttribute("placeholder")).toBe("Find a capsule");
   });
 
@@ -269,14 +295,14 @@ describe("SplitViewPlayground preview", () => {
     // The fallback is a hardcoded English string, not a catalog entry (:1177).
     expect(stage(view).textContent).toContain("No items found");
     expandAll(view);
-    flip(view, "Filter-empty node (:271-272,:1177)");
+    flip(view, "Filter-empty node");
     expect(stage(view).textContent).toContain("Nothing matches that filter.");
   });
 
   it("folds the list to a 48px rail that keeps only its expand button (:890-894)", () => {
     const view = render(<SplitViewPlayground />);
     expandAll(view);
-    flip(view, "Collapsible list (:236,:598-609)");
+    flip(view, "Collapsible list");
     fireEvent.click(within(stage(view)).getByRole("button", { name: "Collapse list" }));
     const rail = Array.from(stage(view).querySelectorAll("div")).find(
       (node) => node.style.width === "48px",
@@ -296,9 +322,9 @@ describe("SplitViewPlayground preview", () => {
   it("reports the fold to the host when asked to (:605-609)", () => {
     const view = render(<SplitViewPlayground />);
     expandAll(view);
-    flip(view, "Collapsible list (:236,:598-609)");
-    flip(view, "Report collapse (:243,:605-609)");
-    const collapseField = fieldBox(view, "Collapse state (:239,:600)");
+    flip(view, "Collapsible list");
+    flip(view, "Report collapse");
+    const collapseField = fieldBox(view, "Collapse state");
     const folded = within(collapseField).getByRole("radio", {
       name: "host says folded",
     });
@@ -313,7 +339,7 @@ describe("SplitViewPlayground preview", () => {
     const view = render(<SplitViewPlayground />);
     expect(stage(view).querySelector('[role="separator"]')).toBeNull();
     expandAll(view);
-    flip(view, "Draggable divider (:245,:626-635)");
+    flip(view, "Draggable divider");
     const divider = stage(view).querySelector('[role="separator"]');
     if (!divider) throw new Error("no separator in the preview");
     expect(divider.getAttribute("aria-orientation")).toBe("vertical");
@@ -335,10 +361,10 @@ describe("SplitViewPlayground preview", () => {
     const view = render(<SplitViewPlayground />);
     expandAll(view);
     expect(stage(view).textContent).toContain("api-gateway · build");
-    flip(view, "panelHeader node (:258-261,:879)");
+    flip(view, "panelHeader node");
     expect(stage(view).textContent).toContain("api-gateway · build");
     expect(stage(view).textContent).not.toContain("Registry entry");
-    flip(view, "Built-in header (:262-270,:875)");
+    flip(view, "Built-in header");
     expect(stage(view).textContent).toContain("Registry entry");
     expect(stage(view).textContent).not.toContain("api-gateway · build");
   });
@@ -348,7 +374,7 @@ describe("SplitViewPlayground preview", () => {
     expandAll(view);
     expect(stage(view).textContent).toContain("Region");
     expect(stage(view).textContent).toContain("healthy");
-    flip(view, "Header details block (:167-170,:817)");
+    flip(view, "Header details block");
     expect(stage(view).textContent).not.toContain("Region");
     expect(stage(view).textContent).not.toContain("healthy");
   });
@@ -356,12 +382,12 @@ describe("SplitViewPlayground preview", () => {
   it("replaces the catalog's no-panel placeholder when the page fills it (:1532)", () => {
     const view = render(<SplitViewPlayground />);
     expandAll(view);
-    choose(view, "Selected row (:180,:584)", "cache");
+    choose(view, "Selected row", "cache");
     // The disabled row still has a panel of its own, so the placeholder is not used.
     expect(stage(view).textContent).toContain("Cache build 12");
-    flip(view, "Detail placeholder (:275-276,:1532)");
+    flip(view, "Detail placeholder");
     expect(stage(view).textContent).toContain("Cache build 12");
-    choose(view, "Selected row (:180,:584)", "__none");
+    choose(view, "Selected row", "__none");
     expect(stage(view).textContent).toContain("Pick a capsule to see its build.");
     expect(stage(view).textContent).not.toContain("No item selected");
   });
