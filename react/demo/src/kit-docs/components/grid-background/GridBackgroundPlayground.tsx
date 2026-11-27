@@ -1,160 +1,113 @@
-import React, { useState } from "react";
+import React from "react";
 import {
-  ColorSwatches,
   GridBackground,
   Panel,
-  Slider,
   type GridBackgroundPattern,
-  type TrueColor,
 } from "@cjlapao/ui-kit";
-import { ChoiceControl, Control, PlaygroundPanel } from "../../shared/PlaygroundPanel";
-import { ControlAccordion } from "../../shared/ControlAccordion";
-import {
-  gridBackgroundFadeOptions,
-  gridBackgroundPatternOptions,
-} from "../../shared/options";
+import { Playground } from "../../shared/playground/Playground";
+import { defaultDeclarations } from "../../shared/playground/emit";
+import { usePlayground } from "../../shared/playground/state";
+import type {
+  PlaygroundCodeContext,
+  PlaygroundPreviewProps,
+} from "../../shared/playground/schema";
+import { gridBackgroundConfig } from "./gridBackgroundPlayground";
+import { Readout, STAGE_CLASS, contentFor } from "./gridBackgroundStage";
 
+/**
+ * Grid Background's playground: the config in `gridBackgroundPlayground.ts` in,
+ * the controls column, the lattice and the Code view out.
+ *
+ * The stage mounts the same values the emitter prints, and the structure —
+ * lattice beside the content, or around it — is the `position` prop the reader
+ * chose, not a layout the page invented.
+ */
 export const GridBackgroundPlayground: React.FC = () => {
-  const [pattern, setPattern] = useState<GridBackgroundPattern>("grid");
-  const [size, setSize] = useState(32);
-  const [opacity, setOpacity] = useState(20);
-  const [tone, setTone] = useState<TrueColor>("cyan");
-  const [dotSize, setDotSize] = useState(1.5);
-  const [fade, setFade] = useState<"none" | "radial" | "vertical">("radial");
-  const [fadeStart, setFadeStart] = useState(25);
-
-  const readout = [
-    pattern === "dots" ? `dots ${dotSize}px` : "grid",
-    `${size}px`,
-    `${opacity}%`,
-    fade === "none" ? "no fade" : `${fade} fade`,
-  ].join(" · ");
+  const playground = usePlayground(gridBackgroundConfig);
 
   return (
-    <PlaygroundPanel
+    <Playground
+      playground={playground}
+      preview={Stage}
       hideBackgroundToggle
-      controls={
-        <ControlAccordion
-          groups={[
-            {
-              id: "lattice",
-              title: "Lattice",
-              defaultOpen: true,
-              controls: (
-                <>
-                  <ChoiceControl
-                    label="Pattern"
-                    options={gridBackgroundPatternOptions}
-                    value={pattern}
-                    onChange={(value) => setPattern(value as GridBackgroundPattern)}
-                  />
-                  <Control label={`Spacing: ${size}px`}>
-                    <Slider
-                      ariaLabel="Lattice spacing"
-                      min={8}
-                      max={96}
-                      value={size}
-                      onChange={(value) => setSize(value as number)}
-                    />
-                  </Control>
-                  <Control label={`Opacity: ${opacity}%`}>
-                    <Slider
-                      ariaLabel="Lattice opacity"
-                      max={100}
-                      value={opacity}
-                      onChange={(value) => setOpacity(value as number)}
-                    />
-                  </Control>
-                  {/* A colour decision, so swatches rather than a list of words —
-                      the same control the Agent Map playground uses for its grid tone. */}
-                  <Control label="Tone">
-                    <ColorSwatches
-                      selectable
-                      size="sm"
-                      value={tone}
-                      onSelect={setTone}
-                      defaultExpanded
-                    />
-                  </Control>
-                </>
-              ),
-            },
-            // Conditional group: dots own their radius, lines do not.
-            ...(pattern === "dots"
-              ? [
-                  {
-                    id: "dots",
-                    title: "Dots",
-                    defaultOpen: true,
-                    controls: (
-                      <Control label={`Dot radius: ${dotSize}px`}>
-                        <Slider
-                          ariaLabel="Dot radius"
-                          min={0.5}
-                          max={8}
-                          step={0.25}
-                          value={dotSize}
-                          onChange={(value) => setDotSize(value as number)}
-                        />
-                      </Control>
-                    ),
-                  },
-                ]
-              : []),
-            {
-              id: "fade",
-              title: "Edge fade",
-              defaultOpen: true,
-              controls: (
-                <>
-                  <ChoiceControl
-                    label="Fade"
-                    options={gridBackgroundFadeOptions}
-                    value={fade}
-                    onChange={(value) =>
-                      setFade(value as "none" | "radial" | "vertical")
-                    }
-                  />
-                  {fade !== "none" && (
-                    <Control label={`Fade start: ${fadeStart}%`}>
-                      <Slider
-                        ariaLabel="Fade start"
-                        max={85}
-                        value={fadeStart}
-                        onChange={(value) => setFadeStart(value as number)}
-                      />
-                    </Control>
-                  )}
-                </>
-              ),
-            },
-          ]}
-        />
-      }
-      preview={
-        <div className="relative h-72 w-full max-w-lg overflow-hidden rounded-xl border border-neutral-200 bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-950">
-          <GridBackground
-            pattern={pattern}
-            size={size}
-            dotSize={dotSize}
-            lineColor={`var(--color-${tone}-500)`}
-            opacity={opacity / 100}
-            fade={fade}
-            fadeStart={fadeStart}
-          />
-          {/* Real content on top, so legibility is what you are judging —
-              a lattice you cannot read through is not a background. */}
-          <div className="relative flex h-full items-center justify-center p-4">
-            <Panel variant="elevated" corner="rounded-lg" padding="sm">
-              <p className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">
-                {readout}
-              </p>
-            </Panel>
-          </div>
-        </div>
-      }
+      code={gridBackgroundCode}
+      filename="GridBackground.tsx"
+      hint={(state) => (
+        <p className="text-xs text-neutral-500 dark:text-neutral-400">
+          The lattice is one tile repeated: <code>{String(state.size ?? 32)}px
+          </code>{" "}
+          cells, and both patterns sit on the same lattice, so switching between
+          lines and dots keeps every crossing where it was. The colour picker
+          opens on nothing — <code>currentColor</code> is the
+          component&apos;s default, which means the lines take the text colour of
+          whatever surrounds the box. <code>Dot radius</code> only appears while
+          the dots pattern is up, and <code>Solid centre</code> only while a fade
+          is; the component cannot see either without its partner
+          (GridBackground.tsx:43,47). Right now <code>
+          position={String(state.position ?? "absolute")}
+          </code>
+          {String(state.position ?? "absolute") === "absolute"
+            ? ", so the box fills its positioned parent and ignores its own height — and note that the root also sets pointer-events: none, which the children inherit."
+            : ", so it is a normal block: it wraps the content it is given and needs a size of its own."}
+        </p>
+      )}
     />
   );
 };
 
-export default GridBackgroundPlayground;
+/** The stage: the box, the lattice in it, the surface over it. */
+const Stage: React.FC<PlaygroundPreviewProps> = ({ state, data }) => {
+  const relative = String(state.position ?? "absolute") === "relative";
+  const content = (data.content as React.ReactElement | undefined) ?? contentFor();
+  const tone = String(state.lineColor ?? "currentColor");
+
+  return (
+    <div className="flex w-full flex-col gap-3">
+      <div className={STAGE_CLASS}>
+        <GridBackground
+          pattern={state.pattern as GridBackgroundPattern}
+          size={Number(state.size ?? 32)}
+          opacity={Number(state.opacity ?? 0.12)}
+          dotSize={Number(state.dotSize ?? 1)}
+          lineColor={tone === "currentColor" ? undefined : tone}
+          fade={state.fade as "none" | "radial" | "vertical"}
+          fadeStart={Number(state.fadeStart ?? 15)}
+          position={state.position as "absolute" | "relative"}
+        >
+          {relative ? content : undefined}
+        </GridBackground>
+        {!relative && content}
+      </div>
+      <Readout state={state} />
+    </div>
+  );
+};
+
+/**
+ * The snippet: the positioned box, the lattice, and the surface on it — printed
+ * in the arrangement the screen shows.
+ */
+export const gridBackgroundCode = ({
+  state,
+  data,
+  h,
+}: PlaygroundCodeContext): string => {
+  const relative = String(state.position ?? "absolute") === "relative";
+  const content = h.jsx(data.content, { names: { Panel } });
+  const background = relative
+    ? h.element("GridBackground", h.props(), 1, content)
+    : h.element("GridBackground", h.props(), 1);
+
+  return h.snippet({
+    imports: ["GridBackground", "Panel"],
+    decls: defaultDeclarations(gridBackgroundConfig, state, h),
+    body: h.demo(
+      h.element(
+        "div",
+        [`className=${h.lit(STAGE_CLASS)}`],
+        0,
+        relative ? background : `${background}\n${content}`,
+      ),
+    ),
+  });
+};
