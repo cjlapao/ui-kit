@@ -112,12 +112,12 @@ would print a page of plumbing; a static `ExampleCard` set is honest).
 ## Status
 
 <!-- BEGIN GENERATED TABLE — npm --prefix react/demo run audit -->
-- **143 pages** in the side menu, **11 fully done** — run `npm --prefix react/demo run audit` after every conversion to refresh this table.
-- Playground: 11 on the engine · 124 legacy `PlaygroundPanel` · 1 inline · 7 without one.
+- **143 pages** in the side menu, **12 fully done** — run `npm --prefix react/demo run audit` after every conversion to refresh this table.
+- Playground: 12 on the engine · 123 legacy `PlaygroundPanel` · 1 inline · 7 without one.
 - Standard sections: API 81 · Screen reader 68 · Keyboard 67 · i18n 65.
-- Tests: 11 pages have one · examples missing on 12 pages.
+- Tests: 12 pages have one · examples missing on 12 pages.
 
-### Layout — 9/24 done
+### Layout — 10/24 done
 
 |  | Page | Slug | Playground | Fields | API | SR | Kbd | i18n | Ex | Tests |
 |:--:|---|---|---|---|:--:|:--:|:--:|:--:|:--:|---|
@@ -130,7 +130,7 @@ would print a page of plumbing; a static `ExampleCard` set is honest).
 | ✅ | [Panel](panel/PanelPage.tsx) | `panel` | 🟢 engine | 39 fields | ✅ | ✅ | ✅ | ✅ | 9 | `panelSnippet.test.ts` |
 | ✅ | [Collapsible Help Text](collapsible-help-text/CollapsibleHelpTextPage.tsx) | `collapsible-help-text` | 🟢 engine | 19 fields | ✅ | ✅ | ✅ | ✅ | 3 | `collapsibleHelpTextSnippet.test.ts` |
 | ✅ | [Collapsible Panel](collapsible-panel/CollapsiblePanelPage.tsx) | `collapsible-panel` | 🟢 engine | 24 fields | ✅ | ✅ | ✅ | ✅ | 4 | `collapsiblePanelSnippet.test.ts` |
-| ☐ | [Accordion](accordion/AccordionPage.tsx) | `accordion` | 🟡 panel | — | ✅ | ✅ | ✅ | ✅ | 3 | — |
+| ✅ | [Accordion](accordion/AccordionPage.tsx) | `accordion` | 🟢 engine | 30 fields | ✅ | ✅ | ✅ | ✅ | 3 | `accordionSnippet.test.ts` |
 | ☐ | [App Divider](app-divider/AppDividerPage.tsx) | `app-divider` | 🟡 panel | — | ✅ | ✅ | ✅ | ✅ | 4 | — |
 | ☐ | [Code Block](code-block/CodeBlockPage.tsx) | `code-block` | 🟡 panel | — | ✅ | ✅ | ✅ | ✅ | 4 | — |
 | ☐ | [Content Actions](content-actions/ContentActionsPage.tsx) | `content-actions` | 🟡 panel | — | ✅ | ⬜ | ⬜ | ⬜ | 1 | — |
