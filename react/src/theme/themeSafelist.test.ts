@@ -7,6 +7,7 @@ import {
   getAlertVariantTokens,
   getBadgeColorClasses,
   getBreadcrumbToneTokens,
+  getButtonOpenClasses,
   getAppDividerToneTokens,
   getInputVariantTokens,
   getCollapsibleHelpToneTokens,
@@ -27,6 +28,7 @@ import {
   getSurfaceTriggerTokens,
   getSurfaceVariantClasses,
   INPUT_VARIANTS,
+  BUTTON_VARIANTS,
   SURFACE_VARIANTS,
   SURFACE_TRANSPARENCIES,
   getTabsColorTokens,
@@ -123,6 +125,14 @@ const generatedClasses = (): Set<string> => {
     // selected triple, per tone (`optionHoverTone` / `optionSelectedTone`).
     collect(getOptionRowWashClasses(tone), out);
     collect(getOptionSelectedClasses(tone), out);
+    // The paint an open popup's trigger keeps on — every variant's hover rung
+    // rewritten to `aria-expanded:`. Derived, not hand-written, which is
+    // precisely why it needs walking here: retune one hover token and the new
+    // shade must already be in the generator, or the open trigger silently
+    // paints nothing.
+    for (const variant of BUTTON_VARIANTS) {
+      collect(getButtonOpenClasses(variant, tone), out);
+    }
     for (const variant of ["solid", "soft", "outline"] as const) {
       collect(getPillColorClasses(tone, variant), out);
     }

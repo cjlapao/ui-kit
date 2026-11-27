@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import FileUpload from "./FileUpload";
+import { getButtonColorClasses } from "../../theme/Theme";
 import { ImagePreview } from "./ImagePreview";
 const png = (name = "logo.png") => new File(["image"], name, { type: "image/png" });
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
@@ -63,6 +64,26 @@ describe("FileUpload", () => {
     const file = new File(["image"], "LOGO.PNG");
     fireEvent.change(screen.getByLabelText("Choose files"), { target: {files: [file]} });
     expect(onChange).toHaveBeenCalledWith([file]);
+  });
+  it("overrides the browse action while it keeps owning the lock and the picker click", () => {
+    const onClick = vi.fn();
+    const open = vi.spyOn(HTMLInputElement.prototype, "click").mockImplementation(() => {});
+    render(<FileUpload compact tone="teal" browseButton={{ variant: "outline", color: "emerald", weight: "semibold", className: "w-full", onClick }} />);
+    const button = screen.getByRole("button", { name: "Choose files" });
+    expect(button.className).toContain(getButtonColorClasses("outline", "emerald"));
+    expect(button.className).not.toContain(getButtonColorClasses("soft", "teal"));
+    expect(button.className).toContain("font-semibold");
+    // Merged, not replaced: the compact row's shrink-0 survives the app class.
+    expect(button.className).toContain("shrink-0");
+    expect(button.className).toContain("w-full");
+    fireEvent.click(button);
+    expect(open).toHaveBeenCalled();
+    expect(onClick).toHaveBeenCalled();
+    open.mockRestore();
+  });
+  it("keeps the browse action on the panel tone until the app names a color", () => {
+    render(<FileUpload tone="teal" />);
+    expect(screen.getByRole("button", { name: "Choose files" }).className).toContain(getButtonColorClasses("soft", "teal"));
   });
   it("cleans up object URLs on replacement and unmount", async () => {
     const create = vi.fn().mockReturnValueOnce("blob:one").mockReturnValueOnce("blob:two");

@@ -8,8 +8,10 @@
    catches it from source). */
 
 /* Motion identity: FilterBar overrides these inline from its `spring` prop
-   (CONTROL_SPRING_TOKENS); the values here are the "snappy" default. */
-.kit-filter-bar { --fb-duration: 380ms; --fb-easing: ease-out; }
+   (CONTROL_SPRING_TOKENS); the values here are the "snappy" default. --fb-gap
+   is the chip row's gap, declared once because an exiting chip has to hand
+   its share of it back by the same amount. */
+.kit-filter-bar { --fb-duration: 380ms; --fb-easing: ease-out; --fb-gap: .5rem; }
 
 /* Expandable search. Collapsed = the trigger button only; the SearchBar
    stays mounted inside a zero-width window so its query survives collapse —
@@ -52,9 +54,20 @@
    rewrite — the search region's contract, widened to text fields and
    consumer slot content. The [hidden] overrides are load-bearing for the
    same reason as above: these rules set display, the UA default cannot. */
-.fb-filters { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; min-width: 0; }
+.fb-filters { display: flex; flex-wrap: wrap; align-items: center; gap: var(--fb-gap); min-width: 0; }
 .fb-filters[hidden] { display: none; }
-.fb-actions { flex: 1 1 auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: .5rem; min-width: 0; }
+/* One box for the whole action group — `stretch`, where `.fb-filters` above
+   gets `center`. Each button would otherwise keep the height its own variant
+   implies: the default outline "Add filter" carries its 1px rim inside the box
+   and the ghost "Clear all" beside it carries none, so the pair sat two heights
+   apart and the quieter action read as the smaller control. Stretch hands every
+   button the group's height, and the label stays centred because Button is
+   itself a centred flex row. The result summary opts back out with `self-center`
+   in the component: its 1px rule is a divider, not a control, and a
+   full-height one would outshout the buttons. (A glyph has no part in this any
+   more — the theme pins each control size's line box to its glyph box, so an
+   icon costs a Button width, never height.) */
+.fb-actions { flex: 1 1 auto; display: flex; flex-wrap: wrap; align-items: stretch; justify-content: flex-end; gap: .5rem; min-width: 0; }
 .fb-actions[hidden] { display: none; }
 .fb-slot { display: inline-flex; flex-wrap: wrap; align-items: center; gap: .5rem; min-width: 0; }
 .fb-slot[hidden] { display: none; }
@@ -67,9 +80,17 @@
 /* Applied filters animate as chips. This is a real layout hook, not just
    theming: FilterChips keeps a removed chip mounted for one beat
    (data-exiting="true") and the grid-column collapse is what animates it
-   out of the row; @starting-style animates the entry. */.fb-chip { display: inline-grid; grid-template-columns: 1fr; max-width: 100%; opacity: 1; transform: scale(1); transition: grid-template-columns var(--fb-duration) var(--fb-easing), opacity 150ms ease-out, transform var(--fb-duration) var(--fb-easing); }
+   out of the row; @starting-style animates the entry. */.fb-chip { display: inline-grid; grid-template-columns: 1fr; max-width: 100%; opacity: 1; transform: scale(1); transition: grid-template-columns var(--fb-duration) var(--fb-easing), opacity 150ms ease-out, transform var(--fb-duration) var(--fb-easing), margin-left var(--fb-duration) var(--fb-easing), margin-right var(--fb-duration) var(--fb-easing); }
 .fb-chip > * { min-width: 0; overflow: hidden; }
-.fb-chip[data-exiting="true"] { grid-template-columns: 0fr; opacity: 0; transform: scale(.85); pointer-events: none; }
+/* The collapsed column is 0 but the flex `gap` around the chip is not, so an
+   exiting chip still occupies one gap until FilterChips unmounts it — which
+   showed up as the row jumping a further 8px about a second after the chip had
+   already collapsed. Handing that gap back inside the same transition makes the
+   unmount geometrically a no-op. Whichever neighbour exists is the one that
+   loses the gap: a first or last chip has nothing on that side to pull in. */
+.fb-chip[data-exiting="true"] { grid-template-columns: 0fr; opacity: 0; transform: scale(.85); pointer-events: none; margin-right: calc(-1 * var(--fb-gap)); }
+.fb-chip[data-exiting="true"]:last-child { margin-right: 0; margin-left: calc(-1 * var(--fb-gap)); }
+.fb-chip[data-exiting="true"]:first-child { margin-left: 0; }
 .fb-chip[data-exiting="true"] > * { padding-left: 0; padding-right: 0; border-width: 0; }
 @starting-style { .fb-chip { opacity: 0; transform: scale(.85); grid-template-columns: 0fr; } }
 

@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="aeon-loading-title">
+  <title id="aeon-loading-title">Loading</title>
+  <defs>
+    <linearGradient id="aeon-blue" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2563EB"/>
+      <stop offset="50%" stop-color="#0284C7"/>
+      <stop offset="100%" stop-color="#38BDF8"/>
+    </linearGradient>
+    <linearGradient id="aeon-magenta" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#8B5CF6"/>
+      <stop offset="50%" stop-color="#D946EF"/>
+      <stop offset="100%" stop-color="#F43F5E"/>
+    </linearGradient>
+    <filter id="aeon-shadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="8" stdDeviation="14" flood-color="#0F172A" flood-opacity="0.08"/>
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#2563EB" flood-opacity="0.1"/>
+    </filter>
+    <style>
+      .aeon-mark { animation: aeon-cycle 4s linear infinite; }
+      .aeon-line { stroke-dasharray: 100; stroke-dashoffset: 100; animation: aeon-draw 4s linear infinite; }
+      .aeon-first-node { opacity: 0; animation: aeon-first 4s linear infinite; }
+      .aeon-second-node { opacity: 0; animation: aeon-second 4s linear infinite; }
+      .aeon-finish { opacity: 0; animation: aeon-finish 4s linear infinite; }
+      @keyframes aeon-draw { 0% { stroke-dashoffset: 100; } 70%, 100% { stroke-dashoffset: 0; } }
+      @keyframes aeon-first { 0%, 16% { opacity: 0; } 20%, 100% { opacity: 1; } }
+      @keyframes aeon-second { 0%, 50% { opacity: 0; } 54%, 100% { opacity: 1; } }
+      @keyframes aeon-finish { 0%, 68% { opacity: 0; } 72%, 100% { opacity: 1; } }
+      @keyframes aeon-cycle { 0%, 90% { opacity: 1; } 100% { opacity: 0; } }
+      @media (prefers-reduced-motion: reduce) {
+        .aeon-mark, .aeon-line, .aeon-first-node, .aeon-second-node, .aeon-finish { animation: none; }
+        .aeon-line { stroke-dashoffset: 0; }
+        .aeon-first-node, .aeon-second-node, .aeon-finish { opacity: 1; }
+      }
+    </style>
+  </defs>
+  <g class="aeon-mark">
+    <path class="aeon-finish" d="M 256,256 C 210,210 170,166 116,166 C 58,166 22,206 22,256 C 22,306 58,346 116,346 C 170,346 210,302 256,256 C 302,210 342,166 396,166 C 454,166 490,206 490,256 C 490,306 454,346 396,346 C 342,346 302,302 256,256 Z" fill="none" stroke="#EEF2F6" stroke-width="44" stroke-linecap="round" stroke-linejoin="round"/>
+    <g filter="url(#aeon-shadow)" fill="none" stroke-width="36" stroke-linecap="round" stroke-linejoin="round">
+      <path class="aeon-line" pathLength="100" d="M 256,256 C 210,302 170,346 116,346 C 58,346 22,306 22,256 C 22,206 58,166 116,166 C 170,166 210,210 256,256" stroke="url(#aeon-blue)"/>
+      <path class="aeon-line" pathLength="100" d="M 256,256 C 302,210 342,166 396,166 C 454,166 490,206 490,256 C 490,306 454,346 396,346 C 342,346 302,302 256,256" stroke="url(#aeon-magenta)"/>
+    </g>
+    <g class="aeon-first-node">
+      <circle cx="116" cy="346" r="16" fill="#FFFFFF" stroke="#2563EB" stroke-width="6"/>
+      <circle cx="116" cy="346" r="6" fill="#2563EB"/>
+      <circle cx="396" cy="166" r="16" fill="#FFFFFF" stroke="#D946EF" stroke-width="6"/>
+      <circle cx="396" cy="166" r="6" fill="#D946EF"/>
+    </g>
+    <g class="aeon-second-node">
+      <circle cx="116" cy="166" r="16" fill="#FFFFFF" stroke="#0284C7" stroke-width="6"/>
+      <circle cx="116" cy="166" r="6" fill="#0284C7"/>
+      <circle cx="396" cy="346" r="16" fill="#FFFFFF" stroke="#F43F5E" stroke-width="6"/>
+      <circle cx="396" cy="346" r="6" fill="#F43F5E"/>
+    </g>
+    <g class="aeon-finish">
+      <circle cx="256" cy="256" r="20" fill="#FFFFFF" stroke="#0F172A" stroke-width="7"/>
+      <circle cx="256" cy="256" r="8" fill="#38BDF8"/>
+    </g>
+  </g>
+</svg>

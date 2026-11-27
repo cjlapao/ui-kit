@@ -31,6 +31,13 @@ export interface MenuButtonProps
   caret?: boolean;
   /** Caret glyph. @default "ArrowDown" */
   caretIcon?: string | React.ReactElement;
+  /** How the stacked title and subtitle sit inside the trigger. The caret (and
+   * the pill) are pinned to the right edge in all three — `align` moves the
+   * copy, never the affordance that opens the menu — so a column of pickers
+   * keeps its chevrons on one line however the labels are set. Widening the
+   * trigger with `width`/`maxWidth` is what gives the setting room to read:
+   * at content width there is no spare space to align within. @default "left" */
+  align?: "left" | "center" | "right";
   /** CSS width of the trigger — a number is px, a string is any CSS length
    * (`"12rem"`, `"100%"`). Applied as an inline style on top of any `style` you
    * pass, so a column of pickers lines up on one edge: the stacked title and

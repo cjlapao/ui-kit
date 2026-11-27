@@ -551,4 +551,53 @@ describe("FilterBar", () => {
       expect(screen.getByRole("button", { name: "Provenance: any" })).toBeVisible();
     });
   });
+
+  it("moves a chip once per event: a reflow animates nothing, the exit timer replays nothing", () => {
+    // jsdom has no Element.animate and gives every element a zero rect, so both
+    // are stubbed: `lefts` is the geometry the FLIP measures and each call's
+    // keyframe is what the chip was seen travelling from. The bug this guards:
+    // the FLIP measured on *every* render, so an unrelated reflow — and the
+    // render the exit timer schedules after any chip change — replayed a slide
+    // the row had already made, ~900ms after a chip had arrived.
+    const lefts = new Map([["status", 100], ["user", 220]]);
+    const rects = Element.prototype.getBoundingClientRect;
+    const animate = vi.fn(() => null as unknown as Animation);
+    Element.prototype.animate = animate as unknown as typeof Element.prototype.animate;
+    Element.prototype.getBoundingClientRect = function () {
+      const left = (this as HTMLElement).dataset?.chip ? lefts.get((this as HTMLElement).dataset.chip!) ?? 0 : 0;
+      return { left, top: 0, right: left, bottom: 0, width: 0, height: 0, x: left, y: 0, toJSON: () => ({}) } as DOMRect;
+    };
+    try {
+      const element = () => <FilterBar filters={filters} searchProps={{ onSearch: vi.fn() }} onChange={vi.fn()} filteredCount={2} totalCount={11} itemLabel="devices" defaultValue={{ status: ["online"], user: ["carlos"] }} />;
+      vi.useFakeTimers();
+      const { rerender, container } = render(element());
+      expect(animate).not.toHaveBeenCalled();
+
+      // The row slides 48px left with nothing about the chips changed: measuring
+      // has to keep up with every frame, but a frame that changed no shape may
+      // not move anything.
+      lefts.set("status", 52); lefts.set("user", 172);
+      rerender(element());
+      expect(animate).not.toHaveBeenCalled();
+
+      // Removing a chip *is* a shape change, so the survivor slides into its
+      // slot — from the 172 the previous frame actually measured, not from the
+      // 220 it mounted at, which is what a gated *measurement* would replay.
+      lefts.set("user", 52);
+      fireEvent.click(screen.getByRole("button", { name: "Remove Status: Online filter" }));
+      expect(animate).toHaveBeenCalledTimes(1);
+      expect((animate.mock.contexts[0] as HTMLElement).dataset.chip).toBe("user");
+      expect((animate.mock.calls[0][0] as { transform: string }[])[0].transform).toBe("translateX(120px)");
+
+      // The ghost unmounts one motion later and re-renders the row: it is
+      // measured again, and measuring is not animating.
+      lefts.set("user", 40);
+      act(() => vi.advanceTimersByTime(460));
+      expect(animate).toHaveBeenCalledTimes(1);
+      expect(container.querySelectorAll("[data-chip]")).toHaveLength(1);
+    } finally {
+      Element.prototype.getBoundingClientRect = rects;
+      delete (Element.prototype as unknown as { animate?: unknown }).animate;
+    }
+  });
 });

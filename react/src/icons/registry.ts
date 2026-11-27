@@ -115,6 +115,7 @@ import { Host } from "./components/Host";
 import { Idea } from "./components/Idea";
 import { Image } from "./components/Image";
 import { Info } from "./components/Info";
+import { Install } from "./components/Install";
 import { Investigator } from "./components/Investigator";
 import { Jobs } from "./components/Jobs";
 import { KaliLinux } from "./components/KaliLinux";
@@ -363,6 +364,7 @@ export type IconName =
   | "Idea"
   | "Image"
   | "Info"
+  | "Install"
   | "Investigator"
   | "Jobs"
   | "KaliLinux"
@@ -612,6 +614,7 @@ export const iconRegistry: Record<
   Idea: Idea,
   Image: Image,
   Info: Info,
+  Install: Install,
   Investigator: Investigator,
   Jobs: Jobs,
   KaliLinux: KaliLinux,

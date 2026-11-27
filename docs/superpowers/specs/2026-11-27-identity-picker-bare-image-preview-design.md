@@ -97,6 +97,25 @@ The header's `role`/`aria-label` logic is already branched on `selected?.type ==
 and is not touched: a bare image is still an image with no decorative wrapper role, and
 `ImagePreview` supplies the accessible name.
 
+### Relation to `AvatarGroup`'s `background`
+
+The kit has already made this decision once, on the chips of `AvatarGroup`
+(`react/src/components/AvatarGroup.tsx:48`): a tone pad behind an icon, nothing behind an
+image — "the art is the content; the pad shows under transparent logos when asked for".
+So the same idea has opposite defaults in two components, which is worth stating rather
+than quietly diverging from.
+
+It stays that way on purpose, per *Share what would be a bug if it disagreed; keep what is
+deliberately different* (`Learnings.md:618`): a `background` prop on an `AvatarGroupItem`
+configures a **display** chip among other chips, where each item is one visual decision
+among a row and bare art is the resting state. This avatar is the **live preview of a
+control** — it is the thing that shows the current value while the app has none yet
+(automatic initials), and it must hold the same shape as the user flips between the three
+tabs. Tinting it is the resting state that makes an unchosen identity look settled.
+Flipping the default here to match the chip would repaint every existing usage to answer a
+question nobody asked; `AvatarGroup`'s default answers *its* consumers' question. Same
+vocabulary, different control.
+
 ### Rejected alternatives
 
 - **`previewBare?: boolean` for all three kinds** — one word, three kinds, and the glyph
@@ -114,8 +133,9 @@ and is not touched: a bare image is still an image with no decorative wrapper ro
 
 ## Testing
 
-`react/src/components/IdentityPicker/IdentityPicker.test.tsx` — three cases, driving the
-box through the `img[alt="Identity preview"]` its wrapper holds:
+`react/src/components/IdentityPicker/IdentityPicker.test.tsx` — three cases. An image value
+reaches the box through its inner `img[alt="Identity preview"]`'s `parentElement`; an emoji
+value *is* the box, since that is the element carrying `role="img"`.
 
 1. `value={{type:"image",src:"…"}}` + `bareImagePreview` → the box carries neither
    `border-neutral-200` nor the tone's `bg-…` class.
@@ -125,7 +145,8 @@ box through the `img[alt="Identity preview"]` its wrapper holds:
    gated on the value's kind, not switched on by the prop's presence.
 
 Commenting out either omission reddens 1; commenting out the `selected?.type === "image"`
-term reddens 3.
+term reddens 3. **Verified both ways**: emitting the chrome unconditionally failed case 1
+alone, and dropping the image gate from `bareImage` failed case 3 alone.
 
 ## Kit-docs
 
@@ -135,6 +156,15 @@ Per *Shipping a prop without a demo control means shipping it unreachable*
 - **Playground** (`react/demo/src/kit-docs/components/identity-picker/IdentityPickerPlayground.tsx`):
   a `ToggleRow` "Bare image preview" in the Core group, immediately after Icon size — the
   avatar's other lever — and hidden on the `fileOnly` playground, which renders no
-  preview.
+  preview. A caption under it says the lever only shows once the value is an image,
+  because the playground opens on an emoji and a toggle that appears to do nothing is the
+  failure mode `Learnings.md:797` records for demo fixtures.
+- **Example card**: "Let an image identity sit bare" renders the same persisted mark twice
+  — chrome, then bare — against `tone="blue"` so the wash it sheds is visible. The mark is
+  an inline `data:image/svg+xml` stroke-only square, the shape `avatar-group/examples/TransparentLogos.tsx`
+  already uses: no asset, no network, and its transparency is what makes the difference
+  legible.
 - **Props table** (`IdentityPickerPage.tsx`): a `bareImagePreview` row beside `iconSize`,
-  stating the image-only gate and that the emoji/monogram chrome is the card's furniture.
+  stating the image-only gate, that the corner and clipping stay, and that the gate reads
+  the value's kind rather than the active tab.
+

@@ -1,9 +1,14 @@
 import { memo, useId, type CSSProperties } from "react";
+import { Bip } from "./Bip";
+import { Bit } from "./Bit";
+import { Hex } from "./Hex";
+import { Io } from "./Io";
 import { getTrueColorTextClass, type ControlSize, type TrueColor } from "../../theme/Theme";
 
 export type AiRobotSize = ControlSize;
 export type AiRobotTone = TrueColor;
 export type AiRobotVariant = "outline" | "solid";
+export type AiRobotIdentity = "bop" | "bip" | "bit" | "hex" | "io";
 
 const SIZES: Record<AiRobotSize, number> = { xs: 32, sm: 48, md: 64, lg: 96, xl: 128 };
 
@@ -12,6 +17,8 @@ export interface AiRobotProps {
   size?: AiRobotSize | number;
   /** Color from the shared TrueColor palette. */
   tone?: AiRobotTone;
+  /** Robot character. */
+  identity?: AiRobotIdentity;
   /** Body style. */
   variant?: AiRobotVariant;
   /** Pause the wave, eyes, and mouth animation. */
@@ -23,24 +30,31 @@ export interface AiRobotProps {
 }
 
 /** A lightweight animated robot using the shared color palette. */
-export const AiRobot = memo(function AiRobot({ size = "md", tone = "neutral", variant = "outline", paused = false, label, className, style }: AiRobotProps) {
+export const AiRobot = memo(function AiRobot({ size = "md", tone = "neutral", identity = "bop", variant = "outline", paused = false, label, className, style }: AiRobotProps) {
   const safeSize = typeof size === "number" ? (Number.isFinite(size) && size > 0 ? size : SIZES.md) : (SIZES[size] ?? SIZES.md);
   const maskId = useId();
   return (
-    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" className={[getTrueColorTextClass(tone), className].filter(Boolean).join(" ")}
+    <svg viewBox={identity === "bit" ? "0 0 15 15" : (identity === "bip" || identity === "hex" || identity === "io") ? "0 0 24 24" : "0 0 64 64"} xmlns="http://www.w3.org/2000/svg" className={[getTrueColorTextClass(tone), className].filter(Boolean).join(" ")}
       role={label ? "img" : undefined} aria-label={label || undefined} aria-hidden={label ? undefined : true}
       data-paused={paused ? "true" : undefined}
       style={{ display: "inline-block", width: safeSize, height: "auto", maxWidth: "100%", verticalAlign: "middle", ...style }}>
       <style>{`
         @keyframes cj-ai-robot-wave { 0%, 100% { transform: scaleY(.82); } 50% { transform: scaleY(1.08); } }
         @keyframes cj-ai-robot-mouth { 0%, 100% { transform: scaleY(.55); } 50% { transform: scaleY(1); } }
+        @keyframes cj-ai-robot-bit-mouth { 0%, 100% { transform: scaleX(.75); } 50% { transform: scaleX(1); } }
+        @keyframes cj-ai-robot-io-mouth { 0%, 100% { transform: scaleY(.82); } 50% { transform: scaleY(1); } }
+        @keyframes cj-ai-robot-antenna { 0%, 100% { transform: rotate(-5deg); } 50% { transform: rotate(5deg); } }
         @keyframes cj-ai-robot-blink { 0%, 44%, 48%, 100% { transform: scaleY(1); } 46% { transform: scaleY(.08); } }
         .cj-ai-robot-wave { transform-box: fill-box; transform-origin: center bottom; animation: cj-ai-robot-wave 2.8s ease-in-out infinite; }
         .cj-ai-robot-eyes { transform-box: fill-box; transform-origin: center; animation: cj-ai-robot-blink 5.7s ease-in-out infinite; }
         .cj-ai-robot-bar { transform-box: fill-box; transform-origin: center; animation: cj-ai-robot-mouth 1.15s ease-in-out infinite alternate; }
-        [data-paused="true"] .cj-ai-robot-wave, [data-paused="true"] .cj-ai-robot-eyes, [data-paused="true"] .cj-ai-robot-bar { animation: none; }
-        @media (prefers-reduced-motion: reduce) { .cj-ai-robot-wave, .cj-ai-robot-eyes, .cj-ai-robot-bar { animation: none; } }
+        .cj-ai-robot-antenna { transform-box: fill-box; transform-origin: center bottom; animation: cj-ai-robot-antenna 3s ease-in-out infinite; }
+        .cj-ai-robot-bit-mouth { transform-box: fill-box; transform-origin: center; animation: cj-ai-robot-bit-mouth 1.8s ease-in-out infinite; }
+        .cj-ai-robot-io-mouth { transform-box: fill-box; transform-origin: center bottom; animation: cj-ai-robot-io-mouth 1.4s ease-in-out infinite; }
+        [data-paused="true"] .cj-ai-robot-io-mouth, [data-paused="true"] .cj-ai-robot-bit-mouth, [data-paused="true"] .cj-ai-robot-antenna, [data-paused="true"] .cj-ai-robot-wave, [data-paused="true"] .cj-ai-robot-eyes, [data-paused="true"] .cj-ai-robot-bar { animation: none; }
+        @media (prefers-reduced-motion: reduce) { .cj-ai-robot-io-mouth, .cj-ai-robot-bit-mouth, .cj-ai-robot-antenna, .cj-ai-robot-wave, .cj-ai-robot-eyes, .cj-ai-robot-bar { animation: none; } }
       `}</style>
+      {identity === "io" ? <Io variant={variant} maskId={maskId} /> : identity === "hex" ? <Hex variant={variant} maskId={maskId} /> : identity === "bit" ? <Bit variant={variant} maskId={maskId} /> : identity === "bip" ? <Bip variant={variant} maskId={maskId} /> : <>
       {variant === "solid" && <defs>
         <mask id={maskId} maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
           <rect width="64" height="64" fill="white" />
@@ -63,6 +77,7 @@ export const AiRobot = memo(function AiRobot({ size = "md", tone = "neutral", va
         ))}
         {variant === "outline" && <path d="M32 39.48c.668 0 1.295-.26 1.768-.732s.732-1.102.732-1.77s-.261-1.295-.732-1.766c-.945-.945-2.59-.945-3.535 0c-.472.471-.732 1.098-.732 1.766s.26 1.297.732 1.77s1.099.732 1.767.732m0-4c.4 0 .777.156 1.061.439a1.485 1.485 0 0 1 .231 1.811l-2.043-2.042c.227-.131.482-.208.751-.208m-1.291.749l2.024 2.024c-.569.315-1.321.261-1.794-.212a1.495 1.495 0 0 1-.439-1.063c0-.269.076-.524.209-.749" />}
       </g>
+      </>}
     </svg>
   );
 });

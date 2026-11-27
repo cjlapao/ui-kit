@@ -20,6 +20,7 @@
    ships — src/styles.contract.test.ts guards the closure. */
 @import "./components/FilterBar.css";
 @import "./components/StartupStageStepper.css";
+@import "./components/GridBackground.css";
 
 @custom-variant dark (&:where(.dark, .dark *):not(:where([data-color-scheme="light"], [data-color-scheme="light"] *)));
 

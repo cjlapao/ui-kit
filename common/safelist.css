@@ -63,6 +63,12 @@
 @source inline("hover:border-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,rose,slate,gray,zinc,neutral,stone}-200");
 @source inline("hover:border-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,rose,slate,gray,zinc,neutral,stone}-500");
 
+@source inline("aria-expanded:bg-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,rose,slate,gray,zinc,neutral,stone}-{100,800}");
+@source inline("dark:aria-expanded:bg-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,rose,slate,gray,zinc,neutral,stone}-{300,500/10,500/20}");
+@source inline("aria-expanded:text-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,rose,slate,gray,zinc,neutral,stone}-800");
+@source inline("dark:aria-expanded:text-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,rose,slate,gray,zinc,neutral,stone}-300");
+@source inline("aria-expanded:underline");
+
 @source inline("dark:bg-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,rose,slate,gray,zinc,neutral,stone}-300");
 @source inline("dark:bg-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,rose,slate,gray,zinc,neutral,stone}-400");
 @source inline("dark:bg-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,rose,slate,gray,zinc,neutral,stone}-500");

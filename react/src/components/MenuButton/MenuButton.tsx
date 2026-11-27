@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import classNames from "classnames";
 import Button from "../Button";
 import Pill from "../Pill";
 import Menu from "../Menu";
@@ -10,10 +11,25 @@ export type { MenuButtonPillConfig, MenuButtonProps } from "./types";
 const isPillConfig = (pill: React.ReactNode | MenuButtonPillConfig): pill is MenuButtonPillConfig =>
   !React.isValidElement(pill) && typeof pill === "object" && pill !== null && "label" in pill;
 
+// The pill and the caret are furniture on the right edge; the text is what
+// flexes. Wrapping a raw node keeps `shrink-0` honest for both pill forms —
+// in a flex row an unwrapped node shrinks with everything else.
 const renderPill = (pill: React.ReactNode | MenuButtonPillConfig) => {
-  if (!isPillConfig(pill)) return pill;
+  if (!isPillConfig(pill)) return <span className="inline-flex shrink-0 items-center">{pill}</span>;
   const { label, ...pillProps } = pill;
-  return <Pill size="sm" {...pillProps}>{label}</Pill>;
+  return <Pill size="sm" {...pillProps} className={classNames("shrink-0", pillProps.className)}>{label}</Pill>;
+};
+
+/**
+ * How the stacked title/subtitle sit inside the trigger. The caret and pill
+ * stay pinned to the right edge in all three — `align` moves the copy, never
+ * the affordance that opens the menu, so a right-aligned picker still has its
+ * chevron exactly where every other picker's chevron is.
+ */
+const ALIGN_CLASSES: Record<NonNullable<MenuButtonProps["align"]>, string> = {
+  left: "items-start text-left",
+  center: "items-center text-center",
+  right: "items-end text-right",
 };
 
 /**
@@ -25,6 +41,12 @@ const renderPill = (pill: React.ReactNode | MenuButtonPillConfig) => {
  *
  * Selection is one prop: `selectedKey` renders the check on the matching row
  * at any depth and echoes the selected descendant's label on its parent row.
+ *
+ * Layout: the title/subtitle column is the only flexible child, so the pill
+ * and caret hold the right edge at any `width` and `align` only moves the
+ * copy. While the popup is open the trigger keeps its hover paint (Button
+ * reads `aria-expanded`, which Menu sets) and its tooltip stands down — both
+ * for free, no prop to remember.
  */
 export function MenuButton({
   icon,
@@ -33,6 +55,7 @@ export function MenuButton({
   pill,
   caret = true,
   caretIcon = "ArrowDown",
+  align = "left",
   width,
   maxWidth,
   items,
@@ -94,7 +117,7 @@ export function MenuButton({
       leadingIcon={icon}
       trailingIcon={caret ? caretIcon : undefined}
     >
-      <span className="flex min-w-0 flex-col items-start leading-tight">
+      <span className={classNames("flex min-w-0 flex-1 flex-col leading-tight", ALIGN_CLASSES[align])}>
         <span className="w-full min-w-0 truncate font-semibold">{title}</span>
         {subtitle != null && (
           <span className="w-full min-w-0 truncate text-xs font-normal opacity-70">{subtitle}</span>

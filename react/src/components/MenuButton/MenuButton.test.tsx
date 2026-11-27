@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { fireEvent, render, screen, waitFor, act } from "@testing-library/react";
 import { MenuButton } from "./MenuButton";
+import Tooltip from "../Tooltip";
 import type { MenuItem } from "../Menu/types";
 
 const items: MenuItem[] = [
@@ -142,6 +143,125 @@ describe("MenuButton", () => {
     expect(document.querySelector('[role="tooltip"]')).not.toBeNull();
     vi.useRealTimers();
   });
+  it("keeps the open trigger painted as pressed", () => {
+    // The pointer leaves the trigger the moment the popup is up, so a ghost
+    // picker that loses its fill reads as switched off — while the menu the
+    // trigger owns is open it has to keep the hover rung. `aria-expanded` is
+    // Menu's own marker, and `data-menu-open` is the one the tooltip reads.
+    render(<MenuButton title="Model" items={items} variant="ghost" color="emerald" />);
+    const trigger = screen.getByRole("button", { name: /Model/ });
+    expect(trigger.className).not.toContain("aria-expanded:bg-emerald-100");
+    expect(trigger.hasAttribute("data-menu-open")).toBe(false);
+    fireEvent.click(trigger);
+    expect(trigger).toHaveAttribute("aria-expanded", "true");
+    expect(trigger).toHaveAttribute("data-menu-open", "");
+    expect(trigger.className).toContain("aria-expanded:bg-emerald-100");
+    expect(trigger.className).toContain("dark:aria-expanded:bg-emerald-500/10");
+    fireEvent.click(trigger);
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+    expect(trigger.hasAttribute("data-menu-open")).toBe(false);
+    expect(trigger.className).not.toContain("aria-expanded:bg-emerald-100");
+  });
+
+  describe("trigger alignment", () => {
+    it("pins the caret to the right edge and lets the copy be the flexible part", () => {
+      render(<MenuButton title="Sonnet 5.5" subtitle="openai · sonnet" width={240} items={items} />);
+      const trigger = screen.getByRole("button", { name: /Sonnet 5.5/ });
+      const column = trigger.querySelector("span")!;
+      // Without flex-1 the column shrinks to its content and Button's
+      // justify-centre parks the caret in the middle of the box, next to the
+      // text — which is the bug this prop exists to kill.
+      expect(column).toHaveClass("flex-1", "min-w-0", "items-start", "text-left");
+      const svgs = trigger.querySelectorAll("svg");
+      expect(svgs).toHaveLength(1);
+      expect(trigger.lastElementChild?.contains(svgs[0])).toBe(true);
+    });
+
+    it("center and right move the copy only — the caret never moves", () => {
+      for (const [align, classes] of [
+        ["center", ["items-center", "text-center"]],
+        ["right", ["items-end", "text-right"]],
+      ] as const) {
+        const { container, unmount } = render(
+          <MenuButton title="Sonnet 5.5" subtitle="openai · sonnet" width={240} align={align} items={items} />,
+        );
+        const trigger = container.querySelector("button")!;
+        const column = trigger.querySelector("span")!;
+        for (const cls of classes) expect(column, `${align} → ${cls}`).toHaveClass(cls);
+        const svgs = trigger.querySelectorAll("svg");
+        expect(trigger.lastElementChild?.contains(svgs[svgs.length - 1]), align).toBe(true);
+        unmount();
+      }
+    });
+
+    it("keeps the pill on the right edge beside the caret, whatever the alignment", () => {
+      render(
+        <MenuButton
+          title="Sonnet 5.5"
+          pill={{ label: "Medium", tone: "amber" }}
+          align="right"
+          width={240}
+          items={items}
+        />,
+      );
+      const trigger = screen.getByRole("button", { name: /Sonnet 5.5/ });
+      expect(trigger).toHaveTextContent("Medium");
+      // Pill before the caret, both refusing to shrink under a pinned width.
+      expect(trigger.querySelector('[class*="shrink-0"]')).not.toBeNull();
+      const svgs = trigger.querySelectorAll("svg");
+      expect(trigger.lastElementChild?.contains(svgs[svgs.length - 1])).toBe(true);
+    });
+  });
+
+  describe("tooltip and the open popup", () => {
+    it("stands a hand-wrapped Tooltip down while its menu is open", async () => {
+      // The `tooltip` prop path has its own suppression; this is the one an
+      // author wires by hand — the tip is anchored to the wrapper, so nothing
+      // ever tells it the menu opened, and the cursor never leaves the trigger
+      // to fire a mouseleave. It has to read the trigger's open state itself.
+      vi.useFakeTimers();
+      render(
+        <Tooltip text="Pick a model">
+          <MenuButton title="Model" items={items} />
+        </Tooltip>,
+      );
+      const trigger = screen.getByRole("button", { name: /Model/ });
+      fireEvent.mouseEnter(trigger.closest("div")!);
+      act(() => {
+        vi.advanceTimersByTime(1000);
+      });
+      expect(document.querySelector('[role="tooltip"]')).not.toBeNull();
+      fireEvent.click(trigger);
+      expect(screen.getByRole("menu")).toBeInTheDocument();
+      // The open marker is the trigger's; the tip comes down on the mutation.
+      await act(async () => {
+        await Promise.resolve();
+      });
+      expect(document.querySelector('[role="tooltip"]')).toBeNull();
+      vi.useRealTimers();
+    });
+
+    it("drops a tip that was still pending when the menu opened", () => {
+      // Scheduled before the click, due after it: the wait itself is not a
+      // licence to paint over the rows, so the callback asks again.
+      vi.useFakeTimers();
+      render(
+        <Tooltip text="Pick a model" delay={500}>
+          <MenuButton title="Model" items={items} />
+        </Tooltip>,
+      );
+      const trigger = screen.getByRole("button", { name: /Model/ });
+      fireEvent.mouseEnter(trigger.closest("div")!);
+      fireEvent.click(trigger);
+      expect(screen.getByRole("menu")).toBeInTheDocument();
+      act(() => {
+        vi.advanceTimersByTime(1000);
+      });
+      expect(document.querySelector('[role="tooltip"]')).toBeNull();
+      vi.useRealTimers();
+    });
+  });
+
   describe("trigger width", () => {
     it("pins the trigger and keeps the ellipsis chain intact", () => {
       render(

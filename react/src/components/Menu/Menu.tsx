@@ -36,6 +36,19 @@ interface State {
 }
 const text = (item: MenuItem) => item.textValue ?? (typeof item.label === "string" ? item.label : item.id);
 
+/**
+ * What `Menu` writes onto the element it is handed as a trigger: the
+ * disclosure semantics (`aria-expanded` doubles as the trigger's own pressed
+ * paint — `Button` derives it from the variant's hover token), the ownership
+ * marker a floating tip reads before it lets itself appear, and the
+ * pointer/keyboard hooks. A data attribute rather than a React-only prop,
+ * because a plain `<button>` trigger would paste an unknown prop onto the DOM.
+ */
+type TriggerProps = React.HTMLAttributes<HTMLElement> & {
+  ref?: React.Ref<HTMLElement>;
+  "data-menu-open"?: string;
+};
+
 /** The path from `items` down to the entry with `selectedKey`, or undefined. */
 function findSelectedBranch(items: MenuItem[] | undefined, selectedKey: string): MenuItem[] | undefined {
   for (const item of items ?? []) {
@@ -321,8 +334,15 @@ export function Menu(props: MenuProps) {
     const originalRef = Number(React.version.split(".")[0]) >= 19
       ? original.ref
       : (props.trigger as unknown as { ref?: React.Ref<HTMLElement> }).ref;
-    trigger = cloneElement(props.trigger as React.ReactElement<React.HTMLAttributes<HTMLElement> & { ref?: React.Ref<HTMLElement> }>, {
+    trigger = cloneElement(props.trigger as React.ReactElement<TriggerProps>, {
       ref: el => { triggerRef.current = el; if (typeof originalRef === "function") originalRef(el); else if (originalRef) (originalRef as React.MutableRefObject<HTMLElement | null>).current = el; },
+      // `data-menu-open` is the ownership marker a floating tip reads: a
+      // TooltipWrapper/Tooltip anchored to this element (or to a wrapper around
+      // it) pulls itself down while its own popup is up, without the author
+      // having to thread `tooltipDisabled` through the trigger. A data
+      // attribute rather than a React-only prop because the trigger may be a
+      // plain `<button>`, which would reject an unknown prop onto the DOM.
+      "data-menu-open": open ? "" : undefined,
       "aria-haspopup": "menu", "aria-expanded": open, "aria-controls": open ? `${owner}-menu` : undefined,
       onClick: event => { original.onClick?.(event); if (!event.defaultPrevented) requestOpen(!open); },
       onKeyDown: event => { original.onKeyDown?.(event); if (!event.defaultPrevented && (event.key === "ArrowDown" || event.key === "ArrowUp")) { event.preventDefault(); requestOpen(true); } },

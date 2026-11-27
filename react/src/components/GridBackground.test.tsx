@@ -25,11 +25,11 @@ describe("GridBackground", () => {
   it("drops dots on the lines' cardinal points, on the same lattice", () => {
     const { container } = render(<GridBackground size={48} pattern="dots" dotSize={2} />);
     const grid = layer(container);
-    // `at 0 0` is the alignment: each tile paints the quarter of a dot at its
-    // origin and the neighbours complete it, so a dot lands where the lines
-    // used to cross. Same backgroundSize for both patterns — switching
-    // pattern in place keeps every crossing where it was.
-    expect(grid.style.backgroundImage).toContain("radial-gradient(circle at 0 0");
+    // A full dot is centered in each tile; shifting by half a tile puts its
+    // center on the same crossing as the grid lines.
+    expect(grid.style.backgroundImage).toContain("radial-gradient(circle");
+    expect(grid.style.backgroundImage).not.toContain("at 0 0");
+    expect(grid.style.backgroundPosition).toBe("-24px -24px");
     expect(grid.style.backgroundImage).toContain("2px");
     expect(grid.style.backgroundImage).not.toContain("linear-gradient");
     expect(grid.style.backgroundSize).toBe("48px 48px");
@@ -49,5 +49,22 @@ describe("GridBackground", () => {
     const grid = layer(container);
     expect(grid.style.maskImage).toContain("linear-gradient");
     expect(grid.style.opacity).toBe("0.4");
+  });
+
+  it("adds a lattice-aligned shimmer only when enabled for dots", () => {
+    const { container, rerender } = render(<GridBackground pattern="dots" />);
+    expect(container.querySelector(".cj-grid-background-shimmer")).toBeNull();
+    rerender(<GridBackground pattern="dots" shimmer size={48} dotSize={2} fade="radial" />);
+    const grid = layer(container);
+    const shimmer = container.querySelector(".cj-grid-background-shimmer") as HTMLElement;
+    expect(shimmer.style.backgroundImage).toBe(grid.style.backgroundImage);
+    expect(shimmer.style.backgroundSize).toBe(grid.style.backgroundSize);
+    expect(shimmer.style.backgroundPosition).toBe(grid.style.backgroundPosition);
+    // The highlight must composite over the base, not inside its opacity group.
+    expect(shimmer.parentElement?.parentElement).toBe(grid.parentElement);
+    expect(shimmer.parentElement?.style.opacity).toBe("0.48");
+    expect(grid.style.maskImage).toContain("radial-gradient");
+    rerender(<GridBackground pattern="grid" shimmer />);
+    expect(container.querySelector(".cj-grid-background-shimmer")).toBeNull();
   });
 });

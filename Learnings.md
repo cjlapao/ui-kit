@@ -1954,3 +1954,196 @@ the Panel inside as a plain block. Table's toolbar menus are the reference.
   lever exists before adding one — and when a control has to be added, keep it
   off the axes the others move: `Size` is type-and-padding, width is the column,
   and the caption now says so beside both.
+
+## A labelled control's height is its tallest flex item, so the glyph — not the label — was sizing the Button (2026-11-27)
+
+- The FilterBar's ghost "Clear all" read as the smaller control next to its
+  outline "Add filter", and both were the same `Button` at the same `size`.
+  Measured in Chromium: **42 vs 46**. A labelled Button is a flex row, so its
+  height is **the tallest item plus the vertical padding** — and the shared
+  control scale hands the glyph a box one rung taller than the size's bare text
+  line (`md`: `h-6` = 24 over `text-sm`'s 20). Every control that never carries
+  an icon therefore stood 4px below its identical twin that does — at every size
+  except `xs`, where the glyph and the line already agreed, and by 8px at `xl`.
+- The fix is typographic, not a height ladder: `ControlSizeTokens.text` now
+  carries a `leading-*` **equal to that row's `icon`** (leading-4/5/6/7/8 ⇔
+  h-4/5/6/7/8), so the line box is the taller item whether or not a glyph is
+  present, and an icon costs width, never height. Rejected: a per-size
+  `min-h-[…]` ladder in the component (a second table to keep in step, and it
+  would have to guess the variant's border), dropping a labelled button's glyph
+  one rung (breaks the scale's own promise that icon dimensions are *identical
+  across controls* — IconButton's 24px glyph would stop being Button's), and
+  `height` on the button (clips a wrapping label). `Select` was already fixed
+  this way — make the line box equal to the region that centres the content —
+  which is the argument for putting it in the table rather than in `Button`.
+- The border stays. `outline`'s 1px rim lives inside its box, so a bordered
+  primary is still 2px above a borderless secondary beside it: too subtle to
+  re-cut every outline control in the kit for, and not what the row was
+  complaining about. Where the actions belong to one group, the group owns it —
+  `.fb-actions` is now `align-items: stretch` (was `center`), so each button
+  takes the group's box, and the result summary opts back out with
+  `self-center`: its 1px rule is a divider, and a full-height one outshouts the
+  buttons it follows.
+- Both halves are invisible to jsdom, which has no layout engine.
+  `Button.test.tsx` asserts the *pairing* (`leading-N` ↔ `h-N`, per size, on the
+  rendered control); `.qa/filterbar-button-height-qa.mjs` measures 30 size×variant
+  boxes in the demo and prints the Δ column. **Its first green run was a lie**:
+  the demo `@import`s `../../dist/index.css`, and the stale build contained no
+  `.leading-8` rule — four sizes looked fixed and `xl` still measured 8px apart.
+  Rebuild the stylesheet (`npx @tailwindcss/cli -i ./src/styles.css -o
+  ./dist/index.css`) before believing a layout probe; same trap as the safelist
+  guard.
+
+## A pass-through prop is only exposed if the playground can turn the knob (2026-11-27)
+
+- `FilterBar` spreads `{...searchProps}` onto `SearchBar`, so `debounceMs` and
+  `autoSearch` were reachable, typed and unit-tested since the component existed
+  (`FilterBar.test.tsx` debounces with fake timers and gates on Enter), and the
+  props table named both. What was missing was the **playground**: one inverted
+  `manual` toggle buried in the *Behavior* group, and no debounce control at all
+  — the two search timings were invisible on the one surface whose job is to show
+  them. Both now sit in the **Search** group beside the variant and the accent,
+  spelled the way `SearchBar` spells them (`Debounce (ms)` number input,
+  `Auto search` switch — the same words `SearchBarPlayground` uses), and the
+  props row carries `default: "debounceMs 400 / autoSearch true"`. Grepping the
+  prop name in the docs page is not proof of exposure; open the playground.
+- `.qa/filterbar-search-props-qa.mjs` proves the wiring, not the markup. The
+  observable is the bar's `[role=status]` summary: the playground filters its own
+  list from `onSearch`, so that text can only change **when the callback fires** —
+  set 400 → fired at 437ms, set 1500 → 1535ms, timed from the last keystroke at
+  20ms polling; `autoSearch` off reads as "typing changed nothing for 900ms,
+  Enter changed it in 159ms". A test asserting only the input's value would have
+  passed with `debounceMs` never leaving the playground.
+- Two things bite in that probe. `.fb-search` **collapses itself** when the field
+  is empty and loses focus, and focusing the debounce input *is* losing focus —
+  the field goes `inert` mid-run and every later `fill` times out, so re-open the
+  trigger before each entry. And the `Auto search` switch is an `sr-only`
+  checkbox under a styled `<span>`, so `getByRole("switch").click()` is
+  intercepted: click the `ToggleRow` `<label>`, and read state with
+  `isChecked()` — a `role="switch"` checkbox carries no `aria-checked`.
+
+## `::-webkit-scrollbar` sizes each bar along its own axis — a `w-*`-only constant left the horizontal one massive (2026-11-27)
+
+- `width` thins the *vertical* bar; the *horizontal* bar is sized by `height`.
+  `THIN_SCROLLBAR`/`THIN_SCROLLBAR_FIELD` carried only `w-1.5`, and the
+  docblock's contract that "scrollers that also scroll horizontally add their
+  own `h-*`" had exactly zero honourers. Every `overflow-auto` body that met
+  content running wide — a `Panel` over a card list, Tabs panels — grew a
+  ~15px browser-default bar wearing the kit's rounded thumb: a fat grey slab
+  under each card, which is what the report looked like. `h-1.5` is inert when
+  nothing scrolls sideways, so both axes belong in the shared constant, not in
+  a per-scroller addendum nobody writes.
+- The contract could rot precisely because its consumers re-typed the string
+  instead of importing it — the drift the constant's own comment claimed to
+  prevent. Ten scrollers in vue (Panel, Modal, InlinePanel, InfiniteScrollPanel,
+  SmartInput, SideMenu, CollapsiblePanel, ConnectionFlowSvg) and both kits'
+  HelpButton now import the constant; `@source "../../common/**/*.ts"` keeps
+  extraction working. Grep for `::-webkit-scrollbar\]:w-` without a matching
+  `h-` when auditing.
+- While there: vue `Tabs` and both `HelpButton`s still wore
+  `scrollbar-thin scrollbar-thumb-*` from the never-installed
+  `tailwind-scrollbar` (the 2026-08-21 lesson, recurring) — those bars were
+  *fully* native on both axes, and `scrollbar-width: thin` must not be added
+  alongside webkit pseudo styling, since Chrome ≥121 disables the pseudo
+  styles the moment `scrollbar-width` is non-`auto`.
+
+## `aria-expanded` is the open-state carrier a trigger already publishes — derived hover paint, structural tooltip suppression (2026-11-27)
+
+- Three `MenuButton` reports (tooltip floating over open rows, ghost trigger losing
+  its fill, caret hugging the text) all resolved to *ownership*, not styling: who
+  owns the disclosure attribute, who owns the fill while open, who owns the right
+  edge. `Menu` already publishes `aria-expanded` on whatever it is handed as a
+  trigger, so `getButtonOpenClasses` derives the open paint from the variant's own
+  hover token (`getButtonHoverClasses` with `hover:` → `aria-expanded:`) instead of
+  adding a second colour table that can drift. Tailwind v4 ships `aria-expanded:`
+  natively (compiles to `[aria-expanded="true"]`), so no CSS was authored, and
+  because the rule rides the attribute rather than component state,
+  `DropdownButton`'s caret inherits it for free. Skip the paint for `active`
+  (already owns the on-state), `accent` and glass (build their own fill).
+- The rewrite regex needs `:` in its boundary class: `/(^|\s)hover:/g` silently
+  leaves `dark:hover:bg-x-500/10` untouched — the `dark:` prefix means `hover:` is
+  preceded by a colon, not whitespace, so light mode looked right and dark mode
+  shipped nothing. `/(^|\s|:)hover:/g` keeps `group-hover:`/`peer-hover:` alone
+  (hyphen, not colon) and converts the whole chain. Unit-test the *dark* token of a
+  derived class, not just the light one.
+- A derived class is still a template literal, so it is invisible to the scanner:
+  without `@source inline("aria-expanded:bg-{…}-{100,800}")` (plus the `dark:` and
+  `text`/`underline` shapes) in `scripts/generate-safelist.mjs`, the DOM carries the
+  right class and paints nothing. `themeSafelist.test.ts` is the backstop — it only
+  runs against an existing `react/dist/index.css`, so extend the *generator*, then
+  rebuild, then let the walk tell you which shapes were missing.
+- Tooltip suppression has to be structural. `tooltipDisabled` only reaches the tip
+  the component owns; an author hand-wrapping `<Tooltip><MenuButton/></Tooltip>`
+  anchors the tip to `Tooltip`'s wrapper span, the cursor never leaves the trigger
+  so no `mouseleave` fires, and the tip sits on top of the rows it describes.
+  `Menu` now also stamps `data-menu-open` (a data attribute, so a plain `<button>`
+  trigger is not handed an unknown prop onto the DOM) and `TooltipWrapper` asks
+  `anchorsOpenSurface(anchor)` — `closest` *or* `querySelector`, which is what
+  catches the wrapped case — at the moment the delay elapses, plus a
+  `MutationObserver` on the anchor while visible. Checking only at show time leaves
+  an already-visible tip stranded; checking only with the observer lets a pending
+  timer paint over the rows.
+- `Button` centres its slots (`justify-center`), so a trigger that must pin an
+  affordance to the right edge needs a flexible copy column: the title/subtitle
+  span is now `flex-1 min-w-0` and the pill carries `shrink-0` in both its raw-node
+  and config forms. Without that, a pinned `width` parks the whole group in the
+  middle and the caret lands beside the words — which is what `align` is for; it
+  moves the copy (`items-*`/`text-*`) and never the caret.
+- Two build traps this surfaced: `cloneElement`'s props are typed against the cast
+  element's props, so a `data-*` attribute must be declared in that cast type
+  (`type TriggerProps = React.HTMLAttributes<HTMLElement> & { "data-menu-open"?: string }`)
+  or only the `tsup` **dts** build complains — vitest passes, `npm run build` fails
+  with TS2769. And the playground/demo import `../../dist/index.css`, so no CSS or
+  theme change is visible to anyone until `cd react && npm run build` has run; an
+  app that bundles Tailwind itself instead needs `common/safelist.css` plus
+  `@source` over the kit sources. In this sandbox vitest needs `TMPDIR` pointed
+  inside the workspace (`~/.cache/go-tmp` is not writable).
+
+## A chip gets one animation per event: measure every frame, animate only when the row changed shape (2026-11-27)
+
+- "The filter pills animate twice — right to left, then a second later left to
+  right" was true and measurable: a chip's entry ran `css-Transition
+  grid-template-columns dur=380` at t=5758ms, and **`waapi-flip
+  translateX(48px) → 0 dur=320` fired at t=6688ms** — the same row replaying a
+  48px slide ~930ms after the chip had already landed. Three separate faults in
+  `FilterChips` piled up to produce it, all found by hooking
+  `Element.prototype.animate` and polling `getAnimations()` on `[data-chip]`
+  (`.qa/filterbar-chips-qa.mjs`), because no amount of reading the JSX ranks
+  "which of these two systems moves this node, and when".
+- The FLIP's `useLayoutEffect` had **no dependency array**, so it also ran on the
+  render the exit timer schedules ~900ms after any chip change, comparing today's
+  geometry against positions recorded mid-transition and animating a difference
+  that had already been paid for. But simply keying the effect on the chip list
+  was wrong too, in the opposite direction: FLIP's before-state must be *the
+  previous frame*, so a measurement that skips commits leaves a stale `left`, and
+  the next real chip change bills that stale delta to an innocent neighbour (a
+  `status` chip slid 48px for a reflow the search region had done long before).
+  The contract is now **measure on every commit, animate only on a commit that
+  changed the row's shape** — ids *and* labels, since a widening label is the one
+  thing the CSS column collapse cannot animate and the only thing the FLIP is for.
+- Two layout faults hid behind it. `[...chips, ...ghosts]` **appended** the
+  still-mounting exiting chip, so removing a middle chip teleported it to the end
+  of the row and its neighbours jumped a whole frame before anything animated; the
+  merge now refreshes each slot in place and leaves a departed chip in the slot the
+  stylesheet is collapsing. And a chip whose column has collapsed to `0fr` still
+  owns **one row `gap`** until it unmounts, so the row snapped a further 8px about
+  a second after the chip had visually left — `--fb-gap` is now declared once on
+  `.kit-filter-bar` and an exiting chip hands its share back with a transitioned
+  `margin-*: calc(-1 * var(--fb-gap))`, with `:first-child` / `:last-child`
+  corrections because *whichever neighbour exists* is the one that loses the gap.
+  Unmount is then geometrically a no-op.
+- Timings came from the spring, not from luck: the FLIP hard-coded `320ms` and the
+  ghost a `900ms` timer, while the bar animates on `CONTROL_SPRING_TOKENS[spring]`.
+  `precise` *is* 320 and `gentle` *is* 900, so both constants matched some preset
+  by accident and disagreed with the default (`snappy`, 380). Both now read
+  `motion.duration` / `motion.easing`, with one named 32ms grace frame so the timer
+  never clips the collapse. `QA_REDUCED=1` checks the part that matters there: the
+  exit timer must not depend on transitions, which `prefers-reduced-motion`
+  switches off — chips still leave, nothing gets stuck.
+- Two probe traps worth keeping. Below ~1500px the docs playground's bar **wraps**,
+  and a 224px inline text field jumping between lines moves the whole chip row
+  sideways 48px — a false lead that looked exactly like chip motion until the trace
+  also printed `.fb-filters`' own children (`QA_W=1680` for a clean run). And
+  sampling every node's `getBoundingClientRect` in a loop, on top of Playwright's
+  actionability waits, sat past four minutes without printing: bound probes with
+  `timeout 200` and trace the nodes you actually care about.

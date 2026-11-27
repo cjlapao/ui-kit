@@ -221,6 +221,36 @@ function TriggerWidthExample() {
   );
 }
 
+/* ------------------------------------------------------------------ *
+ * 5. Trigger alignment — the copy moves, the affordance does not.
+ *    Same 220 px ghost trigger three ways: the text column is the
+ *    flexible child, so the caret (and the pill) stay on the right edge
+ *    in all three, and every one of them keeps its hover fill while its
+ *    menu is open.
+ * ------------------------------------------------------------------ */
+
+function TriggerAlignExample() {
+  return (
+    <div className="flex flex-wrap items-end gap-4">
+      {(["left", "center", "right"] as const).map(align => (
+        <MenuButton
+          key={align}
+          variant="ghost"
+          color="neutral"
+          icon="Brain"
+          title="Sonnet 5.5"
+          subtitle="openai · sonnet-5-5 · 200k"
+          pill={align === "right" ? { label: "Medium", tone: "amber" } : undefined}
+          align={align}
+          width={220}
+          selectedKey="sonnet-5-5"
+          items={WIDTH_ITEMS}
+        />
+      ))}
+    </div>
+  );
+}
+
 export default function MenuButtonExamples() {
   return (
     <div className="flex flex-col gap-10">
@@ -243,6 +273,11 @@ export default function MenuButtonExamples() {
         <h3 className="text-sm font-semibold">Trigger width</h3>
         <p className="text-xs text-neutral-500">A trigger pinned to 190 px, a content-sized one capped at 240 px, and one filling its 11rem column with the popup floored to the trigger. Long titles and subtitles ellipsize; the icon, pill and caret never get shoved outside the box.</p>
         <TriggerWidthExample />
+      </section>
+      <section className="flex flex-col gap-2">
+        <h3 className="text-sm font-semibold">Trigger alignment</h3>
+        <p className="text-xs text-neutral-500">The same 220 px ghost picker three ways. <code>align</code> moves the title and subtitle; the caret — and the pill on the third — stay on the right edge, because the text column is the flexible one. Open any of them: the trigger keeps its hover fill while the menu is up.</p>
+        <TriggerAlignExample />
       </section>
     </div>
   );

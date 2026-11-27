@@ -1,0 +1,30 @@
+.cj-grid-background-shimmer-base {
+  opacity: calc(var(--cj-grid-opacity) * 0.45);
+}
+
+.cj-grid-background-shimmer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  mask-image: radial-gradient(ellipse, black 0%, transparent 70%);
+  mask-size: 65% 65%;
+  mask-repeat: no-repeat;
+  animation: cj-grid-background-shimmer 8s linear infinite;
+}
+
+@keyframes cj-grid-background-shimmer {
+  0% { mask-position: -190% 50%; }
+  12.5% { mask-position: -130% 15%; }
+  25% { mask-position: -70% 0%; }
+  37.5% { mask-position: -10% 15%; }
+  50% { mask-position: 50% 50%; }
+  62.5% { mask-position: 110% 85%; }
+  75% { mask-position: 170% 100%; }
+  87.5% { mask-position: 230% 85%; }
+  100% { mask-position: 290% 50%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cj-grid-background-shimmer { display: none; }
+  .cj-grid-background-shimmer-base { opacity: var(--cj-grid-opacity); }
+}

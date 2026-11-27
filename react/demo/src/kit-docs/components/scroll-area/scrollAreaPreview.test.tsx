@@ -1,4 +1,3 @@
-import React from "react";
 import { describe, it, expect } from "vitest";
 import { fireEvent, render } from "@testing-library/react";
 import { ScrollAreaPlayground } from "./ScrollAreaPlayground";

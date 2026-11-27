@@ -23,6 +23,7 @@ import { computed, ref } from "vue";
 import classNames from "classnames";
 import Panel, { paddingStyles } from "./Panel.vue";
 import { useIconRenderer } from "../contexts/IconContext";
+import { THIN_SCROLLBAR } from "../theme/Theme";
 import { useClassAttrs } from "../utils/attrsUtils";
 import VNodeRenderer from "./internal/VNodeRenderer";
 
@@ -174,7 +175,7 @@ const contentClass = computed(() =>
     resolvedPadding.value,
     "pt-0",
     isExpanded.value && !props.fillHeight
-      ? "overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-neutral-200 dark:[&::-webkit-scrollbar-thumb]:bg-neutral-700 hover:[&::-webkit-scrollbar-thumb]:bg-neutral-300 dark:hover:[&::-webkit-scrollbar-thumb]:bg-neutral-600 [&::-webkit-scrollbar-track]:bg-transparent"
+      ? `overflow-y-auto ${THIN_SCROLLBAR}`
       : "overflow-hidden",
     props.contentClassName,
   ),

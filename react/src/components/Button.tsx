@@ -11,6 +11,7 @@ import {
   getButtonColorClasses,
   getButtonBaseClasses,
   getButtonHoverClasses,
+  getButtonOpenClasses,
   getButtonActiveClasses,
   getButtonActiveHoverClasses,
   getControlSizeTokens,
@@ -198,6 +199,24 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         )
       : null;
 
+    // The surface this control owns is open: `Menu` stamps `aria-expanded` on
+    // whatever it is handed as a trigger, and `DropdownButton` sets it on its
+    // caret. The pointer has already left for the popup — and a tip, a submenu
+    // row, a scroll of the wheel leaves it behind — so without this the ghost
+    // trigger goes cold under the very interaction that put the popup up. The
+    // fix is the variant's own hover token, held (see `getButtonOpenClasses`),
+    // not a new colour to keep in sync. `active` already owns the persistent
+    // on-state, `accent` draws its own hover, and glass builds its own fill —
+    // all three sit this out.
+    const expanded = props["aria-expanded"];
+    const openClasses =
+      (expanded === true || expanded === "true") && !active && !accent && !isGlass
+        ? getButtonOpenClasses(
+            variant,
+            !isIconMode && accentColor ? accentColor : color,
+          )
+        : null;
+
     const resolvedSpecularMode = isGlass ? specularMode : "none";
     const specularOverlay =
       resolvedSpecularMode !== "none"
@@ -220,7 +239,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       !loading && "disabled:opacity-50",
       sizeConfig.gap,
       isIconMode ? sizeConfig.iconOnly : sizeConfig.text,
-      isGlass ? accentClasses : (accentClasses ?? colorClasses),
+      isGlass ? accentClasses : (accentClasses ?? classNames(colorClasses, openClasses)),
       weightClasses[weight],
       fullWidth && "w-full",
       isGlass && "relative",

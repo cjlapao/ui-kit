@@ -440,6 +440,7 @@ import {
   type ComponentPublicInstance,
 } from "vue";
 import classNames from "classnames";
+import { THIN_SCROLLBAR } from "../theme/Theme";
 import IconButton from "./IconButton.vue";
 import CustomIcon from "./CustomIcon.vue";
 import Panel from "./Panel.vue";
@@ -652,7 +653,12 @@ const panelClass = computed(() =>
 
             <!-- ---- Content body ---- -->
             <div
-              class="px-4 py-3 overflow-y-auto max-h-[55vh] scrollbar-thin scrollbar-thumb-neutral-300 dark:scrollbar-thumb-neutral-700"
+              :class="
+                classNames(
+                  'px-4 py-3 overflow-y-auto max-h-[55vh]',
+                  THIN_SCROLLBAR,
+                )
+              "
             >
               <div v-if="loading" class="space-y-3" aria-hidden="true">
                 <span class="block h-3 w-24 animate-pulse rounded bg-black/10 dark:bg-white/10 motion-reduce:animate-none" />

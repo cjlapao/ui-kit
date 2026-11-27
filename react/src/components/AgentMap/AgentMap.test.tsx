@@ -397,6 +397,21 @@ describe("AgentMap loading", () => {
   });
 });
 
+describe("AgentMap robot identities", () => {
+  it("shows each agent's identity in the map, list, and inspector, defaulting to bop", () => {
+    const fleet: AgentMapProject[] = [{ id: "fleet", name: "Fleet", agents: [
+      { id: "bit", name: "Bit agent", status: "working", activity: "Building", identity: "bit" },
+      { id: "default", name: "Default agent", status: "idle", activity: "Waiting" },
+    ] }];
+    const { container, rerender } = render(<AgentMap projects={fleet} defaultExpandedProjectId="fleet" selectedAgentId="bit" />);
+    expect(screen.getByRole("button", { name: /Bit agent, Fleet/ }).querySelector("svg")?.getAttribute("viewBox")).toBe("0 0 15 15");
+    expect(screen.getByRole("button", { name: /Default agent, Fleet/ }).querySelector("svg")?.getAttribute("viewBox")).toBe("0 0 64 64");
+    expect(container.querySelector(".cj-agent-map__details-name svg")?.getAttribute("viewBox")).toBe("0 0 15 15");
+    rerender(<AgentMap projects={fleet} defaultExpandedProjectId="fleet" selectedAgentId="bit" expandedProjectId="fleet" narrowBelow={10000} />);
+    expect(container.querySelector(".cj-agent-map__list-avatar svg")?.getAttribute("viewBox")).toBe("0 0 15 15");
+  });
+});
+
 describe("AgentMap empty state", () => {
   it("uses the solid robot by default and the outline robot when asked", () => {
     const { rerender, container } = render(<AgentMap projects={[]} />);

@@ -3,7 +3,7 @@ import { createEmitter } from "../../shared/playground/emit";
 import { gridBackgroundConfig } from "./gridBackgroundPlayground";
 import { gridBackgroundCode } from "./GridBackgroundPlayground";
 import { GRID_BACKGROUND_PROPS } from "./GridBackgroundPage";
-import { CONTENT_TEXT, STAGE_CLASS, contentFor } from "./gridBackgroundStage";
+import { CONTENT_TEXT, STAGE_CLASS, contentFor, latticeColor } from "./gridBackgroundStage";
 import type { PlaygroundState } from "../../shared/playground/schema";
 
 /**
@@ -129,7 +129,8 @@ describe("the lattice", () => {
     // `currentColor` is the component's own default: the lines inherit the
     // surrounding text colour, and there is no colour to print.
     expect(tagOf(snippet())).not.toContain("lineColor");
-    expect(snippet({ lineColor: "cyan" })).toContain('lineColor="cyan"');
+    expect(snippet({ lineColor: "cyan" })).toContain(`lineColor="${latticeColor("cyan")}"`);
+    expect(latticeColor("amber")).toMatch(/^#[0-9a-f]{6}$/i);
     expect(snippet({ lineColor: "currentColor" })).not.toContain("lineColor=");
   });
 });

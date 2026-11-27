@@ -403,7 +403,24 @@ export type Orientation = (typeof ORIENTATIONS)[number];
  * drifting independently. It lives here once; the components import it.
  */
 export type ControlSizeTokens = {
-  /** Font size and padding of a labelled control. */
+  /**
+   * Font size, line box and padding of a labelled control.
+   *
+   * The `leading-*` is not decoration and must not be dropped: it pins the
+   * label's line box to the *same row's* `icon` box. A labelled control is a
+   * flex row and its height is the tallest item plus the vertical padding —
+   * with the bare type scale's line height the glyph is the taller item
+   * (`md`: 24 vs 20), so a Button carrying a `leadingIcon` stood 4px above an
+   * identical label-only Button beside it, and every control that never
+   * carries a glyph read as the small one in the row (the FilterBar's ghost
+   * "Clear all" beside its outline "Add filter"). Equal line box and glyph
+   * box means the presence of an icon changes the control's *width* only —
+   * which is also what `box` already promises the square family.
+   *
+   * Keep the pair in step when a size's `icon` changes: leading-4/5/6/7/8
+   * is h-4/5/6/7/8, one class per rung. `Button.test.tsx` asserts Button
+   * emits every token here, so a silent drop is a red test, not a drift.
+   */
   text: string;
   /** Padding of a square (icon-only) control. */
   iconOnly: string;
@@ -421,7 +438,7 @@ export type ControlSizeTokens = {
 
 const controlSizeTokens: Record<ControlSize, ControlSizeTokens> = {
   xs: {
-    text: "px-2 py-1 text-xs",
+    text: "px-2 py-1 text-xs leading-4",
     iconOnly: "p-1.5 text-xs",
     box: "h-7 w-7 leading-none",
     gap: "gap-1.5",
@@ -430,7 +447,7 @@ const controlSizeTokens: Record<ControlSize, ControlSizeTokens> = {
     spinnerSize: "xs",
   },
   sm: {
-    text: "px-3 py-2 text-xs",
+    text: "px-3 py-2 text-xs leading-5",
     iconOnly: "p-2 text-xs",
     box: "h-8 w-8 leading-none",
     gap: "gap-1.5",
@@ -439,7 +456,7 @@ const controlSizeTokens: Record<ControlSize, ControlSizeTokens> = {
     spinnerSize: "xs",
   },
   md: {
-    text: "px-3.5 py-2.5 text-sm",
+    text: "px-3.5 py-2.5 text-sm leading-6",
     iconOnly: "p-2.5 text-sm",
     box: "h-10 w-10 leading-none",
     gap: "gap-2",
@@ -448,7 +465,7 @@ const controlSizeTokens: Record<ControlSize, ControlSizeTokens> = {
     spinnerSize: "sm",
   },
   lg: {
-    text: "px-4 py-2.5 text-base",
+    text: "px-4 py-2.5 text-base leading-7",
     iconOnly: "p-3 text-base",
     box: "h-12 w-12 leading-none",
     gap: "gap-2.5",
@@ -457,7 +474,7 @@ const controlSizeTokens: Record<ControlSize, ControlSizeTokens> = {
     spinnerSize: "md",
   },
   xl: {
-    text: "px-5 py-3 text-base",
+    text: "px-5 py-3 text-base leading-8",
     iconOnly: "p-3.5 text-base",
     box: "h-14 w-14 leading-none",
     gap: "gap-3",
@@ -1716,16 +1733,19 @@ export const SIDE_MENU_HEADER_FILL = "bg-white dark:bg-neutral-900";
  *   popovers, inputs and bare scroll regions, where the panel-tier thumb
  *   disappears against the field.
  *
- * Scrollers that also scroll horizontally add their own
- * `[&::-webkit-scrollbar]:h-*` alongside the constant. `ScrollArea`
- * deliberately opts out — it hides the native scrollbar and paints its own
- * overlay thumb.
+ * Both axes are sized on purpose. `::-webkit-scrollbar` sizes each bar along
+ * its own extent: `width` thins the *vertical* bar, `height` the *horizontal*
+ * one — a constant carrying only `w-*` leaves a horizontal scrollbar at the
+ * browser's default ~15px, a fat grey bar under any `overflow-auto` body
+ * whose content runs wide. `h-1.5` is inert where nothing scrolls sideways,
+ * so every scroller takes the pair. `ScrollArea` deliberately opts out — it
+ * hides the native scrollbar and paints its own overlay thumb.
  */
 export const THIN_SCROLLBAR =
-  "[&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-neutral-200 dark:[&::-webkit-scrollbar-thumb]:bg-neutral-700 hover:[&::-webkit-scrollbar-thumb]:bg-neutral-300 dark:hover:[&::-webkit-scrollbar-thumb]:bg-neutral-600 [&::-webkit-scrollbar-track]:bg-transparent";
+  "[&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-neutral-200 dark:[&::-webkit-scrollbar-thumb]:bg-neutral-700 hover:[&::-webkit-scrollbar-thumb]:bg-neutral-300 dark:hover:[&::-webkit-scrollbar-thumb]:bg-neutral-600 [&::-webkit-scrollbar-track]:bg-transparent";
 
 export const THIN_SCROLLBAR_FIELD =
-  "[&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-neutral-300 dark:[&::-webkit-scrollbar-thumb]:bg-neutral-600 hover:[&::-webkit-scrollbar-thumb]:bg-neutral-400 dark:hover:[&::-webkit-scrollbar-thumb]:bg-neutral-500 [&::-webkit-scrollbar-track]:bg-transparent";
+  "[&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-neutral-300 dark:[&::-webkit-scrollbar-thumb]:bg-neutral-600 hover:[&::-webkit-scrollbar-thumb]:bg-neutral-400 dark:hover:[&::-webkit-scrollbar-thumb]:bg-neutral-500 [&::-webkit-scrollbar-track]:bg-transparent";
 
 /**
  * The wash a row inside a popup wears — under the pointer, and under the keyboard
@@ -3085,6 +3105,34 @@ export const getButtonBaseClasses = (
     .filter((cls) => !cls.includes("hover:"))
     .join(" ");
 };
+
+/**
+ * The paint a control keeps on while the surface it owns is open — the ghost
+ * trigger of a `Menu` whose fill has to survive the pointer moving into the
+ * popup, so the trigger reads as held rather than cold again.
+ *
+ * It is the variant's own hover token with `hover:` rewritten to
+ * `aria-expanded:`, never a second table: the open state *is* the affordance
+ * the pointer was already answering, held. Deriving it is what keeps ghost,
+ * soft, outline, solid, link and icon in step whenever a hover recipe moves —
+ * a hand-written twin drifts the first time someone retunes one side.
+ *
+ * `aria-expanded` rather than a kit-private attribute because `Menu` already
+ * publishes it on whatever it is handed as a trigger, so every disclosure
+ * reads pressed with no prop for the caller to remember. Tailwind compiles
+ * `aria-expanded:` to `[aria-expanded="true"]`, so the closed trigger paints
+ * nothing; only the whole-token rewrite runs, which is what leaves a
+ * hypothetical `group-hover:` alone.
+ */
+export const getButtonOpenClasses = (
+  variant: ButtonVariant,
+  color: TrueColor,
+): string =>
+  // Whole-token rewrite: `hover:` at the head of a class or after a variant
+  // separator (`dark:hover:` → `dark:aria-expanded:`), which is what leaves a
+  // hypothetical `group-hover:`/`peer-hover:` alone — those are preceded by a
+  // hyphen, not by nothing or a colon.
+  getButtonHoverClasses(variant, color).replace(/(^|\s|:)hover:/g, "$1aria-expanded:");
 
 /**
  * The `ButtonVariant`s that read as a slider.

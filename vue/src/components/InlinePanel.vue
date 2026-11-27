@@ -17,6 +17,7 @@ import Button from "./Button.vue";
 import type { ButtonProps, ButtonVariant, ButtonColor } from "./Button.vue";
 import type { ModalFocusTarget } from "./Modal.vue";
 import type { Size } from "../theme";
+import { THIN_SCROLLBAR } from "../theme/Theme";
 import { type IconName } from "../icons/registry";
 
 // Resolve the main InlinePanel component by name at render time.
@@ -735,7 +736,7 @@ const headerActionBindings = (action: InlinePanelHeaderAction) => {
           :class="
             classNames(
               'relative flex-1 min-h-0 overflow-y-auto px-6 py-5',
-              '[&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-neutral-200 dark:[&::-webkit-scrollbar-thumb]:bg-neutral-700',
+              THIN_SCROLLBAR,
               bodyClassName,
               loading && 'pointer-events-none',
             )

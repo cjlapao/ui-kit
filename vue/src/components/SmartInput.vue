@@ -5,6 +5,7 @@ import type {
   SmartVariableResolver,
 } from "../types/Variables";
 import type { InputVariant, TrueColor } from "../theme/Theme";
+import { THIN_SCROLLBAR_FIELD } from "../theme/Theme";
 import type { SmartViewMode } from "./SmartVariableBadge.vue";
 
 /** `Input`'s three-step scale, so the two line up when stacked. */
@@ -60,8 +61,7 @@ const SIZE_STYLES: Record<
 /** Distance from the viewport edge at which the picker flips above the field. */
 const PICKER_HEIGHT = 420;
 
-const SCROLLBAR =
-  "pr-2 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-neutral-300 dark:[&::-webkit-scrollbar-thumb]:bg-neutral-600 hover:[&::-webkit-scrollbar-thumb]:bg-neutral-400 dark:hover:[&::-webkit-scrollbar-thumb]:bg-neutral-500 [&::-webkit-scrollbar-track]:bg-transparent";
+const SCROLLBAR = `pr-2 ${THIN_SCROLLBAR_FIELD}`;
 
 /** Index of the `{{` that opens the token the caret sits in, or the caret. */
 const findTriggerStart = (value: string, caret: number): number => {

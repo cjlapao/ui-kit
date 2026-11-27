@@ -178,6 +178,22 @@ src(`@source inline("hover:border-{COLOR}-200");`);
 src(`@source inline("hover:border-{COLOR}-500");`);
 L("");
 
+// ── Button open state — getButtonOpenClasses() in common/theme/Theme.ts ──
+// The trigger of an open popup keeps its hover paint: every variant's hover
+// token with `hover:` rewritten to `aria-expanded:`, so the shades here are
+// the hover shades one-for-one. `themeSafelist.test.ts` walks the getter
+// across all eight variants and 21 hues and fails the build on a shape that
+// is not here — which is the point: the rewrite is derived, so a retuned
+// hover rung lands in this list automatically or the test says so.
+// `underline` carries no tone, but it is produced by the same rewrite, so
+// Tailwind's scanner cannot see it either.
+src(`@source inline("aria-expanded:bg-{COLOR}-{100,800}");`);
+src(`@source inline("dark:aria-expanded:bg-{COLOR}-{300,500/10,500/20}");`);
+src(`@source inline("aria-expanded:text-{COLOR}-800");`);
+src(`@source inline("dark:aria-expanded:text-{COLOR}-300");`);
+src(`@source inline("aria-expanded:underline");`);
+L("");
+
 // dark:bg-{color}-{shade}
 src(`@source inline("dark:bg-{COLOR}-300");`);
 src(`@source inline("dark:bg-{COLOR}-400");`);

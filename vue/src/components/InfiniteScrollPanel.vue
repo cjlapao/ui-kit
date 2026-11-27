@@ -1,5 +1,5 @@
 <script lang="ts">
-import { getSurfaceAccentColor } from "../theme/Theme";
+import { getSurfaceAccentColor, THIN_SCROLLBAR_FIELD } from "../theme/Theme";
 import type {
   PanelCorner,
   PanelPadding,
@@ -101,9 +101,7 @@ const GAP_CLASSES: Record<ControlSize, string> = {
 /** Grid row unit for the masonry span maths. */
 const MASONRY_ROW_PX = 8;
 
-/** Thin scrollbar, the same treatment Panel's body uses. */
-const SCROLLBAR =
-  "[&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-neutral-300 dark:[&::-webkit-scrollbar-thumb]:bg-neutral-600 hover:[&::-webkit-scrollbar-thumb]:bg-neutral-400 dark:hover:[&::-webkit-scrollbar-thumb]:bg-neutral-500 [&::-webkit-scrollbar-track]:bg-transparent";
+
 </script>
 
 <script setup lang="ts" generic="T">
@@ -319,7 +317,7 @@ const containerClass = computed(() =>
     // `scrollbar-thin scrollbar-track-*` came from the tailwind-scrollbar
     // plugin, which this kit does not install — every one of those classes was
     // inert.
-    SCROLLBAR,
+    THIN_SCROLLBAR_FIELD,
   ),
 );
 

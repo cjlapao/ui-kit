@@ -122,6 +122,34 @@ it("scales the monogram and emoji previews with iconSize alike", () => {
 });
 
 
+it("sheds the preview chrome for an image identity when bareImagePreview is set", () => {
+  render(<IdentityPicker value={{ type: "image", src: "https://example.com/logo.png" }} tone="blue" bareImagePreview />);
+  // The image fills the card's tone and the hairline frames it — both belong to the glyph case.
+  const box = screen.getByRole("img", { name: "Identity preview" }).parentElement!;
+  expect(box).not.toHaveClass("border");
+  expect(box).not.toHaveClass("border-neutral-200");
+  expect(box).not.toHaveClass("bg-blue-50");
+  // Bare is not shapeless: the size token, the clipping and the corner stay the component's.
+  expect(box).toHaveClass("h-16", "w-16", "overflow-hidden", "rounded-2xl");
+});
+
+
+it("keeps the preview chrome on an image identity until the app asks for bare", () => {
+  render(<IdentityPicker value={{ type: "image", src: "https://example.com/logo.png" }} tone="blue" />);
+  const box = screen.getByRole("img", { name: "Identity preview" }).parentElement!;
+  expect(box).toHaveClass("border");
+  expect(box).toHaveClass("border-neutral-200");
+  expect(box).toHaveClass("bg-blue-50");
+});
+
+
+it("keeps the glyph chrome under bareImagePreview, because the tint is what seats an emoji", () => {
+  render(<IdentityPicker value={{ type: "emoji", emoji: "⚡" }} tone="blue" bareImagePreview />);
+  const box = screen.getByRole("img", { name: "Identity preview: ⚡" });
+  expect(box).toHaveClass("border", "border-neutral-200", "bg-blue-50");
+});
+
+
 it("switches compact arrangements without losing selected identity", () => {
   const {rerender} = render(<IdentityPicker />);
   expect(screen.getByRole("combobox", {name:"Emoji categories"})).toBeInTheDocument();

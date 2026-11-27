@@ -5,7 +5,7 @@ import type {
   PlaygroundOption,
   PlaygroundState,
 } from "../../shared/playground/schema";
-import { FOLLOW_TEXT, TonePicker, contentFor } from "./gridBackgroundStage";
+import { FOLLOW_TEXT, TonePicker, contentFor, latticeColor } from "./gridBackgroundStage";
 
 /**
  * Grid Background's playground as data.
@@ -78,6 +78,7 @@ export const gridBackgroundConfig: PlaygroundConfig = {
       // inherit the text colour around it, so nothing prints until the reader
       // picks a tone.
       default: FOLLOW_TEXT,
+      emit: (value, _state, h) => value === FOLLOW_TEXT ? null : `lineColor=${h.lit(latticeColor(String(value)))}`,
       render: ({ state, set }) =>
         createElement(TonePicker, {
           value: state.lineColor ?? FOLLOW_TEXT,
@@ -93,6 +94,14 @@ export const gridBackgroundConfig: PlaygroundConfig = {
       min: 0.25,
       max: 8,
       step: 0.25,
+      when: dotsOnly,
+    },
+    {
+      kind: "toggle",
+      id: "shimmer",
+      group: "lattice",
+      label: "Shimmer",
+      default: false,
       when: dotsOnly,
     },
     {

@@ -246,6 +246,7 @@ import {
   getSurfacePaddingClasses,
   getSurfaceTransparencyClasses,
   SURFACE_NEUTRAL_HOVER,
+  THIN_SCROLLBAR,
 } from "../theme/Theme";
 import Loader from "./Loader.vue";
 
@@ -616,9 +617,7 @@ const bodySectionClass = computed(() =>
   classNames(
     props.flexBody ? "flex-1 flex flex-col w-full" : "",
     "min-h-0 flex-1",
-    props.scrollable
-      ? "overflow-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-neutral-200 dark:[&::-webkit-scrollbar-thumb]:bg-neutral-700 hover:[&::-webkit-scrollbar-thumb]:bg-neutral-300 dark:hover:[&::-webkit-scrollbar-thumb]:bg-neutral-600 [&::-webkit-scrollbar-track]:bg-transparent"
-      : "",
+    props.scrollable ? `overflow-auto ${THIN_SCROLLBAR}` : "",
     props.padding === "none" ? "" : "pr-1",
   ),
 );

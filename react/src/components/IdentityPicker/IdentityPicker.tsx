@@ -66,6 +66,15 @@ export interface IdentityPickerProps extends Pick<PanelProps, "variant" | "tone"
    * @default the component `size`
    */
   iconSize?: ControlSize;
+  /**
+   * Let an image identity sit bare in the header: while the selected value is an image,
+   * the preview sheds its `tone` fill and its neutral border. An emoji or monogram keeps
+   * both — the tint is what seats a glyph against the card behind it, while an image
+   * brings its own edges and its own transparent margins. The corner class and the
+   * clipping stay either way, so a square logo still follows `corner`.
+   * @default false
+   */
+  bareImagePreview?: boolean;
   /** Space-saving arrangement. Set false for category chips and stacked fields. @default true */
   compact?: boolean;
   /**
@@ -117,7 +126,7 @@ export const IDENTITY_EMOJI_FONT_FAMILY = '"Apple Color Emoji", "Segoe UI Emoji"
 
 export function IdentityPicker({ value, defaultValue = null, onChange, onReject, name = "", emojis = IDENTITY_EMOJIS,
   fontFamily = IDENTITY_EMOJI_FONT_FAMILY, size = "md", iconSize, compact = true, disabled = false, loading = false, error,
-  maxImageSize = 5 * 1024 * 1024, modes, labels: overrides, uploadLabels, className, inputFillTone, inputTone, ...surface }: IdentityPickerProps) {
+  maxImageSize = 5 * 1024 * 1024, modes, labels: overrides, uploadLabels, className, inputFillTone, inputTone, bareImagePreview = false, ...surface }: IdentityPickerProps) {
   const density = identitySizeTokens[size];
   const spacing = compact ? compactIdentitySpacing[size] : density;
   const monogramLayout = compact
@@ -149,7 +158,13 @@ export function IdentityPicker({ value, defaultValue = null, onChange, onReject,
   });
   // The avatar answers `iconSize`, not `size`: the preview token bundles box and glyph, so the
   // avatar grows as one step on the same ladder while the card's furniture stays on `size`.
-  const previewClass = classNames("flex shrink-0 items-center justify-center overflow-hidden border border-neutral-200 dark:border-neutral-600", identitySizeTokens[iconSize ?? size].preview, getSurfaceCornerClass(surface.corner ?? "rounded-md"), tokens.bg);
+  // The chrome seats a glyph against the card; an image brings its own edges, so the wash
+  // behind it and the ring around it both go — a hairline around a bare photo is half a
+  // decision. The shape (corner, clipping) stays the component's either way. The gate
+  // reads the value's kind, not the active tab, so a persisted `src` is bare before
+  // anyone opens the Upload tab and an emoji never goes bare.
+  const bareImage = bareImagePreview && selected?.type === "image";
+  const previewClass = classNames("flex shrink-0 items-center justify-center overflow-hidden", !bareImage && "border border-neutral-200 dark:border-neutral-600", identitySizeTokens[iconSize ?? size].preview, getSurfaceCornerClass(surface.corner ?? "rounded-md"), !bareImage && tokens.bg);
   const preview = selected?.type === "image" ? <ImagePreview file={selected.file} src={selected.src} alt={labels.preview} className="h-full w-full object-contain" />
     : <span style={{ fontFamily }} aria-hidden="true">{selected?.type === "emoji" ? selected.emoji : selected?.type === "monogram" ? selected.text : automatic}</span>;
   // One entry per identity kind; `modes` decides which of these the app offers.

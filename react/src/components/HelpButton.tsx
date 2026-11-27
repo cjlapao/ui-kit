@@ -5,6 +5,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { Components } from "react-markdown";
 import classNames from "classnames";
+import { THIN_SCROLLBAR } from "../theme/Theme";
 import IconButton from "./IconButton";
 import CustomIcon from "./CustomIcon";
 import Panel from "./Panel";
@@ -460,7 +461,12 @@ const HelpButton: React.FC<HelpButtonProps> = ({
               </div>
 
               {/* ---- Content body ---- */}
-              <div className="px-4 py-3 overflow-y-auto max-h-[55vh] scrollbar-thin scrollbar-thumb-neutral-300 dark:scrollbar-thumb-neutral-700">
+              <div
+                className={classNames(
+                  "px-4 py-3 overflow-y-auto max-h-[55vh]",
+                  THIN_SCROLLBAR,
+                )}
+              >
                 {loading ? (
                   <div className="space-y-3" aria-hidden="true">
                     <span className="block h-3 w-24 animate-pulse rounded bg-black/10 dark:bg-white/10 motion-reduce:animate-none" />

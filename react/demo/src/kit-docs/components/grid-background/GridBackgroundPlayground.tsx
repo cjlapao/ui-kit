@@ -12,7 +12,7 @@ import type {
   PlaygroundPreviewProps,
 } from "../../shared/playground/schema";
 import { gridBackgroundConfig } from "./gridBackgroundPlayground";
-import { Readout, STAGE_CLASS, contentFor } from "./gridBackgroundStage";
+import { Readout, STAGE_CLASS, contentFor, latticeColor } from "./gridBackgroundStage";
 
 /**
  * Grid Background's playground: the config in `gridBackgroundPlayground.ts` in,
@@ -62,14 +62,15 @@ const Stage: React.FC<PlaygroundPreviewProps> = ({ state, data }) => {
   const tone = String(state.lineColor ?? "currentColor");
 
   return (
-    <div className="flex w-full flex-col gap-3">
+    <div className="flex w-full flex-1 flex-col gap-3 self-stretch">
       <div className={STAGE_CLASS}>
         <GridBackground
           pattern={state.pattern as GridBackgroundPattern}
           size={Number(state.size ?? 32)}
           opacity={Number(state.opacity ?? 0.12)}
           dotSize={Number(state.dotSize ?? 1)}
-          lineColor={tone === "currentColor" ? undefined : tone}
+          shimmer={Boolean(state.shimmer)}
+          lineColor={tone === "currentColor" ? undefined : latticeColor(tone)}
           fade={state.fade as "none" | "radial" | "vertical"}
           fadeStart={Number(state.fadeStart ?? 15)}
           position={state.position as "absolute" | "relative"}

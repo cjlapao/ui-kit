@@ -53,6 +53,17 @@ export interface TooltipWrapperProps {
 }
 
 /**
+ * Does this anchor belong to a surface that is currently open? `Menu` stamps
+ * `data-menu-open` on its trigger, so a tip anchored to that element — or to a
+ * wrapper the author put around it, which is exactly what the standalone
+ * `Tooltip` does — can tell that the space under it now belongs to a popup.
+ * Checked by query rather than by prop so the rule holds for whoever anchored
+ * the tip, not only for the callers that remembered to pass `disabled`.
+ */
+const anchorsOpenSurface = (el: Element | null): boolean =>
+  !!el && ( !!el.closest("[data-menu-open]") || !!el.querySelector("[data-menu-open]") );
+
+/**
  * Attaches a styled tooltip to any child element without adding any wrapper
  * element to the DOM. The tooltip is rendered via a React portal directly into
  * document.body and positioned with `position: fixed`, so it has zero impact on
@@ -82,6 +93,12 @@ const TooltipWrapper: React.FC<TooltipWrapperProps> = ({
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
   const triggerRectRef = useRef<DOMRect | null>(null);
+  // The element the tip hangs off, kept as an element (the rect is only its
+  // geometry) so the open-surface check can run again after the delay.
+  const anchorElRef = useRef<Element | null>(null);
+  // Read from the pending-reveal timer, which outlives the render that
+  // scheduled it and would otherwise hold a stale `disabled`.
+  const disabledRef = useRef(disabled);
 
   const [visible, setVisible] = useState(false);
   const [colorScheme, setColorScheme] = useState<string | null>(null);
@@ -163,17 +180,25 @@ const TooltipWrapper: React.FC<TooltipWrapperProps> = ({
     (e: React.MouseEvent | React.FocusEvent) => {
       // No text → no tooltip; a suppressed one behaves the same. Either way
       // the child's own handlers still run.
-      if (text && !disabled) {
+      const anchor = e.currentTarget as Element;
+      if (text && !disabled && !anchorsOpenSurface(anchor)) {
         setColorScheme(
           (e.currentTarget as Element)
             .closest("[data-color-scheme]")
             ?.getAttribute("data-color-scheme") ?? null,
         );
-        triggerRectRef.current = (
-          e.currentTarget as Element
-        ).getBoundingClientRect();
+        anchorElRef.current = anchor;
+        triggerRectRef.current = anchor.getBoundingClientRect();
         setPlacement(null);
-        timerRef.current = setTimeout(() => setVisible(true), delay);
+        timerRef.current = setTimeout(() => {
+          timerRef.current = null;
+          // Ask again at the end of the wait, not just at the start: during
+          // that second the caller may have suppressed the tip or the menu
+          // this trigger owns may have opened, and a tip scheduled before
+          // either would otherwise land on top of the rows.
+          if (disabledRef.current || anchorsOpenSurface(anchor)) return;
+          setVisible(true);
+        }, delay);
       }
       if (e.type === "focus") {
         children.props.onFocus?.(e as React.FocusEvent<Element>);
@@ -184,28 +209,63 @@ const TooltipWrapper: React.FC<TooltipWrapperProps> = ({
     [text, delay, disabled, children.props],
   );
 
+  // End a visible or pending tip without touching the child's handlers — the
+  // two paths that dismiss on their own (suppressed by the caller, or the
+  // surface the anchor owns just opened) have no pointer event behind them.
+  const dismiss = useCallback(() => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    setVisible(false);
+    setPlacement(null);
+  }, []);
+
   const hide = useCallback(
     (e?: React.MouseEvent | React.FocusEvent) => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-        timerRef.current = null;
-      }
-      setVisible(false);
-      setPlacement(null);
+      dismiss();
       if (e?.type === "blur") {
         children.props.onBlur?.(e as React.FocusEvent<Element>);
       } else if (e) {
         children.props.onMouseLeave?.(e as React.MouseEvent<Element>);
       }
     },
-    [children.props],
+    [dismiss, children.props],
   );
+
+  useEffect(() => {
+    disabledRef.current = disabled;
+  }, [disabled]);
 
   // Suppressed mid-flight (the menu this trigger owns just opened): cancel any
   // pending show and pull a visible tip down at once.
   useEffect(() => {
-    if (disabled) hide();
-  }, [disabled, hide]);
+    if (disabled) dismiss();
+  }, [disabled, dismiss]);
+
+  // The same rule for callers who never passed `disabled` — a `<Tooltip>`
+  // wrapped around a Menu trigger, say, has no idea the menu exists. Watch the
+  // marker the Menu writes on its trigger instead of hoping for a mouseleave
+  // that never comes, because the cursor did stay on the trigger. Scoped to
+  // that one attribute and to the time the tip is actually on screen.
+  useEffect(() => {
+    if (!visible) return;
+    const anchor = anchorElRef.current;
+    if (!anchor) return;
+    if (anchorsOpenSurface(anchor)) {
+      dismiss();
+      return;
+    }
+    const observer = new MutationObserver(() => {
+      if (anchorsOpenSurface(anchor)) dismiss();
+    });
+    observer.observe(anchor, {
+      attributes: true,
+      attributeFilter: ["data-menu-open"],
+      subtree: true,
+    });
+    return () => observer.disconnect();
+  }, [visible, dismiss]);
 
   // Focus as well as hover: a tooltip that only answers to a pointer is
   // invisible to anyone driving the page from the keyboard. The child still

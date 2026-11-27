@@ -1,7 +1,7 @@
 <script lang="ts">
 import type { VNode } from "vue";
 import classNames from "classnames";
-import { getTabsColorTokens, type TrueColor } from "../theme/Theme";
+import { getTabsColorTokens, THIN_SCROLLBAR, type TrueColor } from "../theme/Theme";
 import {
   getGlassChromeClasses,
   getGlassFillClass,
@@ -520,7 +520,7 @@ const panelClass = (isActive: boolean) =>
     "focus:outline-none flex-1 min-h-0",
     props.scrollFade
       ? "relative overflow-hidden"
-      : "overflow-auto scrollbar-thin",
+      : `overflow-auto ${THIN_SCROLLBAR}`,
     isActive ? props.panelClassName : "hidden",
   );
 </script>
@@ -641,7 +641,7 @@ const panelClass = (isActive: boolean) =>
               )
             "
           />
-          <div class="overflow-auto h-full scrollbar-thin">
+          <div :class="classNames('overflow-auto h-full', THIN_SCROLLBAR)">
             <VNodeRenderer :nodes="item.panel" />
           </div>
         </template>

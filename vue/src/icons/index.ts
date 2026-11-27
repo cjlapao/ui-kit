@@ -116,6 +116,7 @@ export * from "./components/Host";
 export * from "./components/Idea";
 export * from "./components/Image";
 export * from "./components/Info";
+export * from "./components/Install";
 export * from "./components/Investigator";
 export * from "./components/Jobs";
 export * from "./components/KaliLinux";

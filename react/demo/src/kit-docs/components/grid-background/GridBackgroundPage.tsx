@@ -40,7 +40,7 @@ export const GridBackgroundPage: React.FC = () => (
       </h2>
       <ExampleCard
         title="Grid vs dots"
-        description="Same spacing, colour and opacity, both patterns. The dots are not centred in the squares — each tile paints the quarter of a dot at its origin and the three abutting tiles complete it, so a dot lands on the point where the lines used to cross."
+        description="Same spacing, colour and opacity, both patterns. Each tile draws a complete dot and is offset by half a cell, so the dots land where the lines cross."
         code={gridVsDotsCode}
         filename="GridVsDots.tsx"
       >
@@ -144,7 +144,7 @@ export const GridBackgroundPage: React.FC = () => (
         <p>
           Everything it writes is physical, so nothing mirrors: the horizontal
           rule is <C>linear-gradient(90deg, …)</C>, the dots are{" "}
-          <C>radial-gradient(circle at 0 0, …)</C> tiled by{" "}
+          <C>radial-gradient(circle at center, …)</C> tiled by{" "}
           <C>backgroundSize</C>, and <C>fade=&quot;vertical&quot;</C> is{" "}
           <C>linear-gradient(to bottom, …)</C> (<C>:43,47</C>) — degrees and{" "}
           <C>to bottom</C> are not logical directions, so RTL, LTR and every fade
@@ -155,13 +155,9 @@ export const GridBackgroundPage: React.FC = () => (
 
       <A11yTopic title="Motion">
         <p>
-          Static: the component emits no <C>transition</C>, no <C>animation</C>{" "}
-          and no <C>@keyframes</C>, and <C>styles.css</C> has no rule for it —
-          the whole look is one inline <C>backgroundImage</C> plus{" "}
-          <C>backgroundSize</C> (<C>:48</C>). Changing a prop repaints in place
-          with no easing, so there is nothing for{" "}
-          <C>prefers-reduced-motion</C> to reduce, and a page that animates the
-          lattice is animating something the kit never promised.
+          The lattice is static by default. With <C>shimmer</C> enabled on dots,
+          a wave passes across the pattern. The animation is disabled and the
+          usual static opacity restored when reduced motion is preferred.
         </p>
       </A11yTopic>
     </A11ySection>
@@ -177,7 +173,7 @@ export const GRID_BACKGROUND_PROPS: PropDoc[] = [
     type: '"grid" | "dots"',
     default: '"grid"',
     description:
-      "The lattice to draw: crossing rules, or a dot on every crossing. Both sit on the same `size` lattice, and the dot is drawn at the tile origin (`radial-gradient(circle at 0 0, …)`, :47) with the three abutting tiles completing it — so a dot lands exactly where the lines used to cross, and switching pattern in place keeps the lattice aligned.",
+      "The lattice to draw: crossing rules, or a dot on every crossing. Each tile draws a complete centered dot and is offset by half the spacing, keeping the dots aligned with the grid crossings.",
   },
   {
     name: "size",
@@ -199,6 +195,12 @@ export const GRID_BACKGROUND_PROPS: PropDoc[] = [
     default: "1",
     description:
       "Dot radius in CSS pixels — absolute, so a loose lattice reads sparse rather than blotchy. Inert while `pattern` is grid: the grid branch never reads it (:47). Clamped to 0.25px, below which a dot stops reading as a point, and to half the spacing, above which it would collide with its neighbour (:28-29,39).",
+  },
+  {
+    name: "shimmer",
+    type: "boolean",
+    default: "false",
+    description: "Sends a subtle wave across the dots. Only applies to the dots pattern and is disabled when reduced motion is preferred.",
   },
   {
     name: "opacity",

@@ -2,7 +2,7 @@ import { getSurfaceAccentColor } from "../../theme/Theme";
 import React, { useId, useRef, useState } from "react";
 import classNames from "classnames";
 import Panel, { type PanelProps } from "../Panel";
-import Button from "../Button";
+import Button, { type ButtonProps } from "../Button";
 import IconButton from "../IconButton";
 import CustomIcon from "../CustomIcon";
 import { getSurfaceCornerClass, getSideMenuItemTokens, type ControlSize } from "../../theme/Theme";
@@ -18,6 +18,20 @@ const defaultLabels: FileUploadLabels = {
   title: "Drop files here", description: "Drag and drop, or browse your device.", browse: "Choose files",
   remove: "Remove", loading: "Processing files…", empty: "No files selected", selectedFiles: "Selected files",
 };
+/**
+ * The browse action's Button styling, as an allowlist — the same shape
+ * `PanelAction` uses for its own actions. `size`, `disabled` and `loading`
+ * mirror FileUpload's state and the click opens the picker, so the component
+ * keeps those; `children` stays the `labels.browse` copy. Omit `color` and the
+ * button keeps following the panel `tone`, so a tinted dropzone and its action
+ * still agree unless the app says otherwise.
+ */
+export type FileUploadButtonSettings = Pick<ButtonProps,
+  | "variant" | "color" | "weight" | "fullWidth"
+  | "leadingIcon" | "trailingIcon" | "accent" | "accentColor" | "iconColor"
+  | "glass" | "vibrancy" | "glassOpacity" | "specularMode"
+  | "tooltip" | "tooltipPosition" | "tooltipDelay" | "tooltipDisabled"
+  | "className" | "onClick">;
 export interface FileUploadProps extends Pick<PanelProps, "variant" | "tone" | "padding" | "corner" | "glassOpacity" | "transparency" | "vibrancy" | "specularMode" | "raisedSurface"> {
   /** Render inside an existing surface without an extra surrounding Panel. */
   embedded?: boolean;
@@ -35,6 +49,8 @@ export interface FileUploadProps extends Pick<PanelProps, "variant" | "tone" | "
   /** Default 20 in multiple mode; single mode always allows one. */
   maxFiles?: number;
   size?: ControlSize;
+  /** Override the "Choose files" Button. @default { variant: "soft", color: derived from `tone` } */
+  browseButton?: FileUploadButtonSettings;
   disabled?: boolean;
   loading?: boolean;
   error?: React.ReactNode;
@@ -45,7 +61,7 @@ export interface FileUploadProps extends Pick<PanelProps, "variant" | "tone" | "
   className?: string;
   "aria-label"?: string;
 }
-export function FileUpload({ embedded = false, compact = false, value, defaultValue = [], onChange, onReject, accept, maxSize, multiple = false, maxFiles = 20, size = "md", disabled = false, loading = false, error, preview = true, labels: overrides, rejectionMessage, className, "aria-label": ariaLabel, ...surface }: FileUploadProps) {
+export function FileUpload({ embedded = false, compact = false, value, defaultValue = [], onChange, onReject, accept, maxSize, multiple = false, maxFiles = 20, size = "md", browseButton, disabled = false, loading = false, error, preview = true, labels: overrides, rejectionMessage, className, "aria-label": ariaLabel, ...surface }: FileUploadProps) {
   const density = uploadSizeTokens[size];
   const [internal, setInternal] = useState(defaultValue);
   const [rejections, setRejections] = useState<FileRejection[]>([]);
@@ -79,7 +95,8 @@ export function FileUpload({ embedded = false, compact = false, value, defaultVa
       <CustomIcon icon="File" size={size} className={classNames("text-neutral-400", density.icon)} />
       <div className={compact ? "min-w-0 flex-1" : undefined}><p className={classNames("font-medium", density.title)}>{loading ? labels.loading : labels.title}</p><p id={`${id}-hint`} className={classNames("mt-1 text-neutral-500 dark:text-neutral-400", density.detail)}>{labels.description}</p></div>
       <input ref={input} id={id} type="file" accept={accept} multiple={multiple} disabled={locked} aria-label={labels.browse} aria-describedby={`${id}-hint`} aria-invalid={Boolean(error || rejections.length) || undefined} className="hidden" onChange={event => { choose(Array.from(event.target.files ?? [])); event.target.value = ""; }} />
-      <Button size={size} className={compact ? "shrink-0" : undefined} variant="soft" color={getSurfaceAccentColor(surface.tone ?? "none")} disabled={locked} loading={loading} onClick={() => input.current?.click()}>{labels.browse}</Button>
+      {/* The app's `browseButton` spreads first, so the state the component owns — size, lock, loading, the picker click — always wins. `className` merges instead of replacing, keeping the compact-row `shrink-0`. */}
+      <Button {...browseButton} size={size} variant={browseButton?.variant ?? "soft"} color={browseButton?.color ?? getSurfaceAccentColor(surface.tone ?? "none")} className={classNames(compact && "shrink-0", browseButton?.className)} disabled={locked} loading={loading} onClick={event => { input.current?.click(); browseButton?.onClick?.(event); }}>{labels.browse}</Button>
     </div>
     {files.length > 0 ? <ul className="mt-3 space-y-2" aria-label={labels.selectedFiles}>{files.map((file, index) => <li key={`${file.name}-${file.lastModified}-${index}`} className={classNames("flex items-center rounded-lg border border-neutral-200 dark:border-neutral-700", density.row)}>
       {preview && <ImagePreview file={file} alt={file.name} className={classNames("shrink-0 rounded-lg object-contain", density.preview)} />}

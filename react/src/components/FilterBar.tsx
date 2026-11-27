@@ -400,7 +400,7 @@ export function FilterBar({
     <div className="fb-filters" hidden={showSkeleton} inert={showSkeleton}>
       {showSearch && (showFilterLabel || chips.length > 0 || showEmptyState) && <span aria-hidden="true" className="h-5 border-l border-neutral-200 dark:border-neutral-700" />}
       {showFilterLabel && <span className="flex items-center gap-1.5 text-neutral-600 dark:text-neutral-300"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M3 4h18l-7 8v8l-4-2v-6Z" /></svg>{t("kit.filterbar.filters")}</span>}
-      <FilterChips chips={chips} color={chipTone} variant={chipVariant} size={size} buttonTone={buttonTone} buttonStyle={buttonStyle} removeLabel={label => t("kit.filterbar.remove", { label })} />
+      <FilterChips chips={chips} color={chipTone} variant={chipVariant} size={size} buttonTone={buttonTone} buttonStyle={buttonStyle} removeLabel={label => t("kit.filterbar.remove", { label })} motion={motion} />
       {showEmptyState && !chips.length && <span className="text-neutral-400">{t("kit.filterbar.empty")}</span>}
       <div className="fb-text-fields">
         {inlineTextFilters.map(filter => <FilterTextField
@@ -418,7 +418,10 @@ export function FilterBar({
         {t("kit.filterbar.add")}
       </Button>
       {showClearAll && chips.length > 0 && <Button {...actionStyle} variant={secondaryButtonVariant} disabled={disabled} onClick={() => { commit({}); anchor.current?.focus(); }}>{t("kit.filterbar.clearAll")}</Button>}
-      {showResultCount && <span className="border-l border-neutral-200 pl-2 text-neutral-400 dark:border-neutral-700" role="status">
+      {/* `self-center` opts out of the group's stretch (FilterBar.css): the
+          divider is a rule between the actions and the count, not a control,
+          and pulling it to the group's full height would outshout them. */}
+      {showResultCount && <span className="self-center border-l border-neutral-200 pl-2 text-neutral-400 dark:border-neutral-700" role="status">
         {t("kit.filterbar.summary", { filtered: filteredCount, total: totalCount, items: itemLabel ?? t("kit.filterbar.items") })}
       </span>}
     </div>
@@ -575,26 +578,71 @@ const FilterMenuInput: React.FC<FilterMenuInputProps> = ({ filter, draft, onChan
 };
 
 interface Chip { id: string; label: string; disabled?: boolean; edit: () => void; remove: () => void }
-function FilterChips({ chips, color, variant, size, buttonTone, buttonStyle, removeLabel }: { chips: Chip[]; color: TrueColor; variant: BadgeVariant; size: ControlSize; buttonTone: TrueColor; buttonStyle?: React.CSSProperties; removeLabel: (label: string) => string }) {
+/** One frame of slack: the exit timer must never clip the tail of the collapse. */
+const EXIT_GRACE_MS = 32;
+type SpringTokens = (typeof CONTROL_SPRING_TOKENS)[keyof typeof CONTROL_SPRING_TOKENS];
+function FilterChips({ chips, color, variant, size, buttonTone, buttonStyle, removeLabel, motion }: { chips: Chip[]; color: TrueColor; variant: BadgeVariant; size: ControlSize; buttonTone: TrueColor; buttonStyle?: React.CSSProperties; removeLabel: (label: string) => string; motion: SpringTokens }) {
   const [visible, setVisible] = useState(chips);
   const region = useRef<HTMLDivElement>(null);
   const positions = useRef(new Map<string, number>());
   const signature = chips.map(chip => chip.id).join("\u0000");
+  // Two identities, two jobs. The ids say *who* is here — that is what an exit
+  // waits for. The ids and their labels say what the row *looks* like — the only
+  // thing the FLIP below is allowed to react to. A single signature for both is
+  // what made a chip animate twice: the exit timer re-rendered, and an effect
+  // with no dependencies replayed the row from positions captured mid-collapse.
+  const layout = chips.map(chip => `${chip.id}\u0001${chip.label}`).join("\u0002");
   useEffect(() => {
-    const timer = setTimeout(() => setVisible(current => current.filter(chip => signature.split("\u0000").includes(chip.id))), 900);
+    // A removed chip stays mounted for one motion so its column can collapse;
+    // the grace frame keeps the timer from cutting the settle short.
+    const live = new Set(chips.map(chip => chip.id));
+    const timer = setTimeout(() => setVisible(current => current.filter(chip => live.has(chip.id))), motion.duration + EXIT_GRACE_MS);
     return () => clearTimeout(timer);
-  }, [signature]);
+  }, [signature, motion]);
   useLayoutEffect(() => {
-    setVisible(current => [...chips, ...current.filter(chip => !chips.some(next => next.id === chip.id))]);
-  }, [signature]);
+    setVisible(current => {
+      // Live chips follow the caller's order; a chip that has left `chips` stays
+      // in the row, right where it was, because that node is the one the
+      // stylesheet collapses — dropping it here would cancel the exit. The
+      // previous `[...chips, ...ghosts]` instead appended the ghosts, so removing
+      // a middle chip teleported it to the end of the row and its neighbours
+      // jumped a whole frame before anything had animated.
+      const merged = [...chips];
+      current
+        .filter(old => !chips.some(next => next.id === old.id))
+        .forEach(ghost => {
+          // Re-insert after the last chip that was already to its left.
+          const before = current.slice(0, current.indexOf(ghost)).map(entry => entry.id)
+            .filter(id => merged.some(entry => entry.id === id)).pop();
+          merged.splice(before ? merged.findIndex(entry => entry.id === before) + 1 : 0, 0, ghost);
+        });
+      return merged;
+    });
+  }, [layout]);
+  // FLIP covers the one thing the CSS collapse cannot: a chip whose *label*
+  // changed width ("Status: Online" → "Status: Online, Offline") slides its
+  // neighbours over instead of snapping them. Two rules keep it from doubling
+  // up with the stylesheet. It measures on every commit — FLIP's before-state
+  // has to be the previous frame, or an unrelated reflow (the search expanding,
+  // the actions rewrapping) leaves a stale `left` that the next chip change
+  // then bills to the wrong chip as a 48px slide. And it only ever *animates*
+  // on a commit that changed the row's shape, so the exit timer and any parent
+  // re-render record quietly instead of replaying motion a second after the
+  // chip had already arrived. A chip on its way out is the stylesheet's to
+  // animate, never this one's.
+  const previousLayout = useRef(layout);
   useLayoutEffect(() => {
+    const reshaped = previousLayout.current !== layout;
+    previousLayout.current = layout;
     if (typeof matchMedia === "undefined" || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const next = new Map<string, number>();
     region.current?.querySelectorAll<HTMLElement>("[data-chip]").forEach(element => {
       const key = element.dataset.chip!;
       const left = element.getBoundingClientRect().left;
       const previous = positions.current.get(key);
-      if (previous !== undefined && previous !== left) element.animate?.([{ transform: `translateX(${previous - left}px)` }, { transform: "translateX(0)" }], { duration: 320, easing: "ease-out" });
+      if (reshaped && previous !== undefined && previous !== left && element.dataset.exiting !== "true") {
+        element.animate?.([{ transform: `translateX(${previous - left}px)` }, { transform: "translateX(0)" }], { duration: motion.duration, easing: motion.easing });
+      }
       next.set(key, left);
     });
     positions.current = next;

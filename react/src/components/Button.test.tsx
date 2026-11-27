@@ -446,6 +446,63 @@ describe("Button — variant/tone matrix (every variant × every tone)", () => {
       again.unmount();
     }
   });
+
+  it("holds the hover paint on an expanded trigger, across variants and tones", () => {
+    // The trigger of an open `Menu`: the pointer has left for the popup, and a
+    // ghost/soft trigger that drops back to its rest fill under the interaction
+    // that opened it reads as dead. The contract is `aria-expanded` — which is
+    // what Menu already puts on whatever it is handed as a trigger — so there
+    // is no prop here to forget to pass. Written against the shades, not
+    // against `getButtonOpenClasses`, so the derivation cannot agree with a
+    // broken version of itself.
+    const held: Record<Exclude<ButtonVariant, "glass">, (c: TrueColor) => string> = {
+      solid: c => `aria-expanded:bg-${c}-800`,
+      soft: c => `aria-expanded:bg-${c}-100`,
+      outline: c => `aria-expanded:bg-${c}-100`,
+      ghost: c => `aria-expanded:bg-${c}-100`,
+      link: c => `aria-expanded:text-${c}-800`,
+      clear: c => `aria-expanded:text-${c}-800`,
+      icon: c => `aria-expanded:bg-${c}-100`,
+    };
+    for (const variant of BUTTON_VARIANTS) {
+      // glass builds its own fill (and suppresses the variant's colour
+      // classes), so it has no hover rung to hold.
+      if (variant === "glass") continue;
+      for (const color of TRUE_COLORS) {
+        const { container, unmount } = render(
+          <Button variant={variant} color={color} aria-expanded>
+            Pick
+          </Button>,
+        );
+        const cls = container.querySelector("button")!.className;
+        expect(cls, `${variant}/${color}`).toContain(held[variant as Exclude<ButtonVariant, "glass">](color));
+        expect(cls, `${variant}/${color} dark`).toContain("dark:aria-expanded:");
+        unmount();
+      }
+    }
+  });
+
+  it("paints the held state for nothing else — closed, active, accent or glass", () => {
+    // A closed trigger must not carry the open fill at all (`aria-expanded`
+    // compiles to `[aria-expanded="true"]`, but a stale class on every button
+    // in the page is still noise), and the three controls that own their own
+    // fill story — `active`, `accent`, glass — must not be overpainted.
+    const closed = render(<Button variant="ghost" color="blue">Pick</Button>);
+    expect(closed.container.querySelector("button")!.className).not.toContain("aria-expanded:");
+    closed.unmount();
+
+    for (const props of [
+      { active: true },
+      { accent: true },
+      { glass: true },
+    ]) {
+      const { container, unmount } = render(
+        <Button variant="ghost" color="blue" aria-expanded {...props}>Pick</Button>,
+      );
+      expect(container.querySelector("button")!.className, JSON.stringify(props)).not.toContain("aria-expanded:");
+      unmount();
+    }
+  });
 });
 
 describe("Button — shared control-size tokens", () => {
@@ -467,6 +524,30 @@ describe("Button — shared control-size tokens", () => {
     expect(md.box).toBe("h-10 w-10 leading-none");
     expect(md.icon).toBe("h-6 w-6");
     expect(md.spinnerSize).toBe("sm");
+  });
+
+  it("pins the label's line box to the glyph box, so a glyph never sets the height", () => {
+    // A labelled Button is a flex row: its height is the tallest item plus the
+    // padding. Left at the bare type scale the glyph is that tallest item
+    // (md: h-6 over text-sm's 20px line), so `<Button leadingIcon>` stood 4px
+    // above the identical label-only Button beside it — the FilterBar's ghost
+    // "Clear all" next to its outline "Add filter". The theme pairs
+    // `leading-N` with `h-N` per size so both buttons measure the same box and
+    // an icon costs width, never height.
+    for (const size of ["xs", "sm", "md", "lg", "xl"] as const) {
+      const tokens = getControlSizeTokens(size);
+      const glyph = tokens.icon.match(/h-(\d+)/)![1];
+      expect(tokens.text, `${size}: line box equals the glyph box`)
+        .toContain(`leading-${glyph}`);
+      for (const leadingIcon of [undefined, "Search"]) {
+        const { container, unmount } = render(
+          <Button size={size} leadingIcon={leadingIcon}>Save</Button>,
+        );
+        expect(container.querySelector("button")!.className, `${size} ${leadingIcon ?? "label"}`)
+          .toContain(`leading-${glyph}`);
+        unmount();
+      }
+    }
   });
 });
 

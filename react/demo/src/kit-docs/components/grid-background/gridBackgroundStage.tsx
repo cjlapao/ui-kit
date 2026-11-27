@@ -1,6 +1,7 @@
 import React from "react";
 import {
   ColorSwatches,
+  getTrueColorHex,
   Panel,
   type TrueColor,
 } from "@cjlapao/ui-kit";
@@ -17,23 +18,27 @@ import type { PlaygroundState } from "../../shared/playground/schema";
 
 /** The bordered box the lattice fills. Printed as mounted. */
 export const STAGE_CLASS =
-  "relative h-72 w-full max-w-lg overflow-hidden rounded-xl border border-neutral-200 bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-950";
+  "relative flex min-h-72 w-full flex-1 flex-col overflow-hidden rounded-xl border border-neutral-200 bg-neutral-50 text-neutral-800 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-200 [&>div]:flex-1";
 
 /** The value the colour picker opens at: the component's own default. */
 export const FOLLOW_TEXT = "currentColor";
+
+/** Resolve a swatch's palette tone to a CSS colour, rather than a tone name. */
+export const latticeColor = (tone: string): string =>
+  tone === FOLLOW_TEXT ? FOLLOW_TEXT : getTrueColorHex(tone as TrueColor, 500) ?? tone;
 
 /** What the content says — one string, so the snippet prints it as one line. */
 export const CONTENT_TEXT = "Type over the lattice — legibility is what you are judging.";
 
 /**
- * The surface on the lattice. Two things it must not forget: a fixed height
- * rather than `h-full`, so it reads the same as a sibling of an absolute lattice
+ * The surface on the lattice. Two things it must not forget: a height
+ * that fills the available stage, both as a sibling of an absolute lattice
  * and as the children of one used as a wrapper; and `relative`, because the
  * lattice is a positioned element and a static one paints under it however the
  * JSX is ordered (GridBackground.tsx:48,50).
  */
 export const contentFor = (): React.ReactElement => (
-  <div className="relative flex h-72 items-center justify-center p-4">
+  <div className="relative flex h-full min-h-72 items-center justify-center p-4">
     <Panel variant="elevated" corner="rounded-lg" padding="sm">
       <p className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">
         {CONTENT_TEXT}

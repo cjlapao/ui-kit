@@ -13,6 +13,7 @@ import {
 import { useKitT } from "../i18n";
 import classNames from "classnames";
 import Button from "./Button.vue";
+import { THIN_SCROLLBAR } from "../theme/Theme";
 import type {
   ButtonProps,
   ButtonVariant,
@@ -768,7 +769,7 @@ const headerActionBindings = (action: ModalHeaderAction) => {
             :class="
               classNames(
                 'relative flex-1 min-h-0 overflow-y-auto px-6 py-5',
-                '[&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-neutral-200 dark:[&::-webkit-scrollbar-thumb]:bg-neutral-700 hover:[&::-webkit-scrollbar-thumb]:bg-neutral-300 dark:hover:[&::-webkit-scrollbar-thumb]:bg-neutral-600 [&::-webkit-scrollbar-track]:bg-transparent',
+                THIN_SCROLLBAR,
                 bodyClassName,
                 loading && 'pointer-events-none',
               )

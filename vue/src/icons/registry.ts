@@ -116,6 +116,7 @@ import { Host } from "./components/Host";
 import { Idea } from "./components/Idea";
 import { Image } from "./components/Image";
 import { Info } from "./components/Info";
+import { Install } from "./components/Install";
 import { Investigator } from "./components/Investigator";
 import { Jobs } from "./components/Jobs";
 import { KaliLinux } from "./components/KaliLinux";
@@ -219,6 +220,7 @@ import { SwitchOn } from "./components/SwitchOn";
 import { Taint } from "./components/Taint";
 import { Target } from "./components/Target";
 import { Task } from "./components/Task";
+import { TestTube } from "./components/TestTube";
 import { ThemeAuto } from "./components/ThemeAuto";
 import { ThemeDark } from "./components/ThemeDark";
 import { ThemeLight } from "./components/ThemeLight";
@@ -363,6 +365,7 @@ export type IconName =
   | "Idea"
   | "Image"
   | "Info"
+  | "Install"
   | "Investigator"
   | "Jobs"
   | "KaliLinux"
@@ -466,6 +469,7 @@ export type IconName =
   | "Taint"
   | "Target"
   | "Task"
+  | "TestTube"
   | "ThemeAuto"
   | "ThemeDark"
   | "ThemeLight"
@@ -608,6 +612,7 @@ export const iconRegistry: Record<IconName, VueComponent> = {
   Idea: Idea,
   Image: Image,
   Info: Info,
+  Install: Install,
   Investigator: Investigator,
   Jobs: Jobs,
   KaliLinux: KaliLinux,
@@ -711,6 +716,7 @@ export const iconRegistry: Record<IconName, VueComponent> = {
   Taint: Taint,
   Target: Target,
   Task: Task,
+  TestTube: TestTube,
   ThemeAuto: ThemeAuto,
   ThemeDark: ThemeDark,
   ThemeLight: ThemeLight,

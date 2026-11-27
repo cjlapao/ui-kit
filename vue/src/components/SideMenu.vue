@@ -325,6 +325,7 @@ import {
   SIDE_MENU_HEADER_FILL,
   SIDE_MENU_HEADER_HEIGHT,
   SIDE_MENU_HEADER_SEAM,
+  THIN_SCROLLBAR,
 } from "../theme";
 import { useKitT } from "../i18n";
 import { RouterLink, useRoute } from "vue-router";
@@ -557,7 +558,12 @@ const handleLinkClick = () => {
            too, so a row wider than the panel (a `shrink-0` badge, say) grew a
            native sideways bar. A nav list has one axis. -->
       <div
-        class="flex-1 px-3 py-1 overflow-y-auto overflow-x-hidden w-full [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-neutral-200 dark:[&::-webkit-scrollbar-thumb]:bg-neutral-700 hover:[&::-webkit-scrollbar-thumb]:bg-neutral-300 dark:hover:[&::-webkit-scrollbar-thumb]:bg-neutral-600 [&::-webkit-scrollbar-track]:bg-transparent"
+        :class="
+          classNames(
+            'flex-1 px-3 py-1 overflow-y-auto overflow-x-hidden w-full',
+            THIN_SCROLLBAR,
+          )
+        "
       >
         <nav class="space-y-1 w-full">
           <template v-for="entry in renderEntries" :key="entry.key">
