@@ -112,12 +112,12 @@ would print a page of plumbing; a static `ExampleCard` set is honest).
 ## Status
 
 <!-- BEGIN GENERATED TABLE — npm --prefix react/demo run audit -->
-- **143 pages** in the side menu, **22 fully done** — run `npm --prefix react/demo run audit` after every conversion to refresh this table.
-- Playground: 22 on the engine · 113 legacy `PlaygroundPanel` · 1 inline · 7 without one.
+- **143 pages** in the side menu, **23 fully done** — run `npm --prefix react/demo run audit` after every conversion to refresh this table.
+- Playground: 23 on the engine · 112 legacy `PlaygroundPanel` · 1 inline · 7 without one.
 - Standard sections: API 82 · Screen reader 70 · Keyboard 69 · i18n 67.
-- Tests: 22 pages have one · examples missing on 12 pages.
+- Tests: 23 pages have one · examples missing on 12 pages.
 
-### Layout — 20/24 done
+### Layout — 21/24 done
 
 |  | Page | Slug | Playground | Fields | API | SR | Kbd | i18n | Ex | Tests |
 |:--:|---|---|---|---|:--:|:--:|:--:|:--:|:--:|---|
@@ -141,7 +141,7 @@ would print a page of plumbing; a static `ExampleCard` set is honest).
 | ✅ | [Scroll Area](scroll-area/ScrollAreaPage.tsx) | `scroll-area` | 🟢 engine | 13 fields | ✅ | ✅ | ✅ | ✅ | 4 | `scrollAreaPreview.test.tsx` `scrollAreaSnippet.test.ts` |
 | ✅ | [Paged Panel](paged-panel/PagedPanelPage.tsx) | `paged-panel` | 🟢 engine | 19 fields | ✅ | ✅ | ✅ | ✅ | 2 | `pagedPanelPreview.test.tsx` `pagedPanelSnippet.test.ts` |
 | ✅ | [Tag Panel](tag-panel/TagPanelPage.tsx) | `tag-panel` | 🟢 engine | 17 fields | ✅ | ✅ | ✅ | ✅ | 1 | `tagPanelPreview.test.tsx` `tagPanelSnippet.test.ts` |
-| ☐ | [Smart Grid Layout](smart-grid-layout/SmartGridLayoutPage.tsx) | `smart-grid-layout` | 🟡 panel | — | ✅ | ✅ | ✅ | ✅ | 5 | — |
+| ✅ | [Smart Grid Layout](smart-grid-layout/SmartGridLayoutPage.tsx) | `smart-grid-layout` | 🟢 engine | 19 fields | ✅ | ✅ | ✅ | ✅ | 5 | `smartGridPreview.test.tsx` `smartGridSnippet.test.ts` |
 | ☐ | [Side Panel](side-panel/SidePanelPage.tsx) | `side-panel` | 🟡 panel | — | ✅ | ✅ | ✅ | ✅ | 3 | — |
 | ☐ | [Split View](split-view/SplitViewPage.tsx) | `split-view` | 🟡 panel | — | ✅ | ✅ | ✅ | ✅ | 4 | — |
 | ☐ | [Info Row](info-row/InfoRowPage.tsx) | `info-row` | 🟡 panel | — | ✅ | ✅ | ✅ | ✅ | 7 | — |
