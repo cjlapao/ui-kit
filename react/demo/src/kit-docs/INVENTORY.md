@@ -112,12 +112,12 @@ would print a page of plumbing; a static `ExampleCard` set is honest).
 ## Status
 
 <!-- BEGIN GENERATED TABLE — npm --prefix react/demo run audit -->
-- **143 pages** in the side menu, **18 fully done** — run `npm --prefix react/demo run audit` after every conversion to refresh this table.
-- Playground: 18 on the engine · 117 legacy `PlaygroundPanel` · 1 inline · 7 without one.
+- **143 pages** in the side menu, **19 fully done** — run `npm --prefix react/demo run audit` after every conversion to refresh this table.
+- Playground: 19 on the engine · 116 legacy `PlaygroundPanel` · 1 inline · 7 without one.
 - Standard sections: API 81 · Screen reader 69 · Keyboard 68 · i18n 66.
-- Tests: 18 pages have one · examples missing on 12 pages.
+- Tests: 19 pages have one · examples missing on 12 pages.
 
-### Layout — 16/24 done
+### Layout — 17/24 done
 
 |  | Page | Slug | Playground | Fields | API | SR | Kbd | i18n | Ex | Tests |
 |:--:|---|---|---|---|:--:|:--:|:--:|:--:|:--:|---|
@@ -137,7 +137,7 @@ would print a page of plumbing; a static `ExampleCard` set is honest).
 | ✅ | [Header Group](header-group/HeaderGroupPage.tsx) | `header-group` | 🟢 engine | 12 fields | ✅ | ✅ | ✅ | ✅ | 4 | `headerGroupSnippet.test.ts` |
 | ✅ | [Panel Hero](panel-hero/PanelHeroPage.tsx) | `panel-hero` | 🟢 engine | 23 fields | ✅ | ✅ | ✅ | ✅ | 5 | `panelHeroSnippet.test.ts` |
 | ✅ | [Toolbar](toolbar/ToolbarPage.tsx) | `toolbar` | 🟢 engine | 13 fields | ✅ | ✅ | ✅ | ✅ | 3 | `toolbarSnippet.test.ts` |
-| ☐ | [Page Header](page-header/PageHeaderPage.tsx) | `page-header` | 🟡 panel | — | ✅ | ✅ | ✅ | ✅ | 3 | — |
+| ✅ | [Page Header](page-header/PageHeaderPage.tsx) | `page-header` | 🟢 engine | 22 fields | ✅ | ✅ | ✅ | ✅ | 3 | `pageHeaderSnippet.test.ts` |
 | ☐ | [Scroll Area](scroll-area/ScrollAreaPage.tsx) | `scroll-area` | 🟡 panel | — | ⬜ | ⬜ | ⬜ | ⬜ | 4 | — |
 | ☐ | [Paged Panel](paged-panel/PagedPanelPage.tsx) | `paged-panel` | 🟡 panel | — | ✅ | ✅ | ✅ | ✅ | 2 | — |
 | ☐ | [Tag Panel](tag-panel/TagPanelPage.tsx) | `tag-panel` | 🟡 panel | — | ✅ | ✅ | ✅ | ✅ | 1 | — |
