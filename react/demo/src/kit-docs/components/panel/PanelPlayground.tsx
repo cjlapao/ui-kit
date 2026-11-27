@@ -141,9 +141,10 @@ export const PanelPlayground: React.FC = () => {
           <code>glassOpacity</code> appear only on <code>liquid-glass</code>,
           because that is the one branch that reads them
           (<code>:958,1011-1012</code>) — on <code>glass</code> they were always
-          silently dropped. <code>hoverShadow</code> disappears with{" "}
-          <code>hoverable=&quot;off&quot;</code>, since the lift is a hover answer
-          (<code>:1283</code>).
+          silently dropped. <code>hoverShadow</code> never disappears, because
+          the lift it asks for is not inside the hoverable condition at all
+          (<code>:1283</code>) — turn <code>hoverable</code> off and it still
+          lifts, only without the tint or the shared transition.
           <br />
           <code>onClick</code> starts off, so <code>hoverable</code> and{" "}
           <code>clickable</code> can be watched doing what the component actually

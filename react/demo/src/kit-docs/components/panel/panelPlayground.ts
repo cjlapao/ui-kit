@@ -388,10 +388,10 @@ export const panelConfig: PlaygroundConfig = {
       kind: "toggle",
       prop: "hoverShadow",
       default: false,
-      // The lift is a hover answer — `hoverShadow && "hover:shadow-xl …"` (:1283)
-      // only ever paints while the card answers the pointer, so with
-      // `hoverable="off"` the control would have nothing left to show.
-      when: (state) => (state.hoverable ?? "auto") !== "off",
+      // Deliberately not gated on `hoverable`: `hoverShadow && "hover:shadow-xl
+      // hover:-translate-y-[1px]"` (:1283) is unconditional, so the lift paints
+      // with `hoverable={false}` too. Only the shared transition list that
+      // eases it alongside the tint is gated (:1288-1296).
     },
     {
       id: "disabled",
@@ -423,7 +423,13 @@ export const panelConfig: PlaygroundConfig = {
       "activeTone",
       "Selected hue",
       "Auto — borderColor, then tone, then blue",
-      (state) => (state.active ?? false) === true,
+      // Not only while selected: `activeHue` (Panel.tsx:891-894) is what the
+      // hover chain reads when the card is active (:857-859) *and* what the
+      // glow wears through `pulseHue = pulseTone ?? activeHue` (:922), selected
+      // or not — so a pulsing card answers to this hue on its own.
+      (state) =>
+        (state.active ?? false) === true ||
+        ((state.pulse ?? false) === true && (state.disabled ?? false) !== true),
     ),
     {
       id: "pulse",
@@ -502,6 +508,9 @@ export const panelConfig: PlaygroundConfig = {
       when: isGlass,
       options: [
         { value: "auto", label: "Auto" },
+        // Pinning `classic` prints the prop; leaving Auto prints nothing and
+        // resolves to classic anyway (:820-824).
+        { value: "classic", label: "Classic" },
         { value: "none", label: "None" },
         { value: "halo", label: "Halo" },
       ],

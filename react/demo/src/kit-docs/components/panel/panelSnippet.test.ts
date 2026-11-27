@@ -207,9 +207,12 @@ describe("props the component cannot see on their own", () => {
     expect(liquid).toContain('glassOpacity="clear"');
   });
 
-  it("keeps the lift with the hover that shows it", () => {
-    // :1283 sits inside the hoverable condition, and :1301 with it.
-    expect(tagOf(snippet({ hoverable: "off", hoverShadow: true }))).not.toContain(
+  it("prints the lift whenever it is asked for, hover or no hover", () => {
+    // `hoverShadow && "hover:shadow-xl hover:-translate-y-[1px]"` (Panel.tsx:1283)
+    // is not inside the hoverable condition, so hiding the control behind
+    // `hoverable="off"` would hide a knob that still paints. The line prints
+    // either way; only the eased transition is shared with the tint (:1288-1296).
+    expect(tagOf(snippet({ hoverable: "off", hoverShadow: true }))).toContain(
       "hoverShadow",
     );
     expect(snippet({ hoverShadow: true })).toContain("hoverShadow");
@@ -225,6 +228,11 @@ describe("props the component cannot see on their own", () => {
     // and the glow itself is cancelled by disabled (:921-922).
     expect(tagOf(snippet({ activeTone: "amber" }))).not.toContain("activeTone");
     expect(snippet({ active: true, activeTone: "amber" })).toContain(
+      'activeTone="amber"',
+    );
+    // And a pulsing card reads it with nothing selected: `pulseHue = pulseTone
+    // ?? activeHue` (:922), where activeHue starts at activeTone (:891-894).
+    expect(snippet({ pulse: true, activeTone: "amber" })).toContain(
       'activeTone="amber"',
     );
     expect(tagOf(snippet({ pulseTone: "rose" }))).not.toContain("pulseTone");
