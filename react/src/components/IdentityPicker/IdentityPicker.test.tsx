@@ -75,7 +75,13 @@ it("offers the entire 128-entry catalogue through All and search", async () => {
   expect(new Set(IDENTITY_EMOJIS.map(item => item.emoji)).size).toBe(128);
   render(<IdentityPicker />);
   fireEvent.change(screen.getByRole("combobox", { name: "Emoji categories" }), {target:{value:"all"}});
-  for (const item of IDENTITY_EMOJIS) expect(screen.getByRole("button", { name: item.label })).toBeInTheDocument();
+  // One query, not 128 accessible-tree walks: the claim is the same set
+  // comparison, and at full-suite load the per-entry getByRole exceeded the
+  // default 5s ceiling (it passes in isolation in ~1.5s).
+  const names = new Set(
+    screen.getAllByRole("button").map((button) => button.getAttribute("aria-label")),
+  );
+  for (const item of IDENTITY_EMOJIS) expect(names.has(item.label)).toBe(true);
   expect(screen.getByRole("button", { name: "Rocket" })).toHaveClass("h-10", "text-xl");
   fireEvent.change(screen.getByPlaceholderText(/Search emoji/), { target: { value: "butterfly" } });
   await waitFor(() => expect(screen.getByRole("button", { name: "Butterfly" })).toBeInTheDocument());

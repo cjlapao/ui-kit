@@ -29,6 +29,37 @@ must also expose a **Loader type** selector (`panelLoaderTypeOptions` via
 `ChoiceControl`, following `PanelPlayground`) so the skeleton/spinner/progress
 styles are all demonstrable.
 
+## A new playground is a schema, not a panel
+
+Declare the controls in `<slug>/<name>Playground.tsx` as a `PlaygroundConfig`
+(`groups`, `fields`, optional `data`) and let `shared/playground`'s
+`<Playground playground preview component />` render the panel: the stage gains
+a Preview/Code `IconToggleGroup` after the Background image toggle, and its Code
+view prints the runnable snippet for exactly the state on screen — plus the
+fixture data that made it, so the reader can see where the content came from.
+
+- `default` is what the playground opens with; `docDefault` is the component's
+  documented default and the bar for printing. A field appears in the snippet
+  only when it differs from `docDefault` (or sets `alwaysEmit`, for a prop with
+  no documented default such as Toast's `color`).
+- A data source is declared once and used twice: `emit: "literal"` prints the
+  resolved value, `emit: "source"` prints the generator itself, and `note`
+  becomes the comment above the `const`. **The preview must consume the value
+  the snippet prints** — resolve every source from the same state, in one pass
+  per state change, and keep fixtures deterministic (no `Math.random`, no
+  `Date.now`).
+- Imperative components (Toast) pass their own `code`; declarative ones pass
+  `component={{ tag, imports }}` and get the element, its hoisted consts and the
+  `export default function Demo()` wrapper for free. `ToastPlayground.tsx` and
+  `AvatarGroupPlayground.tsx` are the two shapes to copy from — the latter is the
+  template for the pages still hand-rolling their panel.
+- A page's snippet test (see `avatarGroupSnippet.test.ts`) asserts that every
+  attribute the Code view prints is a row of that page's `PropsTable`; a prop the
+  playground prints that the API table does not list is a documentation bug.
+
+A panel that passes no `code` renders exactly as it always did, so the pages
+written before this rule are untouched until their own pass comes up.
+
 Layout gotcha: anything embedding a `CodeBlock` (or another component with an
 `srLabel`/`sr-only` span) must sit inside a `relative` ancestor. The sr-only
 span is `position: absolute`; with no positioned ancestor it resolves against

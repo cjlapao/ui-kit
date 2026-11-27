@@ -89,9 +89,15 @@ const titleCase = (value: string): string =>
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
 
+/*
+ * Both members required, unlike `MultiToggleOption`'s optional ones: a
+ * playground option has to be able to say what it sets, so the schema can use
+ * these lists directly. Still assignable wherever a `MultiToggleOption[]` is
+ * wanted.
+ */
 const toOptions = <T extends string>(
   values: readonly T[],
-): MultiToggleOption[] =>
+): { label: string; value: T }[] =>
   values.map((value) => ({ label: titleCase(value), value }));
 
 // All derived from the kit's own runtime lists so a new variant/size/colour

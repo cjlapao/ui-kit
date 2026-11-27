@@ -8,6 +8,7 @@ import {
   C,
   KeyboardSupportTable,
   PropsTable,
+  type PropDoc,
 } from "../../shared/A11ySections";
 import { AvatarGroupPlayground } from "./AvatarGroupPlayground";
 import TeamInitials from "./examples/TeamInitials";
@@ -33,6 +34,86 @@ const NAMING_CODE = `// The chip names itself from the item; the artwork never d
     {},                                             // nothing: the User glyph, named "User avatar"
   ]}
 />`;
+
+/**
+ * Every public prop, as the API table prints it. Exported so the playground test
+ * can assert the Code view only ever names a prop the component actually takes.
+ */
+export const AVATAR_GROUP_PROPS: PropDoc[] = [
+  {
+    name: "items",
+    type: "AvatarGroupItem[]",
+    description:
+      "The identities to display. An empty roster renders nothing.",
+  },
+  {
+    name: "size",
+    type: "ControlSize",
+    default: '"md"',
+    description:
+      "Chip box on the shared control ladder — UserAvatar's px boxes (20–48) and text scale.",
+  },
+  {
+    name: "tone",
+    type: "TrueColor",
+    default: '"blue"',
+    description:
+      "The global fallback colour, for every item that carries no tone of its own.",
+  },
+  {
+    name: "rounded",
+    type: '"full" | "lg" | "md" | "none"',
+    default: '"full"',
+    description:
+      "One corner for every chip — discs, pads, image clips and halos alike.",
+  },
+  {
+    name: "border",
+    type: "boolean",
+    default: "true",
+    description:
+      "A 2px tone-neutral rim on every chip — the glass-edge recipe, committed enough to read at normal size. It separates same-tone chips where they overlap and lifts a flat tone pad off a same-colored surface.",
+  },
+  {
+    name: "maxVisible",
+    type: "number",
+    default: "5",
+    description:
+      "Chips shown before the +N chip — and the cap once a too-narrow container condenses on its own. Non-finite falls back to 5, finite clamps to ≥ 1.",
+  },
+  {
+    name: "expandOn",
+    type: '"click" | "hover"',
+    default: '"click"',
+    description:
+      "What opens the expansion; the +N chip always works too.",
+  },
+  {
+    name: "defaultExpanded",
+    type: "boolean",
+    default: "false",
+    description: "Whether the strip starts unfolded.",
+  },
+  {
+    name: "singleRow",
+    type: "boolean",
+    default: "false",
+    description:
+      "Cap the expansion at one row. Off, the strip unfolds and wraps naturally, growing as tall as it needs; on, it holds a single row and scrolls sideways (a ScrollArea — wheel, touch and keyboard) to reach the rest, the collapse chip pinned to the right edge.",
+  },
+  {
+    name: "padding",
+    type: "SurfacePadding",
+    default: '"none"',
+    description: "Inset around the group, on the shared container scale.",
+  },
+  {
+    name: "className + attributes",
+    type: "—",
+    description:
+      "Everything else lands on the root div.",
+  },
+];
 
 export const AvatarGroupPage: React.FC = () => (
   <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
@@ -168,83 +249,7 @@ export const AvatarGroupPage: React.FC = () => (
         API
       </h2>
       <div className="max-w-3xl">
-        <PropsTable
-          props={[
-            {
-              name: "items",
-              type: "AvatarGroupItem[]",
-              description:
-                "The identities to display. An empty roster renders nothing.",
-            },
-            {
-              name: "size",
-              type: "ControlSize",
-              default: '"md"',
-              description:
-                "Chip box on the shared control ladder — UserAvatar's px boxes (20–48) and text scale.",
-            },
-            {
-              name: "tone",
-              type: "TrueColor",
-              default: '"blue"',
-              description:
-                "The global fallback colour, for every item that carries no tone of its own.",
-            },
-            {
-              name: "rounded",
-              type: '"full" | "lg" | "md" | "none"',
-              default: '"full"',
-              description:
-                "One corner for every chip — discs, pads, image clips and halos alike.",
-            },
-            {
-              name: "border",
-              type: "boolean",
-              default: "true",
-              description:
-                "A 2px tone-neutral rim on every chip — the glass-edge recipe, committed enough to read at normal size. It separates same-tone chips where they overlap and lifts a flat tone pad off a same-colored surface.",
-            },
-            {
-              name: "maxVisible",
-              type: "number",
-              default: "5",
-              description:
-                "Chips shown before the +N chip — and the cap once a too-narrow container condenses on its own. Non-finite falls back to 5, finite clamps to ≥ 1.",
-            },
-            {
-              name: "expandOn",
-              type: '"click" | "hover"',
-              default: '"click"',
-              description:
-                "What opens the expansion; the +N chip always works too.",
-            },
-            {
-              name: "defaultExpanded",
-              type: "boolean",
-              default: "false",
-              description: "Whether the strip starts unfolded.",
-            },
-            {
-              name: "singleRow",
-              type: "boolean",
-              default: "false",
-              description:
-                "Cap the expansion at one row. Off, the strip unfolds and wraps naturally, growing as tall as it needs; on, it holds a single row and scrolls sideways (a ScrollArea — wheel, touch and keyboard) to reach the rest, the collapse chip pinned to the right edge.",
-            },
-            {
-              name: "padding",
-              type: "SurfacePadding",
-              default: '"none"',
-              description: "Inset around the group, on the shared container scale.",
-            },
-            {
-              name: "className + attributes",
-              type: "—",
-              description:
-                "Everything else lands on the root div.",
-            },
-          ]}
-        />
+        <PropsTable props={AVATAR_GROUP_PROPS} />
         <PropsTable
           title="AvatarGroupItem"
           props={[
