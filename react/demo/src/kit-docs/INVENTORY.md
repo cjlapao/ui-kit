@@ -112,12 +112,12 @@ would print a page of plumbing; a static `ExampleCard` set is honest).
 ## Status
 
 <!-- BEGIN GENERATED TABLE — npm --prefix react/demo run audit -->
-- **143 pages** in the side menu, **14 fully done** — run `npm --prefix react/demo run audit` after every conversion to refresh this table.
-- Playground: 14 on the engine · 121 legacy `PlaygroundPanel` · 1 inline · 7 without one.
-- Standard sections: API 81 · Screen reader 68 · Keyboard 67 · i18n 65.
-- Tests: 14 pages have one · examples missing on 12 pages.
+- **143 pages** in the side menu, **15 fully done** — run `npm --prefix react/demo run audit` after every conversion to refresh this table.
+- Playground: 15 on the engine · 120 legacy `PlaygroundPanel` · 1 inline · 7 without one.
+- Standard sections: API 81 · Screen reader 69 · Keyboard 68 · i18n 66.
+- Tests: 15 pages have one · examples missing on 12 pages.
 
-### Layout — 12/24 done
+### Layout — 13/24 done
 
 |  | Page | Slug | Playground | Fields | API | SR | Kbd | i18n | Ex | Tests |
 |:--:|---|---|---|---|:--:|:--:|:--:|:--:|:--:|---|
@@ -133,7 +133,7 @@ would print a page of plumbing; a static `ExampleCard` set is honest).
 | ✅ | [Accordion](accordion/AccordionPage.tsx) | `accordion` | 🟢 engine | 30 fields | ✅ | ✅ | ✅ | ✅ | 3 | `accordionSnippet.test.ts` |
 | ✅ | [App Divider](app-divider/AppDividerPage.tsx) | `app-divider` | 🟢 engine | 13 fields | ✅ | ✅ | ✅ | ✅ | 4 | `appDividerSnippet.test.ts` |
 | ✅ | [Code Block](code-block/CodeBlockPage.tsx) | `code-block` | 🟢 engine | 16 fields | ✅ | ✅ | ✅ | ✅ | 4 | `codeBlockSnippet.test.ts` |
-| ☐ | [Content Actions](content-actions/ContentActionsPage.tsx) | `content-actions` | 🟡 panel | — | ✅ | ⬜ | ⬜ | ⬜ | 1 | — |
+| ✅ | [Content Actions](content-actions/ContentActionsPage.tsx) | `content-actions` | 🟢 engine | 9 fields | ✅ | ✅ | ✅ | ✅ | 3 | `contentActionsSnippet.test.ts` |
 | ☐ | [Header Group](header-group/HeaderGroupPage.tsx) | `header-group` | 🟡 panel | — | ✅ | ✅ | ✅ | ✅ | 4 | — |
 | ☐ | [Panel Hero](panel-hero/PanelHeroPage.tsx) | `panel-hero` | 🟡 panel | — | ✅ | ✅ | ✅ | ✅ | 5 | — |
 | ☐ | [Toolbar](toolbar/ToolbarPage.tsx) | `toolbar` | 🟡 panel | — | ✅ | ✅ | ✅ | ✅ | 3 | — |
