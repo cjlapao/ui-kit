@@ -112,12 +112,12 @@ would print a page of plumbing; a static `ExampleCard` set is honest).
 ## Status
 
 <!-- BEGIN GENERATED TABLE — npm --prefix react/demo run audit -->
-- **143 pages** in the side menu, **8 fully done** — run `npm --prefix react/demo run audit` after every conversion to refresh this table.
-- Playground: 8 on the engine · 127 legacy `PlaygroundPanel` · 1 inline · 7 without one.
-- Standard sections: API 79 · Screen reader 66 · Keyboard 65 · i18n 63.
-- Tests: 8 pages have one · examples missing on 12 pages.
+- **143 pages** in the side menu, **9 fully done** — run `npm --prefix react/demo run audit` after every conversion to refresh this table.
+- Playground: 9 on the engine · 126 legacy `PlaygroundPanel` · 1 inline · 7 without one.
+- Standard sections: API 80 · Screen reader 67 · Keyboard 66 · i18n 64.
+- Tests: 9 pages have one · examples missing on 12 pages.
 
-### Layout — 6/24 done
+### Layout — 7/24 done
 
 |  | Page | Slug | Playground | Fields | API | SR | Kbd | i18n | Ex | Tests |
 |:--:|---|---|---|---|:--:|:--:|:--:|:--:|:--:|---|
@@ -127,7 +127,7 @@ would print a page of plumbing; a static `ExampleCard` set is honest).
 | ✅ | [Glass Background](glass-background/GlassBackgroundPage.tsx) | `glass-background` | 🟢 engine | 6 fields | ✅ | ✅ | ✅ | ✅ | 5 | `glassBackgroundSnippet.test.ts` |
 | ✅ | [Gradient Backdrop](gradient-backdrop/GradientBackdropPage.tsx) | `gradient-backdrop` | 🟢 engine | 8 fields | ✅ | ✅ | ✅ | ✅ | 4 | `gradientBackdropSnippet.test.ts` |
 | ✅ | [Grid Background](grid-background/GridBackgroundPage.tsx) | `grid-background` | 🟢 engine | 8 fields | ✅ | ✅ | ✅ | ✅ | 4 | `gridBackgroundSnippet.test.ts` |
-| ☐ | [Panel](panel/PanelPage.tsx) | `panel` | 🟡 panel | — | ⬜ | ⬜ | ⬜ | ⬜ | 9 | — |
+| ✅ | [Panel](panel/PanelPage.tsx) | `panel` | 🟢 engine | 39 fields | ✅ | ✅ | ✅ | ✅ | 9 | `panelSnippet.test.ts` |
 | ☐ | [Collapsible Help Text](collapsible-help-text/CollapsibleHelpTextPage.tsx) | `collapsible-help-text` | 🟡 panel | — | ⬜ | ⬜ | ⬜ | ⬜ | 3 | — |
 | ☐ | [Collapsible Panel](collapsible-panel/CollapsiblePanelPage.tsx) | `collapsible-panel` | 🟡 panel | — | ✅ | ✅ | ✅ | ✅ | 4 | — |
 | ☐ | [Accordion](accordion/AccordionPage.tsx) | `accordion` | 🟡 panel | — | ✅ | ✅ | ✅ | ✅ | 3 | — |

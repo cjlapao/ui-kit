@@ -1,12 +1,9 @@
-import { SurfaceToneSwatches } from "../../shared/SurfaceToneControl";
-import { HueControl } from "../../shared/HueControl";
-import type { SurfaceTone, TrueColor } from "@cjlapao/ui-kit";
-import React, { useState } from "react";
+import React from "react";
 import { Panel } from "@cjlapao/ui-kit";
-import { DEFAULT_SURFACE_CORNER } from "@cjlapao/ui-kit";
 import type {
   GlassOpacity,
   GlassVibrancy,
+  PanelAction,
   PanelCorner,
   PanelDecoration,
   PanelLoaderType,
@@ -14,375 +11,150 @@ import type {
   PanelPadding,
   PanelSpecularMode,
   PanelVariant,
+  SurfaceTone,
   SurfaceTransparency,
 } from "@cjlapao/ui-kit";
-import {
-  ChoiceControl,
-  Control,
-  PlaygroundPanel,
-  ToggleRow,
-} from "../../shared/PlaygroundPanel";
-import { ControlAccordion } from "../../shared/ControlAccordion";
-import { EventLogControl, useEventLog } from "../../shared/EventLog";
-import {
-  glassOpacityOptions,
-  glassVibrancyOptions,
-  panelClickableOptions,
-  panelCornerOptions,
-  panelDecorationOptions,
-  panelHoverableOptions,
-  panelLoaderTypeOptions,
-  panelMediaPlacementOptions,
-  panelPaddingOptions,
-  panelSpecularOptions,
-  surfaceVariantOptions,
-} from "../../shared/options";
+import { Playground } from "../../shared/playground";
+import { defaultDeclarations, usePlayground } from "../../shared/playground";
+import type {
+  PlaygroundCodeContext,
+  PlaygroundPreviewProps,
+} from "../../shared/playground/schema";
+import { HANDLER_BODY, defined, hueOf, triState } from "./panelStage";
+import { panelConfig } from "./panelPlayground";
 
-/** Variants whose surface is see-through, so the glass controls apply. */
-const GLASS_VARIANTS: PanelVariant[] = ["glass", "liquid-glass", "default"];
+/**
+ * The playground itself.
+ *
+ * The preview and the Code view read the same `state` and the same `data`, and
+ * the props below are passed exactly as `Panel.tsx:645-711` expects them: the
+ * three-state props become `undefined` rather than `true`/`false` when the
+ * reader leaves them on `auto`, because `hoverable ?? Boolean(onClick)`
+ * (:725,731) is a different answer from `hoverable={true}` and the card on
+ * screen has to be the one the snippet describes.
+ */
 
-export const PanelPlayground: React.FC = () => {
-  const [variant, setVariant] = useState<PanelVariant>("elevated");
-  const [transparency, setTransparency] = useState<SurfaceTransparency | "auto">("auto");
-  const [tone, setTone] = useState<SurfaceTone>("none");
-  const [corner, setCorner] = useState<PanelCorner>(DEFAULT_SURFACE_CORNER);
-  const [padding, setPadding] = useState<PanelPadding>("sm");
-  const [mediaPlacement, setMediaPlacement] =
-    useState<PanelMediaPlacement>("top");
-  const [decoration, setDecoration] = useState<PanelDecoration>("none");
-  const [loaderType, setLoaderType] = useState<PanelLoaderType>("skeleton");
-  const [hasMedia, setHasMedia] = useState(true);
-  const [hasBadge, setHasBadge] = useState(true);
-  const [hasActions, setHasActions] = useState(true);
-  const [loading, setLoading] = useState(false);
-  const [hoverShadow, setHoverShadow] = useState(false);
-  // Both are three-state, and both are kept side by side because the pair is
-  // the interesting part: `auto` is where an `onClick` alone answers the
-  // pointer, and `hoverable=off` / `clickable=off` are the two separate
-  // opt-outs — one takes the tint and the rim, the other takes the button.
-  const [hoverableMode, setHoverableMode] = useState<string>("auto");
-  // `auto` leaves the prop undefined, which is the interesting state: the
-  // card becomes a button because it has an `onClick`.
-  const [clickableMode, setClickableMode] = useState<string>("auto");
-  const [log, pushLog] = useEventLog();
-  const [disabled, setDisabled] = useState(false);
-  // The sheet `disabled` lays over the body. Try it off on a `simple` or
-  // `tonal` card: over a flat fill that translucent rectangle reads as a panel
-  // inside the panel, which is why a caller may bring its own signal instead.
-  const [disabledVeil, setDisabledVeil] = useState(true);
-  // Selection, not the pointer — try it together with Disabled: a selected
-  // card stays legibly selected while disabled.
-  const [active, setActive] = useState(false);
-  // The two hues a card is allowed to keep to itself. `undefined` is the auto
-  // answer — selection in `borderColor ?? tone`, glow in the selection's hue —
-  // so the controls appear only with the state they tint.
-  const [activeTone, setActiveTone] = useState<TrueColor | undefined>(undefined);
-  const [pulseTone, setPulseTone] = useState<TrueColor | undefined>(undefined);
-  const [hoverColor, setHoverColor] = useState<TrueColor | undefined>(undefined);
-  // The attention call, inward from the rim — try it with Disabled: a
-  // dimmed card stops demanding, unlike its selection rim, which stays.
-  const [pulse, setPulse] = useState(false);
-  // The forced depth step — try it on a `tonal`/`simple` card over the
-  // neutral page: the wash the nesting ladder gives matching children,
-  // forced here so a tinted card on a matching background stays visible.
-  const [raisedSurface, setRaisedSurface] = useState(false);
-  const [specularMode, setSpecularMode] =
-    useState<PanelSpecularMode>("classic");
-  const [vibrancy, setVibrancy] = useState<GlassVibrancy>("medium");
-  const [glassOpacity, setGlassOpacity] = useState<GlassOpacity>("frosted");
-
-  const isGlass = GLASS_VARIANTS.includes(variant);
-
+const Stage: React.FC<PlaygroundPreviewProps> = ({ state, data }) => {
+  const tone = String(state.tone ?? "none");
+  const loading = state.loading === true;
+  const loaderType = String(state.loaderType ?? "skeleton") as PanelLoaderType;
+  const skeleton = loaderType === "skeleton";
   return (
-    <PlaygroundPanel
-      controls={
-        <>
-          <ControlAccordion
-            groups={[
-              {
-                id: "core",
-                title: "Core",
-                controls: (
-                  <>
-                    <ChoiceControl
-                      label="Variant"
-                      options={surfaceVariantOptions}
-                      value={variant}
-                      onChange={(v) => setVariant(v as PanelVariant)}
-                    />
-                    {/* Tone is a colour decision — pick it from colour swatches,
-                      not from a dropdown of words. */}
-                    <Control label="Tone">
-                      <SurfaceToneSwatches value={tone} onSelect={setTone} />
-                    </Control>
-                    <ChoiceControl
-                      label="Transparency"
-                      options={[{value:"auto", label:"Variant default"}, {value:"none", label:"None / opaque"}, {value:"low", label:"Low"}, {value:"medium", label:"Medium"}, {value:"high", label:"High / original"}]}
-                      value={transparency}
-                      onChange={value => setTransparency(value as SurfaceTransparency | "auto")}
-                    />
-                    <ChoiceControl
-                      label="Corner"
-                      options={panelCornerOptions}
-                      value={corner}
-                      onChange={(v) => setCorner(v as PanelCorner)}
-                    />
-                    <ChoiceControl
-                      label="Padding"
-                      options={panelPaddingOptions}
-                      value={padding}
-                      onChange={(v) => setPadding(v as PanelPadding)}
-                    />
-                    <ChoiceControl
-                      label="Media placement"
-                      options={panelMediaPlacementOptions}
-                      value={mediaPlacement}
-                      onChange={(v) =>
-                        setMediaPlacement(v as PanelMediaPlacement)
-                      }
-                    />
-                    <ChoiceControl
-                      label="Decoration"
-                      options={panelDecorationOptions}
-                      value={decoration}
-                      onChange={(v) => setDecoration(v as PanelDecoration)}
-                    />
-                    <ToggleRow
-                      label="Raised surface"
-                      checked={raisedSurface}
-                      onChange={setRaisedSurface}
-                    />
-                  </>
-                ),
-              },
-              {
-                id: "states",
-                title: "States",
-                controls: (
-                  <>
-                    <ChoiceControl
-                      label="Loader type"
-                      options={panelLoaderTypeOptions}
-                      value={loaderType}
-                      onChange={(v) => setLoaderType(v as PanelLoaderType)}
-                    />
-                    <div className="grid grid-cols-1 gap-2">
-                      <ToggleRow
-                        label="Media"
-                        checked={hasMedia}
-                        onChange={setHasMedia}
-                      />
-                      <ToggleRow
-                        label="Badge"
-                        checked={hasBadge}
-                        onChange={setHasBadge}
-                      />
-                      <ToggleRow
-                        label="Actions"
-                        checked={hasActions}
-                        onChange={setHasActions}
-                      />
-                      <ToggleRow
-                        label="Loading"
-                        checked={loading}
-                        onChange={setLoading}
-                      />
-                      <ToggleRow
-                        label="Hover shadow"
-                        checked={hoverShadow}
-                        onChange={setHoverShadow}
-                      />
-                      <ChoiceControl
-                        label="Hoverable"
-                        options={panelHoverableOptions}
-                        value={hoverableMode}
-                        onChange={setHoverableMode}
-                      />
-                      <ChoiceControl
-                        label="Clickable"
-                        options={panelClickableOptions}
-                        value={clickableMode}
-                        onChange={setClickableMode}
-                      />
-                      <ToggleRow
-                        label="Disabled"
-                        checked={disabled}
-                        onChange={setDisabled}
-                      />
-                      <ToggleRow
-                        label="Disabled sheet"
-                        checked={disabledVeil}
-                        onChange={setDisabledVeil}
-                      />
-                      <ToggleRow
-                        label="Active"
-                        checked={active}
-                        onChange={setActive}
-                      />
-                      <ToggleRow
-                        label="Pulse"
-                        checked={pulse}
-                        onChange={setPulse}
-                      />
-                    </div>
-                    {/* Each hue control shows with the state it tints — an
-                        "auto" that paints nothing would only be noise. */}
-                    {active ? (
-                      <HueControl
-                        label="Selected hue"
-                        value={activeTone}
-                        onChange={setActiveTone}
-                        autoLabel="Auto — borderColor, then tone"
-                      />
-                    ) : null}
-                    {pulse ? (
-                      <HueControl
-                        label="Pulse hue"
-                        value={pulseTone}
-                        onChange={setPulseTone}
-                        autoLabel="Auto — the selected hue"
-                      />
-                    ) : null}
-                    {/* The hover asks the selection what to wear, so this one
-                        matters most when a selected hue is set — but it always
-                        paints, so it stays put. Hidden only when the pointer is
-                        off, where it could do nothing. */}
-                    {hoverableMode !== "off" ? (
-                      <HueControl
-                        label="Hover hue"
-                        value={hoverColor}
-                        onChange={setHoverColor}
-                        autoLabel="Auto — the selected hue, while selected; else the panel's own"
-                      />
-                    ) : null}
-                  </>
-                ),
-              },
-              ...(isGlass
-                ? [
-                    {
-                      id: "glass",
-                      title: "Glass",
-                      controls: (
-                        <>
-                          <ChoiceControl
-                            label="Specular"
-                            options={panelSpecularOptions}
-                            value={specularMode}
-                            onChange={(v) =>
-                              setSpecularMode(v as PanelSpecularMode)
-                            }
-                          />
-                          <ChoiceControl
-                            label="Vibrancy"
-                            options={glassVibrancyOptions}
-                            value={vibrancy as string}
-                            onChange={(v) => setVibrancy(v as GlassVibrancy)}
-                          />
-                          <ChoiceControl
-                            label="Glass opacity"
-                            options={glassOpacityOptions}
-                            value={glassOpacity as string}
-                            onChange={(v) => setGlassOpacity(v as GlassOpacity)}
-                          />
-                        </>
-                      ),
-                    },
-                  ]
-                : []),
-            ]}
-          />
-          <EventLogControl
-            log={log}
-            emptyText="No events yet — click the card, or Open inside it."
-          />
-        </>
+    <Panel
+      variant={String(state.variant) as PanelVariant}
+      tone={tone === "none" ? undefined : (tone as SurfaceTone)}
+      transparency={defined(state.transparency) as SurfaceTransparency | undefined}
+      corner={String(state.corner) as PanelCorner}
+      padding={String(state.padding) as PanelPadding}
+      maxWidth={Number(state.maxWidth) > 0 ? Number(state.maxWidth) : undefined}
+      minHeight={Number(state.minHeight) > 0 ? Number(state.minHeight) : undefined}
+      decoration={String(state.decoration) as PanelDecoration}
+      media={state.showMedia === true ? (data.media as React.ReactElement) : undefined}
+      mediaPlacement={String(state.mediaPlacement) as PanelMediaPlacement}
+      badge={state.showBadge === true ? String(state.badge) : undefined}
+      title={String(state.title)}
+      subtitle={String(state.subtitle)}
+      description={String(state.description)}
+      actions={state.showActions === true ? (data.actions as PanelAction[]) : undefined}
+      actionLayout={String(state.actionLayout) as "auto" | "stacked" | "inline"}
+      loading={loading}
+      loaderType={loaderType}
+      skeletonLines={Number(state.skeletonLines ?? 3)}
+      loaderTitle={loading && !skeleton ? String(state.loaderTitle) : undefined}
+      loaderMessage={loading && !skeleton ? String(state.loaderMessage) : undefined}
+      loaderProgress={
+        loading && loaderType === "progress" ? Number(state.loaderProgress) : undefined
       }
-      preview={
-        <div className="w-full">
-          <Panel
-            variant={variant}
-            tone={tone}
-            corner={corner}
-            padding={padding}
-            decoration={decoration}
-            media={
-              hasMedia ? (
-                <div
-                  className={
-                    mediaPlacement === "overlay"
-                      ? "h-full min-h-40 w-full bg-gradient-to-br from-indigo-500 via-sky-400 to-emerald-400"
-                      : "h-28 w-full bg-gradient-to-br from-indigo-500 via-sky-400 to-emerald-400"
-                  }
-                />
-              ) : undefined
-            }
-            mediaPlacement={mediaPlacement}
-            badge={hasBadge ? "New" : undefined}
-            title="Panel title"
-            subtitle="A subtitle"
-            description="A description, which uses the surface's muted tone."
-            actions={
-              hasActions
-                ? [
-                    {
-                      label: "Open",
-                      variant: "solid",
-                      color: "blue",
-                      size: "sm",
-                      onClick: () => pushLog("Open pressed"),
-                    },
-                    {
-                      label: "Close",
-                      variant: "outline",
-                      color: "rose",
-                      size: "sm",
-                      onClick: () => pushLog("Close pressed"),
-                    },
-                  ]
-                : undefined
-            }
-            loading={loading}
-            loaderType={loaderType}
-            loaderProgress={30}
-            loaderTitle="Loading…"
-            loaderMessage="Getting things ready…"
-            hoverShadow={hoverShadow}
-            hoverable={
-              hoverableMode === "auto"
-                ? undefined
-                : hoverableMode === "on"
-                  ? true
-                  : false
-            }
-            // Always given, so `auto` is genuinely "follows onClick" rather
-            // than "nothing is wired up".
-            onClick={() => pushLog("Card activated")}
-            clickable={
-              clickableMode === "auto"
-                ? undefined
-                : clickableMode === "on"
-                  ? true
-                  : false
-            }
-            disabled={disabled}
-            disabledVeil={disabledVeil}
-            active={active}
-            activeTone={activeTone}
-            hoverColor={hoverColor}
-            pulseTone={pulseTone}
-            pulse={pulse}
-            vibrancy={vibrancy}
-            glassOpacity={glassOpacity}
-            transparency={transparency === "auto" ? undefined : transparency}
-            specularMode={specularMode}
-            raisedSurface={raisedSurface}
-          >
-            This panel uses the {variant} variant, {corner} corners and{" "}
-            {padding} padding.
-          </Panel>
-        </div>
-      }
-    ></PlaygroundPanel>
+      hoverShadow={state.hoverShadow === true}
+      hoverable={triState(state.hoverable)}
+      clickable={triState(state.clickable)}
+      onClick={state.onClick === true ? () => undefined : undefined}
+      disabled={state.disabled === true}
+      disabledVeil={state.disabledVeil !== false}
+      active={state.active === true}
+      activeTone={hueOf(state.activeTone)}
+      pulse={state.pulse === true}
+      pulseTone={hueOf(state.pulseTone)}
+      hoverColor={hueOf(state.hoverColor)}
+      borderColor={hueOf(state.borderColor)}
+      backgroundColor={hueOf(state.backgroundColor)}
+      raisedSurface={state.raisedSurface === true}
+      nestedSurface={state.nestedSurface !== false}
+      scrollable={state.scrollable !== false}
+      flexBody={state.flexBody === true}
+      specularMode={defined(state.specularMode) as PanelSpecularMode | undefined}
+      vibrancy={defined(state.vibrancy) as GlassVibrancy | undefined}
+      glassOpacity={defined(state.glassOpacity) as GlassOpacity | undefined}
+    >
+      {String(data.content)}
+    </Panel>
   );
 };
+
+export const panelCode = ({ state, data, h }: PlaygroundCodeContext): string => {
+  // Handlers are the two props no literal can say. They are declared rather
+  // than inlined so the reader sees the shape (`() => void`) and fills in the
+  // body, instead of copying a playground's `pushLog` that exists nowhere.
+  const handlers: string[] = [];
+  if (state.onClick === true) {
+    handlers.push(
+      h.const("onActivate", {
+        source: HANDLER_BODY,
+        label: "What the card does when it is activated",
+      }),
+    );
+  }
+  if (state.showActions === true) {
+    handlers.push(
+      h.const("onAction", {
+        source: HANDLER_BODY,
+        label: "What the card's own buttons do",
+      }),
+    );
+  }
+  return h.snippet({
+    imports: ["Panel"],
+    // Handlers before the fixtures that name them: `ACTIONS` reads `onAction`
+    // while it is being built, so a `const` declared after it would be a
+    // temporal-dead-zone error in the code the reader copies.
+    decls: [...handlers, ...defaultDeclarations(panelConfig, state, h)],
+    body: h.demo(h.element("Panel", h.props(), 0, String(data.content))),
+  });
+};
+
+export const PanelPlayground: React.FC = () => {
+  const playground = usePlayground(panelConfig);
+  return (
+    <Playground
+      playground={playground}
+      preview={Stage}
+      code={panelCode}
+      filename="Panel.tsx"
+      hint={
+        <>
+          Opens on the kit's container standard — <code>elevated</code>, no tint,{" "}
+          <code>rounded-md</code> (which renders <code>rounded-2xl</code>) and{" "}
+          <code>sm</code> padding, all from the component's own defaults
+          (<code>Panel.tsx:645-711</code>).
+          <br />
+          Two controls are honest about being idle. <code>vibrancy</code> and{" "}
+          <code>glassOpacity</code> appear only on <code>liquid-glass</code>,
+          because that is the one branch that reads them
+          (<code>:958,1011-1012</code>) — on <code>glass</code> they were always
+          silently dropped. <code>hoverShadow</code> disappears with{" "}
+          <code>hoverable=&quot;off&quot;</code>, since the lift is a hover answer
+          (<code>:1283</code>).
+          <br />
+          <code>onClick</code> starts off, so <code>hoverable</code> and{" "}
+          <code>clickable</code> can be watched doing what the component actually
+          does with an absent prop: <code>Boolean(onClick)</code>
+          (<code>:725,731</code>). Turn it on and the card gains{" "}
+          <code>role=&quot;button&quot;</code>, a tab stop and the Enter/Space path
+          (<code>:1330-1357</code>) without you asking for any of them.
+        </>
+      }
+    />
+  );
+};
+
+export default PanelPlayground;
