@@ -112,10 +112,10 @@ would print a page of plumbing; a static `ExampleCard` set is honest).
 ## Status
 
 <!-- BEGIN GENERATED TABLE — npm --prefix react/demo run audit -->
-- **143 pages** in the side menu, **31 fully done** — run `npm --prefix react/demo run audit` after every conversion to refresh this table.
-- Playground: 31 on the engine · 105 legacy `PlaygroundPanel` · 1 inline · 6 without one.
+- **143 pages** in the side menu, **32 fully done** — run `npm --prefix react/demo run audit` after every conversion to refresh this table.
+- Playground: 32 on the engine · 104 legacy `PlaygroundPanel` · 1 inline · 6 without one.
 - Standard sections: API 83 · Screen reader 71 · Keyboard 70 · i18n 68.
-- Tests: 31 pages have one · examples missing on 12 pages.
+- Tests: 32 pages have one · examples missing on 12 pages.
 
 ### Layout — 24/24 done
 
@@ -146,7 +146,7 @@ would print a page of plumbing; a static `ExampleCard` set is honest).
 | ✅ | [Split View](split-view/SplitViewPage.tsx) | `split-view` | 🟢 engine | 34 fields | ✅ | ✅ | ✅ | ✅ | 4 | `splitViewPreview.test.tsx` `splitViewSnippet.test.ts` |
 | ✅ | [Info Row](info-row/InfoRowPage.tsx) | `info-row` | 🟢 engine | 39 fields | ✅ | ✅ | ✅ | ✅ | 7 | `infoRowPreview.test.tsx` `infoRowSnippet.test.ts` |
 
-### Basics — 5/12 done
+### Basics — 6/12 done
 
 |  | Page | Slug | Playground | Fields | API | SR | Kbd | i18n | Ex | Tests |
 |:--:|---|---|---|---|:--:|:--:|:--:|:--:|:--:|---|
@@ -155,7 +155,7 @@ would print a page of plumbing; a static `ExampleCard` set is honest).
 | ✅ | [Checkbox](checkbox/CheckboxPage.tsx) | `checkbox` | 🟢 engine | 19 fields | ✅ | ✅ | ✅ | ✅ | 6 | `checkboxPreview.test.tsx` `checkboxSnippet.test.ts` |
 | ✅ | [Custom Icon](custom-icon/CustomIconPage.tsx) | `custom-icon` | 🟢 engine | 13 fields | ✅ | ✅ | ✅ | ✅ | 5 | `customIconPreview.test.tsx` `customIconSnippet.test.ts` |
 | ✅ | [Icon Registry](icons/IconsPage.tsx) | `icons` | 🟢 engine | 8 fields | ✅ | ✅ | ✅ | ✅ | 0 | `iconsRegistryPreview.test.tsx` `iconsRegistrySnippet.test.ts` |
-| ☐ | [Dynamic Image](dynamic-img/DynamicImgPage.tsx) | `dynamic-img` | 🟡 panel | — | ✅ | ✅ | ✅ | ✅ | 4 | — |
+| ✅ | [Dynamic Image](dynamic-img/DynamicImgPage.tsx) | `dynamic-img` | 🟢 engine | 11 fields | ✅ | ✅ | ✅ | ✅ | 4 | `dynamicImgPreview.test.tsx` `dynamicImgSnippet.test.ts` |
 | ☐ | [Pill](pill/PillPage.tsx) | `pill` | 🟡 panel | — | ✅ | ✅ | ✅ | ✅ | 5 | — |
 | ☐ | [Dropdown Button](dropdown-button/DropdownButtonPage.tsx) | `dropdown-button` | 🟡 panel | — | ✅ | ✅ | ✅ | ✅ | 4 | — |
 | ☐ | [Icon Button](icon-button/IconButtonPage.tsx) | `icon-button` | 🟡 panel | — | ✅ | ✅ | ✅ | ✅ | 5 | — |
