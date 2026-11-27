@@ -201,8 +201,15 @@ const printElement = (
   // exactly as it was written.
   if (element.type === (Fragment as unknown as symbol)) {
     if (children.length === 0) return "<></>";
-    const printed = children.map((child) => print(child, level + 1, ctx));
-    return block(printed, "<>", "</>", level);
+    const printed = children.map((child) =>
+      typeof child === "string" || typeof child === "number"
+        ? String(child).trim()
+        : print(child, level + 1, ctx),
+    );
+    // Markup, not an array: children are joined with newlines. `block()` puts a
+    // comma between the entries of a literal, and a comma between two elements is
+    // no longer JSX — `<> <a />, <b />, </>` is what it used to produce.
+    return elementOf("", [], level, printed.join("\n"));
   }
 
   const tag = nameOf(element.type, ctx);

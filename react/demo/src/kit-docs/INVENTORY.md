@@ -112,12 +112,12 @@ would print a page of plumbing; a static `ExampleCard` set is honest).
 ## Status
 
 <!-- BEGIN GENERATED TABLE — npm --prefix react/demo run audit -->
-- **143 pages** in the side menu, **15 fully done** — run `npm --prefix react/demo run audit` after every conversion to refresh this table.
-- Playground: 15 on the engine · 120 legacy `PlaygroundPanel` · 1 inline · 7 without one.
+- **143 pages** in the side menu, **16 fully done** — run `npm --prefix react/demo run audit` after every conversion to refresh this table.
+- Playground: 16 on the engine · 119 legacy `PlaygroundPanel` · 1 inline · 7 without one.
 - Standard sections: API 81 · Screen reader 69 · Keyboard 68 · i18n 66.
-- Tests: 15 pages have one · examples missing on 12 pages.
+- Tests: 16 pages have one · examples missing on 12 pages.
 
-### Layout — 13/24 done
+### Layout — 14/24 done
 
 |  | Page | Slug | Playground | Fields | API | SR | Kbd | i18n | Ex | Tests |
 |:--:|---|---|---|---|:--:|:--:|:--:|:--:|:--:|---|
@@ -134,7 +134,7 @@ would print a page of plumbing; a static `ExampleCard` set is honest).
 | ✅ | [App Divider](app-divider/AppDividerPage.tsx) | `app-divider` | 🟢 engine | 13 fields | ✅ | ✅ | ✅ | ✅ | 4 | `appDividerSnippet.test.ts` |
 | ✅ | [Code Block](code-block/CodeBlockPage.tsx) | `code-block` | 🟢 engine | 16 fields | ✅ | ✅ | ✅ | ✅ | 4 | `codeBlockSnippet.test.ts` |
 | ✅ | [Content Actions](content-actions/ContentActionsPage.tsx) | `content-actions` | 🟢 engine | 9 fields | ✅ | ✅ | ✅ | ✅ | 3 | `contentActionsSnippet.test.ts` |
-| ☐ | [Header Group](header-group/HeaderGroupPage.tsx) | `header-group` | 🟡 panel | — | ✅ | ✅ | ✅ | ✅ | 4 | — |
+| ✅ | [Header Group](header-group/HeaderGroupPage.tsx) | `header-group` | 🟢 engine | 12 fields | ✅ | ✅ | ✅ | ✅ | 4 | `headerGroupSnippet.test.ts` |
 | ☐ | [Panel Hero](panel-hero/PanelHeroPage.tsx) | `panel-hero` | 🟡 panel | — | ✅ | ✅ | ✅ | ✅ | 5 | — |
 | ☐ | [Toolbar](toolbar/ToolbarPage.tsx) | `toolbar` | 🟡 panel | — | ✅ | ✅ | ✅ | ✅ | 3 | — |
 | ☐ | [Page Header](page-header/PageHeaderPage.tsx) | `page-header` | 🟡 panel | — | ✅ | ✅ | ✅ | ✅ | 3 | — |

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { createElement } from "react";
+import { createElement, Fragment } from "react";
 import { createEmitter, defaultDeclarations } from "./emit";
 import type {
   PlaygroundConfig,
@@ -358,6 +358,19 @@ describe("jsx", () => {
     expect(bare().jsx(createElement("img", { src: "a.webp", alt: "" }))).toBe(
       '<img src="a.webp" alt="" />',
     );
+  });
+
+  it("prints a fragment as markup, not as an array", () => {
+    const row = createElement(Fragment, null, [
+      createElement("button", { key: "a" }, "Edit"),
+      createElement("button", { key: "b" }, "Delete"),
+    ]);
+    const printed = bare().jsx(row);
+    // Commas between two elements are not JSX: a fixture's `actions` has to be
+    // pasteable back into a file, which is the whole point of the Code view.
+    expect(printed).not.toContain(",");
+    expect(printed).toBe("<>\n  <button>Edit</button>\n  <button>Delete</button>\n</>");
+    expect(bare().jsx(createElement(Fragment, null))).toBe("<></>");
   });
 
   it("uses the identifier the page names, never the function's name", () => {
