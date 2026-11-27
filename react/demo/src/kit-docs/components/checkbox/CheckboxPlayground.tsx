@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Checkbox, ColorSwatches, Input, Panel } from "@cjlapao/ui-kit";
+import React from "react";
+import { Checkbox } from "@cjlapao/ui-kit";
 import type {
   CheckboxAlign,
   CheckboxDescriptionPlacement,
@@ -8,264 +8,225 @@ import type {
   CheckboxVariant,
   TrueColor,
 } from "@cjlapao/ui-kit";
+import { Playground } from "../../shared/playground/Playground";
+import { usePlayground } from "../../shared/playground/state";
+import type {
+  PlaygroundCodeContext,
+  PlaygroundPreviewProps,
+  PlaygroundState,
+} from "../../shared/playground/schema";
+import { C } from "../../shared/A11ySections";
 import {
-  Control,
-  PlaygroundPanel,
-  SelectControl,
-  ToggleRow,
-} from "../../shared/PlaygroundPanel";
-import { ControlAccordion } from "../../shared/ControlAccordion";
-import { EventLogControl, useEventLog } from "../../shared/EventLog";
+  checkboxConfig,
+  hostStateLines,
+  stageCaption,
+  toneSpelling,
+} from "./checkboxPlayground";
 import {
-  checkboxAlignOptions,
-  checkboxDescriptionPlacementOptions,
-  checkboxValidationOptions,
-  controlSizeOptions,
-  inputVariantOptions,
-} from "../../shared/options";
+  ALIGN_DEFAULT,
+  PLACEMENT_DEFAULT,
+  SIZE_DEFAULT,
+  STAGE_CLASS,
+  TONE_DEFAULT,
+  VALIDATION_DEFAULT,
+  VARIANT_DEFAULT,
+  changeReport,
+  flag,
+  hasDescription,
+  hasMessage,
+  isControlled,
+  textValue,
+  usesLegacyColor,
+} from "./checkboxStage";
 
-export const CheckboxPlayground: React.FC = () => {
-  const [size, setSize] = useState<CheckboxSize>("md");
-  const [tone, setTone] = useState<TrueColor>("blue");
-  const [variant, setVariant] = useState<CheckboxVariant>("flat");
-  const [controlAlign, setControlAlign] = useState<CheckboxAlign>("left");
-  const [descriptionPlacement, setDescriptionPlacement] =
-    useState<CheckboxDescriptionPlacement>("bottom");
-  const [validationStatus, setValidationStatus] =
-    useState<CheckboxValidationStatus>("none");
-  const [validationMessage, setValidationMessage] = useState(
-    "This field is required",
+/**
+ * The engine-driven playground for one `Checkbox`. The tag the Code view prints and
+ * the tag that paints come from the same config, so the only difference between the
+ * two panes is that one of them is alive.
+ */
+
+/**
+ * A knob left at the component's own default is not passed at all: the destructured
+ * default (:192-206) has to earn its keep in front of the reader.
+ */
+const atDefault = <T extends string | number>(
+  state: PlaygroundState,
+  id: string,
+  documented: T,
+): T | undefined => {
+  const raw = state[id];
+  if (typeof raw !== "string" && typeof raw !== "number") return undefined;
+  return String(raw) === String(documented) ? undefined : (raw as unknown as T);
+};
+
+/** The same question for a boolean, whose kit default is `false` (:197-205). */
+const on = (state: PlaygroundState, id: string): true | undefined =>
+  flag(state, id) ? true : undefined;
+
+const Stage: React.FC<PlaygroundPreviewProps> = ({ state, set }) => {
+  const legacy = usesLegacyColor(state);
+  const tone = textValue(state, "tone") || TONE_DEFAULT;
+  const painted = tone === TONE_DEFAULT ? undefined : (tone as TrueColor);
+  const controlled = isControlled(state);
+  const reported = changeReport(state);
+
+  // `defaultChecked` and `checked` are decided at mount (:295), so changing one of
+  // them has to remount the box — otherwise the DOM node keeps the state it was
+  // created with and the knob looks broken.
+  const mount = `${controlled ? "controlled" : "free"}:${
+    flag(state, "defaultChecked") ? "on" : "off"
+  }`;
+
+  const box = (
+    <Checkbox
+      key={mount}
+      variant={atDefault<CheckboxVariant>(state, "variant", VARIANT_DEFAULT)}
+      size={atDefault<CheckboxSize>(state, "size", SIZE_DEFAULT)}
+      controlAlign={atDefault<CheckboxAlign>(state, "controlAlign", ALIGN_DEFAULT)}
+      descriptionPlacement={atDefault<CheckboxDescriptionPlacement>(
+        state,
+        "descriptionPlacement",
+        PLACEMENT_DEFAULT,
+      )}
+      validationStatus={atDefault<CheckboxValidationStatus>(
+        state,
+        "validationStatus",
+        VALIDATION_DEFAULT,
+      )}
+      tone={legacy ? undefined : painted}
+      color={legacy ? painted : undefined}
+      label={textValue(state, "label") || undefined}
+      description={
+        hasDescription(state) ? textValue(state, "description") : undefined
+      }
+      validationMessage={
+        hasMessage(state) ? textValue(state, "validationMessage") : undefined
+      }
+      aria-label={textValue(state, "ariaLabel") || undefined}
+      inputClassName={textValue(state, "inputClassName") || undefined}
+      fullWidth={on(state, "fullWidth")}
+      required={on(state, "required")}
+      indeterminate={on(state, "indeterminate")}
+      disabled={on(state, "disabled")}
+      defaultChecked={
+        !controlled && flag(state, "defaultChecked") ? true : undefined
+      }
+      checked={controlled ? reported === "true" : undefined}
+      onChange={(event) => set("report", String(event.target.checked))}
+    />
   );
-  const [label, setLabel] = useState("Accept the terms");
-  const [description, setDescription] = useState(
-    "You can withdraw consent at any time.",
-  );
-  const [showLabel, setShowLabel] = useState(true);
-  const [showDescription, setShowDescription] = useState(true);
-  const [checked, setChecked] = useState(true);
-  const [log, pushLog] = useEventLog();
-  const [indeterminate, setIndeterminate] = useState(false);
-  const [required, setRequired] = useState(false);
-  const [disabled, setDisabled] = useState(false);
-  const [fullWidth, setFullWidth] = useState(false);
-  const [glassPanel, setGlassPanel] = useState(false);
 
   return (
-    <PlaygroundPanel
-      controls={
-        <div className="space-y-3">
-          <ControlAccordion
-            groups={[
-              {
-                id: "core",
-                title: "Core",
-                controls: (
-                  <>
-                    <SelectControl
-                      label="Variant"
-                      options={inputVariantOptions}
-                      value={variant}
-                      onChange={(value) => setVariant(value as CheckboxVariant)}
-                    />
-                    <SelectControl
-                      label="Size"
-                      options={controlSizeOptions}
-                      value={size}
-                      onChange={(value) => setSize(value as CheckboxSize)}
-                    />
-                    {/* Colour is a palette, not a list — never a dropdown of
-                        colour names. `tone` is the kit-wide name; the `md`
-                        box stands on the kit's rounded-md default. */}
-                    <Control label="Tone">
-                      <ColorSwatches
-                        selectable
-                        size="sm"
-                        value={tone}
-                        onSelect={setTone}
-                        defaultExpanded
-                      />
-                    </Control>
-                    <SelectControl
-                      label="Control side"
-                      options={checkboxAlignOptions}
-                      value={controlAlign}
-                      onChange={(value) =>
-                        setControlAlign(value as CheckboxAlign)
-                      }
-                    />
-                    <SelectControl
-                      label="Description"
-                      options={checkboxDescriptionPlacementOptions}
-                      value={descriptionPlacement}
-                      onChange={(value) =>
-                        setDescriptionPlacement(
-                          value as CheckboxDescriptionPlacement,
-                        )
-                      }
-                    />
-                  </>
-                ),
-              },
-              {
-                id: "content",
-                title: "Content",
-                controls: (
-                  <>
-                    <Control label="Label">
-                      <Input
-                        size="sm"
-                        value={label}
-                        onChange={(event) => setLabel(event.target.value)}
-                      />
-                    </Control>
-                    <Control label="Description text">
-                      <Input
-                        size="sm"
-                        value={description}
-                        onChange={(event) => setDescription(event.target.value)}
-                      />
-                    </Control>
-                  </>
-                ),
-              },
-              {
-                id: "validation",
-                title: "Validation",
-                controls: (
-                  <>
-                    <SelectControl
-                      label="Validation"
-                      options={checkboxValidationOptions}
-                      value={validationStatus}
-                      onChange={(value) =>
-                        setValidationStatus(value as CheckboxValidationStatus)
-                      }
-                    />
-                    <Control label="Validation message">
-                      <Input
-                        size="sm"
-                        value={validationMessage}
-                        disabled={validationStatus === "none"}
-                        onChange={(event) =>
-                          setValidationMessage(event.target.value)
-                        }
-                      />
-                    </Control>
-                  </>
-                ),
-              },
-              {
-                id: "states",
-                title: "States",
-                controls: (
-                  <div className="grid grid-cols-2 gap-2">
-                    <ToggleRow
-                      label="Checked"
-                      checked={checked}
-                      onChange={(value) => {
-                        setChecked(value);
-                        setIndeterminate(false);
-                      }}
-                    />
-                    <ToggleRow
-                      label="Indeterminate"
-                      checked={indeterminate}
-                      onChange={setIndeterminate}
-                    />
-                    <ToggleRow
-                      label="Label"
-                      checked={showLabel}
-                      onChange={setShowLabel}
-                    />
-                    <ToggleRow
-                      label="Description"
-                      checked={showDescription}
-                      onChange={setShowDescription}
-                    />
-                    <ToggleRow
-                      label="Required"
-                      checked={required}
-                      onChange={setRequired}
-                    />
-                    <ToggleRow
-                      label="Disabled"
-                      checked={disabled}
-                      onChange={setDisabled}
-                    />
-                    <ToggleRow
-                      label="Full width"
-                      checked={fullWidth}
-                      onChange={setFullWidth}
-                    />
-                    <ToggleRow
-                      label="Glass panel"
-                      checked={glassPanel}
-                      onChange={setGlassPanel}
-                    />
-                  </div>
-                ),
-              },
-            ]}
-          />
-          <EventLogControl
-            log={log}
-            emptyText="No events yet — tick the box."
-          />
-          <p className="text-xs opacity-70">
-            <strong>Variant</strong> styles the rest surface — the box when it
-            is <em>unchecked</em>: ghost sits flush, elevated lifts a shadow,
-            glass and gradient blur what is behind. The checked fill is the
-            tone&rsquo;s in every variant but <code>glass</code>, which tints
-            like Toggle&rsquo;s glass track (<code>500/40</code>, frost edge
-            kept) — an opaque fill would hide its own blur. Flip{" "}
-            <strong>Checked</strong> off in the States group to see the rest
-            surfaces apart. <strong>Indeterminate</strong> wins over checked, as
-            it does on the native control, and is announced as{" "}
-            <code>aria-checked=&quot;mixed&quot;</code>. The checked fill steps
-            to <code>-700</code> in light and <code>-400</code> in dark so the
-            tick clears WCAG contrast on every tone.{" "}
-            <strong>Glass panel</strong> swaps the preview host between the
-            kit&rsquo;s default <code>elevated</code> surface and{" "}
-            <code>glass</code> — pair it with the playground&rsquo;s
-            background-image toggle to give the blur something to blur.
-          </p>
-        </div>
-      }
-      preview={
-        /*
-          The row sits on a real `Panel` — `elevated`, the kit default.
-          "Glass panel" in the States group swaps the host to `glass`; the
-          question under test is whether the box and its tick read on a
-          translucent surface, not the checkbox's own variant.
-        */
-        <div className="w-full">
-          <Panel variant={glassPanel ? "glass" : "elevated"} padding="md">
-            <Checkbox
-              size={size}
-              tone={tone}
-              variant={variant}
-              controlAlign={controlAlign}
-              descriptionPlacement={descriptionPlacement}
-              label={showLabel ? label : undefined}
-              description={showDescription ? description : undefined}
-              checked={checked}
-              indeterminate={indeterminate}
-              required={required}
-              fullWidth={fullWidth}
-              disabled={disabled}
-              validationStatus={validationStatus}
-              validationMessage={
-                validationStatus === "none" ? undefined : validationMessage
-              }
-              onChange={(event) => {
-                setChecked(event.target.checked);
-                setIndeterminate(false);
-                pushLog(`checked → ${event.target.checked}`);
-              }}
-            />
-          </Panel>
-        </div>
-      }
-    ></PlaygroundPanel>
+    <div className={STAGE_CLASS}>
+      {box}
+      <p className="text-xs text-neutral-500 dark:text-neutral-400">
+        {stageCaption(state)}
+      </p>
+      {controlled ? (
+        <p className="text-xs text-neutral-500 dark:text-neutral-400">
+          <C>isOn</C> is {reported === "true" ? "true" : "false"} — the input carries{" "}
+          <C>checked</C>, so the tick only appears when your own state does (:295).
+        </p>
+      ) : null}
+    </div>
   );
 };
+
+export const checkboxCode = ({ state, h }: PlaygroundCodeContext): string => {
+  const root = h.element("Checkbox", [...h.props()], 1);
+  const hostState = hostStateLines(state);
+  const demo = [
+    "export default function Demo() {",
+    ...hostState.map((line) => `  ${line}`),
+    "  return (",
+    h.indent(root, 2),
+    "  );",
+    "}",
+  ];
+  const snippet = h.snippet({
+    imports: ["Checkbox"],
+    decls: [],
+    body: demo.join("\n"),
+  });
+  return hostState.length > 0
+    ? `import { useState } from "react";\n${snippet}`
+    : snippet;
+};
+
+/** What the stage is actually showing, in the reader's own language. */
+const CheckboxHint: React.FC<{ state: PlaygroundState }> = ({ state }) => (
+  <>
+    <p>
+      <strong>The box you see is a picture; the input underneath is the real
+      control.</strong> The kit used to keep the native checkbox and paint classes
+      over it — and a native box ignores every one of them (the source measured{" "}
+      <C>border-width: 0</C>, <C>border-radius: 0</C>, so only <C>accent-color</C>{" "}
+      ever did anything, and dark mode still drew the browser&rsquo;s light widget)
+      (:148-156). Now the input is an invisible overlay (:289) and the box, tick and
+      dash beside it are the kit&rsquo;s own (:300-342). The overlay keeps its pointer
+      events on purpose: <C>peer-hover</C> is the input&rsquo;s <C>:hover</C> seen from
+      a sibling, and muting it would have deadened every variant&rsquo;s hover border
+      (:283-288).
+    </p>
+    <p>
+      <strong>Every drawn layer is a sibling of the input, never a child.</strong>{" "}
+      <C>peer-checked:</C> and <C>peer-indeterminate:</C> compile to a
+      general-sibling selector, so a glyph nested inside the box would simply never
+      match (:297-299). That is also why only one glyph shows at a time and why{" "}
+      <C>indeterminate</C> wins (:326-328) — which is what the native control does.
+    </p>
+    <p>
+      <strong>The accent is {toneSpelling(state)}=
+      {`"${textValue(state, "tone") || TONE_DEFAULT}"`}</strong>, and its checked fill
+      is the <C>700</C> step in light mode and <C>400</C> in dark, not the <C>500</C>{" "}
+      one: a white tick on <C>bg-blue-500</C> is about 3.1:1, which fails the contrast
+      bar for a graphic that carries meaning (:3442-3453). <C>glass</C> is the
+      exception — it fills with the <C>500</C> step at 40% alpha and gives the tick a
+      drop-shadow instead of trusting the fill behind it (:251-261,:3434-3440).
+    </p>
+    <p>
+      <strong>
+        <C>indeterminate</C> is a DOM property, not an attribute.
+      </strong>{" "}
+      It is set imperatively on mount and on change (:227-245) because React has no
+      attribute for it, and <C>aria-checked=&quot;mixed&quot;</C> is written from the
+      prop (:292). The browser clears <C>indeterminate</C> the moment you activate the
+      box — so if the parent never recomputes it, the dash disappears from the screen
+      while a reader is still told &ldquo;mixed&rdquo;. That is the trap the{" "}
+      <em>Select all</em> example exists to demonstrate.
+    </p>
+    <p>
+      <strong>Two names that do not mean what they say.</strong>{" "}
+      <C>inputClassName</C> is applied to the visible box, not to the input (:89,:320)
+      — type something in and watch where the ring lands. And a disabled box keeps
+      whatever fill its state has: a <C>peer-disabled:bg-neutral-100</C> once won a
+      same-specificity fight against the checked fill and made a disabled{" "}
+      <em>checked</em> box lose its white tick (:314-319). <C>disabled</C> also puts
+      the real attribute on the input (:293) and dims the row (:415), while{" "}
+      <C>validationStatus=&quot;error&quot;</C> replaces the variant&rsquo;s border
+      outright rather than layering over it (:305-310).
+    </p>
+    <p>
+      <C>fullWidth</C> grows the label block, not just the wrapper (:364-372): a label
+      that lays itself out — pills pinned to the trailing edge with{" "}
+      <C>margin-inline-start: auto</C> — spends free space, and a shrink-wrapped
+      column has none to spend. Try it with <C>controlAlign=&quot;right&quot;</C> to
+      see the box travel to the far edge (:412).
+    </p>
+  </>
+);
+
+export const CheckboxPlayground: React.FC = () => {
+  const playground = usePlayground(checkboxConfig);
+  return (
+    <Playground
+      playground={playground}
+      preview={Stage}
+      code={checkboxCode}
+      filename="CheckboxDemo.tsx"
+      hint={<CheckboxHint state={playground.state} />}
+    />
+  );
+};
+
+export default CheckboxPlayground;
