@@ -5,6 +5,7 @@ import {
   C,
   KeyboardSupportTable,
   PropsTable,
+  type PropDoc,
 } from "../../shared/A11ySections";
 import { PageHeader } from "../../shared/PageHeader";
 import { ExampleCard } from "../../shared/ExampleCard";
@@ -217,24 +218,50 @@ export const SideMenuPage: React.FC = () => (
       </A11yTopic>
       <KeyboardSupportTable
         bindings={[
-          { keys: ["Tab"], action: "Moves through the top item, search, rows, submenu chevrons, group actions, Show more and the footer controls in document order." },
-          { keys: ["Enter"], action: "Follows a row's link; on a chevron, Show more or a group action, activates it." },
-          { keys: ["Space"], action: "Activates a focused button — chevron, Show more, group action, collapse control." },
-          { keys: ["Esc"], action: "Closes the mobile drawer; in hover-rail mode, closes the hovered panel." },
+          { keys: ["Esc"], action: "Closes the mobile drawer — the component's own document listener, while the drawer is open, which calls onCloseMobile and waits for the app to flip mobileOpen." },
+          { keys: ["Esc"], action: "Dismisses the hover rail (openOnHover on desktop) — bound on the desktop wrapper, not on a row." },
+          { keys: ["↑", "↓", "Home", "End"], action: "Inside an open top/footer dropdown: moves the roving focus between menu items (DropdownMenu). The nav list has no roving focus of its own." },
+          { keys: ["Tab"], action: "Closes an open dropdown, focus returning to its trigger. There is no focus trap anywhere — the menu is not a dialog." },
+          { keys: ["↑", "↓", "Home", "End"], action: "Inside an embedded select's search field: moves the aria-activedescendant cursor (Picker)." },
+          { keys: ["Enter"], action: "Inside an embedded select's search field: selects the highlighted option (Picker)." },
+          { keys: ["Esc"], action: "Inside an embedded select: closes the popup and clears the query (Picker). The search field itself has no key handler — Enter does nothing there." },
+          { keys: ["Enter", "Space"], action: "Browser-native activation of the buttons: chevron, Show more, collapse control, edge handle, CTA action and dismiss, the dropdown trigger. On a link row only Enter follows the link — Space does not activate a link." },
         ]}
       />
       <A11yTopic title="Internationalization">
         <p>
-          The menu&rsquo;s own words are <C>kit.sidemenu.*</C> catalog keys in all five locales: search placeholder and
-          name, collapse / expand / close controls, the submenu toggle and group names, &ldquo;Show {"{count}"}{" "}
-          more&rdquo;, the no-results line and the navigation&rsquo;s fallback name. Labels, badges and{" "}
-          <C>moreChildrenLabel</C> are yours. <C>side="right"</C> docks it on the other edge.
+          The menu speaks fifteen strings and no others, all <C>kit.sidemenu.*</C> catalog keys present in all five
+          built-in locales: <C>openSidebar</C>, <C>searchPlaceholder</C>, <C>searchAria</C>, <C>closeAria</C>,{" "}
+          <C>collapse</C>, <C>expandSidebar</C>, <C>collapseSidebar</C>, <C>verbCollapse</C>, <C>verbExpand</C>,{" "}
+          <C>toggleSubmenu</C>, <C>dismissCta</C>, <C>showMore</C>, <C>submenuAria</C>, <C>noResults</C> and{" "}
+          <C>navAria</C>. Everything readable — row labels, group captions, badges, <C>meta</C>, CTA copy, detail rows,
+          and <C>moreChildrenLabel</C> if you supply one — is yours. Hard-coding <C>searchPlaceholder</C> defeats the
+          catalog default, so leave it out unless you mean it.
+        </p>
+        <p>
+          No <C>I18nProvider</C> is required: the kit falls back to a default engine that detects{" "}
+          <C>navigator.languages</C>, reads the <C>ui-kit:locale</C> key from localStorage, and writes{" "}
+          <C>document.documentElement.lang</C> and <C>dir</C>. A missing key renders the key itself, so a typo is loud.
+          Two strings in <C>SideMenuLayout</C> are literal English — the mobile toggles&rsquo;{" "}
+          <C>aria-label=&quot;Open menu&quot;</C> and <C>&quot;Open right menu&quot;</C>; they are not catalog keys, so
+          translate them with your own header if the menu ships outside English. Nothing in the component reads{" "}
+          <C>dir</C>: <C>side</C> picks the edge physically and the docked corners, borders, drawer slide and{" "}
+          <C>ml-auto</C> copy do not mirror, so an RTL locale flips the text and not the layout.
         </p>
       </A11yTopic>
     </A11ySection>
 
-    <PropsTable
-      props={[
+    <PropsTable props={SIDE_MENU_PROPS} />
+  </div>
+);
+
+/**
+ * The API, as the Code view may name it. Exported so the snippet test can assert
+ * that every printed attribute is a documented prop — and so the two surface
+ * props the component takes but this table once only mentioned in prose are
+ * rows of their own.
+ */
+export const SIDE_MENU_PROPS: PropDoc[] = [
         { name: "layout: secondarySideMenuProps / multiMenuMode", type: 'SideMenuProps / "hover" | "joined"', default: '— / "hover"', description: "Adds an adjacent secondary menu. Joined mode pins the primary compact and the secondary expanded, shares surface geometry, and opens both levels in one mobile drawer. The primary variant sets the pair's surface family." },
         { name: "layout: secondaryOpen / defaultSecondaryOpen", type: "boolean", default: "— / true", description: "Joined secondary visibility, controlled or initially uncontrolled. Missing secondarySideMenuProps closes the secondary automatically while preserving the rail and rounded body surface. Width transitions respect reduced motion." },
         { name: "layout: onSecondaryOpenChange", type: "(open: boolean) => void", description: "Visibility change request. Escape inside the desktop secondary menu requests closure; controlled consumers update secondaryOpen. Focus moves into the app body if its focused secondary content is hidden." },
@@ -264,14 +291,17 @@ export const SideMenuPage: React.FC = () => (
         { name: "searchScope", type: "SideMenuSearchScope", default: '"all"', description: "How deep that search reaches. \"all\" matches every depth and keeps the parents of a nested match visible; \"top\" matches only the depth-0 rows — a link in items, group header or no, since only children adds depth — and shows a match with its whole child list." },
         { name: "topItem / footerItem", type: "SideMenuDropdownItem", description: "Rows above the navigation and above the collapse control, each with its own dropdown menu." },
         { name: "footer", type: "ReactNode | ({ collapsed, side }) => ReactNode", description: "Pinned custom controls above footerItem. SideMenuIconButton inherits tone, surface copy and collapsed state, and forwards its ref and native button attributes for overlay triggers." },
-        { name: "ctas / footerDetails / footerDetailsTone", type: "SideMenuCta[] / SideMenuDetailItem[] / TrueColor", description: "Pinned call-to-action cards and the status detail footer." },
+        { name: "ctas", type: "SideMenuCta[]", description: "Pinned call-to-action cards, filtered by the same guard pass as links. A card with none of title / description / media / action renders nothing, and the dismiss ✕ appears only when onDismiss exists." },
+        { name: "footerDetails", type: "SideMenuDetailItem[]", description: "The status detail footer. Rendered when non-empty and the content is not collapsed; pill wins over value." },
+        { name: "footerDetailsTone", type: "SurfaceTone", default: '"none"', description: "The detail box's Panel tone. The JSDoc says it falls back to the menu's color; the code does not — an omitted tone is none." },
+        { name: "footerDetailsVariant", type: "SurfaceVariant", description: "What makes the detail box a Panel at all: with no variant and a non-glass surface it is a flat neutral div." },
+        { name: "raisedSurface", type: "boolean", default: "false", description: "Reaches exactly one element — the detail box's Panel — so it is inert while the box is flat. The JSDoc's forwarded-to-the-body-Panel has no body Panel to forward to." },
         { name: "loading / loaderType / skeletonLines", type: "boolean / SideMenuLoaderType / number", default: 'false / "skeleton" / 4', description: "The whole menu's loading state — a skeleton shaped like the rows, or the shared Loader over them." },
+        { name: "loaderTitle / loaderMessage / loaderProgress / loaderColor", type: "string / string / number / TrueColor", description: "The overlay Loader's copy, bar value and tint — only when loaderType is spinner or progress. loaderProgress has no default here: the Loader's own 0 applies, so a progress bar with no value prints an empty bar." },
+        { name: "guardEvaluator / activeModuleView / moduleViewOptions", type: "(guards) => boolean / string / readonly string[]", default: "— / — / []", description: "Who decides an item is visible. Without guardEvaluator every guard passes (hidden still hides); the module view vetoes module / anyModule guards, but only once moduleViewOptions lists the module." },
         { name: "noiseScale", type: "number", description: "Positive grain scale based on a repeating 200px tile: 0.25 very fine, 0.5 fine, 2 coarse. Omit to preserve automatic sizing. Requires noise." },
         { name: "noise", type: "boolean", default: "false", description: "A dither-grain texture over the panel background." },
         { name: "title / logoIcon / logoText / fullHeight / className", type: "string / ReactNode / ReactNode / boolean / string", description: "Header and sizing." },
-      ]}
-    />
-  </div>
-);
+];
 
 export default SideMenuPage;

@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import type {
   EmitHelpers,
   PlaygroundConfig,
@@ -182,9 +183,17 @@ const printElement = (
   level: number,
   ctx: JsxContext,
 ): string => {
+  const children = childrenOf(element.props?.children);
+  // A fragment is markup with no tag: `<>…</>`, so a fixture's `actions` reads
+  // exactly as it was written.
+  if (element.type === (Fragment as unknown as symbol)) {
+    if (children.length === 0) return "<></>";
+    const printed = children.map((child) => print(child, level + 1, ctx));
+    return block(printed, "<>", "</>", level);
+  }
+
   const tag = nameOf(element.type, ctx);
   const attributes = attributesOf(element.props ?? {}, ctx);
-  const children = childrenOf(element.props?.children);
 
   if (children.length === 0) return tagOpen(tag, attributes, level, true);
 
@@ -245,10 +254,17 @@ const print = (value: unknown, level: number, ctx: JsxContext): string => {
       ([, item]) => item !== undefined,
     );
     return block(
-      entries.map(
-        ([key, item]) =>
-          `${IDENTIFIER.test(key) ? key : JSON.stringify(key)}: ${print(item, level + 1, ctx)}`,
-      ),
+      entries.map(([key, item]) => {
+        // A callback inside a fixture is as unprintable as one on an element,
+        // and the page says what to print either way.
+        if (key in ctx.replace) return `${key}: ${ctx.replace[key]}`;
+        if (typeof item === "function") {
+          throw new Error(
+            `playground: jsx() cannot print the ${key}={fn} entry on its own — say what to print with \`replace: { ${key}: "(…) => …" }\`.`,
+          );
+        }
+        return `${IDENTIFIER.test(key) ? key : JSON.stringify(key)}: ${print(item, level + 1, ctx)}`;
+      }),
       "{",
       "}",
       level,

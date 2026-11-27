@@ -112,17 +112,17 @@ would print a page of plumbing; a static `ExampleCard` set is honest).
 ## Status
 
 <!-- BEGIN GENERATED TABLE — npm --prefix react/demo run audit -->
-- **143 pages** in the side menu, **4 fully done** — run `npm --prefix react/demo run audit` after every conversion to refresh this table.
-- Playground: 4 on the engine · 131 legacy `PlaygroundPanel` · 1 inline · 7 without one.
+- **143 pages** in the side menu, **5 fully done** — run `npm --prefix react/demo run audit` after every conversion to refresh this table.
+- Playground: 5 on the engine · 130 legacy `PlaygroundPanel` · 1 inline · 7 without one.
 - Standard sections: API 78 · Screen reader 65 · Keyboard 64 · i18n 62.
-- Tests: 4 pages have one · examples missing on 12 pages.
+- Tests: 5 pages have one · examples missing on 12 pages.
 
-### Layout — 2/24 done
+### Layout — 3/24 done
 
 |  | Page | Slug | Playground | Fields | API | SR | Kbd | i18n | Ex | Tests |
 |:--:|---|---|---|---|:--:|:--:|:--:|:--:|:--:|---|
 | ✅ | [Page Body Layout](page-body-layout/PageBodyLayoutPage.tsx) | `page-body-layout` | 🟢 engine | 17 fields | ✅ | ✅ | ✅ | ✅ | 0 | `pageBodyLayoutSnippet.test.ts` |
-| ☐ | [Side Menu](side-menu/SideMenuPage.tsx) | `side-menu` | 🟡 panel | — | ✅ | ✅ | ⬜ | ✅ | 18 | — |
+| ✅ | [Side Menu](side-menu/SideMenuPage.tsx) | `side-menu` | 🟢 engine | 37 fields · ⚠ 1 default | ✅ | ✅ | ⬜ | ✅ | 18 | `sideMenuSnippet.test.ts` |
 | ✅ | [Breadcrumb](breadcrumb/BreadcrumbPage.tsx) | `breadcrumb` | 🟢 engine | 6 fields | ✅ | ✅ | ✅ | ✅ | 6 | `breadcrumbSnippet.test.ts` |
 | ☐ | [Glass Background](glass-background/GlassBackgroundPage.tsx) | `glass-background` | 🟡 panel | — | ⬜ | ⬜ | ⬜ | ⬜ | 5 | — |
 | ☐ | [Gradient Backdrop](gradient-backdrop/GradientBackdropPage.tsx) | `gradient-backdrop` | 🟡 panel | — | ✅ | ✅ | ✅ | ✅ | 4 | — |

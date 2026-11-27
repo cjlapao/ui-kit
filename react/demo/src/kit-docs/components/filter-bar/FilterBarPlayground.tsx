@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { DropdownButton, FilterBar, Toggle, ColorSwatches, type DropdownButtonOption, type FilterBarFilter, type FilterBarLoaderType, type FilterBarValue, type ExpandableButtonSpring, type ControlSize, type SurfaceVariant, type SurfaceTone, type PanelPadding, type PanelCorner, type ButtonVariant, type ButtonWeight, type TrueColor, type BadgeVariant, type InputVariant, type GlassOpacity, type GlassVibrancy, type SurfaceTransparency } from "@cjlapao/ui-kit";
+import { DropdownButton, FilterBar, Input, Toggle, ColorSwatches, type DropdownButtonOption, type FilterBarFilter, type FilterBarLoaderType, type FilterBarValue, type ExpandableButtonSpring, type ControlSize, type SurfaceVariant, type SurfaceTone, type PanelPadding, type PanelCorner, type ButtonVariant, type ButtonWeight, type TrueColor, type BadgeVariant, type InputVariant, type GlassOpacity, type GlassVibrancy, type SurfaceTransparency } from "@cjlapao/ui-kit";
 import { PlaygroundPanel, SelectControl, ToggleRow, Control } from "../../shared/PlaygroundPanel";
 
 import { ControlAccordion } from "../../shared/ControlAccordion";
@@ -40,6 +40,10 @@ export function FilterBarPlayground() {
   const [chipTone, setChipTone] = useState<TrueColor>("blue");
   const [color, setColor] = useState<TrueColor>("blue");
   const [searchVariant, setSearchVariant] = useState<InputVariant>("elevated");
+  // Both are SearchBar's own knobs, handed through untouched by `searchProps`:
+  // the wait after the last keystroke, and whether typing searches at all.
+  const [debounceMs, setDebounceMs] = useState(400);
+  const [autoSearch, setAutoSearch] = useState(true);
   const [size, setSize] = useState<ControlSize>("md");
   const [spring, setSpring] = useState<ExpandableButtonSpring>("snappy");
   const [disabled, setDisabled] = useState(false);
@@ -47,7 +51,6 @@ export function FilterBarPlayground() {
   // The whole-control loading state, distinct from `searchProps.loading`.
   const [busy, setBusy] = useState(false);
   const [barLoaderType, setBarLoaderType] = useState<FilterBarLoaderType>("skeleton");
-  const [manual, setManual] = useState(false);
   const [showSearch, setShowSearch] = useState(true);
   const [showFilterLabel, setShowFilterLabel] = useState(true);
   const [showEmptyState, setShowEmptyState] = useState(true);
@@ -103,6 +106,12 @@ export function FilterBarPlayground() {
       { id: "search", title: "Search", controls: <>
       <SelectControl label="Search variant" value={searchVariant} onChange={next => setSearchVariant(next as InputVariant)} options={inputVariantOptions} />
       <Control label="Search accent"><ColorSwatches value={color} onSelect={setColor} selectable size="sm" defaultExpanded /></Control>
+      {/* 0 fires on every keystroke; the field is still the one that debounces,
+          so a large value is the "search when I stop typing" end of the range. */}
+      <Control label="Debounce (ms)"><Input size="sm" type="number" min={0} step={50} value={debounceMs.toString()} onChange={event => setDebounceMs(Number(event.target.value))} /></Control>
+      {/* Off, the query waits for Enter (or the search trigger) — same word,
+          same behaviour as the SearchBar playground's toggle. */}
+      <ToggleRow label="Auto search" checked={autoSearch} onChange={setAutoSearch} />
       </> },
       { id: "menu", title: "Filter menu", controls: <>
       <SelectControl label="Menu variant" value={menuVariant} onChange={next => setMenuVariant(next as SurfaceVariant)} options={surfaceVariantOptions} />
@@ -131,13 +140,12 @@ export function FilterBarPlayground() {
       <ToggleRow label="Bar loading" checked={busy} onChange={setBusy} />
       <SelectControl label="Loader type" options={[{ value: "skeleton", label: "Skeleton (default)" }, { value: "spinner", label: "Spinner" }, { value: "progress", label: "Progress" }]} value={barLoaderType}
         onChange={next => setBarLoaderType(next as FilterBarLoaderType)} />
-      <ToggleRow label="Manual search (Enter)" checked={manual} onChange={setManual} />
       <ToggleRow label="Single-select Enrollment" checked={singleEnrollment} onChange={setSingleEnrollment} />
       </> },
     ]} />
   </div>} preview={
     <div className="w-full space-y-3">
-      <FilterBar searchProps={{ onSearch: setQuery, placeholder: "Search by device name", loading, autoSearch: !manual, variant: searchVariant }} filters={filters} value={value} onChange={setValue} filteredCount={results.length} totalCount={devices.length} itemLabel="devices" size={size} spring={spring} disabled={disabled}
+      <FilterBar searchProps={{ onSearch: setQuery, placeholder: "Search by device name", loading, autoSearch, debounceMs, variant: searchVariant }} filters={filters} value={value} onChange={setValue} filteredCount={results.length} totalCount={devices.length} itemLabel="devices" size={size} spring={spring} disabled={disabled}
         leading={showLeading ? <DropdownButton size={size} variant="outline" label={`Ring: ${ring}`} options={[{ value: "stable", label: "stable" }, { value: "beta", label: "beta" }, { value: "canary", label: "canary" }] as DropdownButtonOption[]} onOptionSelect={option => setRing(option.value)} /> : undefined}
         trailing={showTrailing ? <Toggle size={size} label="Dense rows" checked={dense} onChange={event => setDense(event.target.checked)} /> : undefined}
         loading={busy} loaderType={barLoaderType} loaderProgress={barLoaderType === "progress" ? 62 : undefined}

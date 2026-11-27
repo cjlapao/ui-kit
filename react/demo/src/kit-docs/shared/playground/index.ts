@@ -22,7 +22,7 @@ export type {
   PlaygroundState,
   PlaygroundValue,
 } from "./schema";
-export { usePlayground } from "./state";
+export { usePlayground, useControlled } from "./state";
 export { createEmitter, defaultDeclarations } from "./emit";
 export { PlaygroundControls } from "./PlaygroundControls";
 export { Playground } from "./Playground";

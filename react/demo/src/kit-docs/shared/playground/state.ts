@@ -104,6 +104,19 @@ const validate = (config: PlaygroundConfig): void => {
   }
 };
 
+/**
+ * A controlled value the preview owns that no *component* takes as a prop — a
+ * Picker's selection, a dismissed card. The playground's state is the knob
+ * values; this is for what the menu itself holds. `code` prints whatever the
+ * current value implies, so the two cannot drift.
+ */
+export function useControlled<T>(initial: T): [
+  T,
+  (next: T | ((previous: T) => T)) => void,
+] {
+  return useState(initial) as [T, (next: T | ((previous: T) => T)) => void];
+}
+
 export function usePlayground(config: PlaygroundConfig): PlaygroundHandle {
   useMemo(() => validate(config), [config]);
 
