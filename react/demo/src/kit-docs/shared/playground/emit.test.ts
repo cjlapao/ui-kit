@@ -341,6 +341,82 @@ describe("data sources", () => {
   });
 });
 
+/* -------------------------------------------------------------------------- *
+ * jsx — the printer for fixtures that are markup rather than data
+ * -------------------------------------------------------------------------- */
+
+/** A component with no printable name of its own; the page must supply one. */
+const Pill = (_props: { tone?: string; children?: unknown }) => null;
+
+const bare = () => createEmitter(config([]), {});
+
+describe("jsx", () => {
+  it("prints an intrinsic element, its props and its text", () => {
+    expect(bare().jsx(createElement("span", { className: "rounded-full" }, "4"))).toBe(
+      '<span className="rounded-full">4</span>',
+    );
+    expect(bare().jsx(createElement("img", { src: "a.webp", alt: "" }))).toBe(
+      '<img src="a.webp" alt="" />',
+    );
+  });
+
+  it("uses the identifier the page names, never the function's name", () => {
+    expect(bare().jsx(createElement(Pill, { tone: "blue" }, "4"), { names: { Pill } })).toBe(
+      '<Pill tone="blue">4</Pill>',
+    );
+    // Without it the alternative is `fn.name`, which a built docs site mangles —
+    // so the printer refuses rather than print a name the reader cannot import.
+    expect(() => bare().jsx(createElement(Pill, {}, "4"))).toThrow(/no identifier/);
+  });
+
+  it("keeps a boolean prop as JSX shorthand", () => {
+    const printed = bare().jsx(createElement("button", { disabled: true, hidden: false }, "x"), {
+      names: {},
+    });
+    expect(printed).toBe("<button disabled hidden={false}>x</button>");
+  });
+
+  it("throws at a callback instead of dropping the prop that makes it work", () => {
+    const withHandler = createElement("button", { onClick: () => undefined }, "x");
+    expect(() => bare().jsx(withHandler)).toThrow(/onClick/);
+    expect(
+      bare().jsx(withHandler, { replace: { onClick: "onClick={() => dismiss()}" } }),
+    ).toBe("<button onClick={() => dismiss()}>x</button>");
+  });
+
+  it("leaves out what the page has said about elsewhere", () => {
+    expect(
+      bare().jsx(createElement("div", { "data-testid": "x", id: "y" }), { omit: ["data-testid"] }),
+    ).toBe('<div id="y" />');
+  });
+
+  it("walks into the data around it — an array of rows is still a fixture", () => {
+    const items = [
+      { slug: "jobs", label: "Jobs", badge: createElement(Pill, { tone: "blue" }, "4") },
+      { slug: "settings", label: "Settings" },
+    ];
+    // Two rows do not fit on one line, so the array stacks — the same wrapping
+    // rule every other literal obeys, with the markup intact inside it.
+    expect(bare().jsx(items, { names: { Pill } })).toBe(
+      "[\n  { slug: \"jobs\", label: \"Jobs\", badge: <Pill tone=\"blue\">4</Pill> },\n  { slug: \"settings\", label: \"Settings\" },\n]",
+    );
+  });
+
+  it("nests children that will not fit on one line", () => {
+    const printed = bare().jsx(
+      createElement(
+        "div",
+        { className: "very long class string that will not fit inside the print width at all because it is long" },
+        createElement("p", null, "one"),
+        createElement("p", null, "two"),
+      ),
+    );
+    expect(printed.split("\n").length).toBeGreaterThan(3);
+    expect(printed).toContain("  <p>one</p>");
+    expect(printed).toContain("</div>");
+  });
+});
+
 afterEach(() => {
   vi.restoreAllMocks();
 });

@@ -177,9 +177,35 @@ export interface PlaygroundConfig {
  * The printing toolkit a page's `code(state, h)` composes with. Bound to the
  * current state and config, so `props`/`payload`/`decl` know what is visible.
  */
+/** How `jsx` should read a value. */
+export interface PlaygroundJsxOptions {
+  /**
+   * Identifier → component, for every component the value mounts: `{ Pill }`.
+   * The key is what gets printed, so a bundle cannot mangle it out from under the
+   * page — an unmapped component is an error, not a mystery name in the snippet.
+   */
+  names?: Record<string, unknown>;
+  /**
+   * Prop name → verbatim attribute text, for the props no literal can say:
+   * `{ onSelect: 'onSelect={(item) => pick(item.id)}' }`.
+   */
+  replace?: Record<string, string>;
+  /** Prop names to leave out — the page has said about them elsewhere. */
+  omit?: string[];
+}
+
 export interface EmitHelpers {
   /** A JavaScript literal. Throws in dev on anything only `emit: "source"` can say. */
   lit(value: unknown): string;
+  /**
+   * A React element — or an array/object holding them — as JSX. This is what
+   * lets a fixture be printed rather than re-typed: the badge on screen and the
+   * `<Pill>` in the snippet are one object, so they cannot disagree. Two rules
+   * keep it honest: a component prints by an identifier the page **names** (a
+   * bundle would mangle `fn.name`), and a prop that cannot be expressed — a
+   * callback — throws instead of being quietly dropped.
+   */
+  jsx(value: unknown, options?: PlaygroundJsxOptions): string;
   /** JSX attributes, `name="value"` / `name={value}`, defaults omitted. */
   props(options?: { set?: string; fields?: PlaygroundField[] }): string[];
   /** Object entries, `name: value` — the body of a call like `toast.show({...})`. */

@@ -121,6 +121,142 @@ const commentOf = (label?: string, note?: string): string => {
   return text.length > 0 ? `// ${text}\n` : "";
 };
 
+/* -------------------------------------------------------------------------- *
+ * JSX
+ *
+ * `format` prints data. Most fixtures are not data: a badge is a `<Pill>`, a
+ * group's actions are three buttons, a CTA's media is an image. `jsx` prints
+ * those — the *same* element the preview mounts, walked and written out — so a
+ * fixture never needs a second, hand-typed description that can drift from the
+ * pixels. Two rules keep it honest rather than clever:
+ *   - a component is printed by an identifier the page **names**, never by
+ *     `fn.name`, which a production bundle would mangle into `o`;
+ *   - a prop that cannot be expressed — a callback — makes it **throw** rather
+ *     than quietly drop the prop that makes the fixture work. The page says what
+ *     to print for it through `replace`.
+ * -------------------------------------------------------------------------- */
+
+interface JsxContext {
+  names: Record<string, unknown>;
+  /** Prop name → the verbatim attribute text to print in its place. */
+  replace: Record<string, string>;
+  omit: Set<string>;
+}
+
+const childrenOf = (children: unknown): unknown[] => {
+  if (children === null || children === undefined || children === false) return [];
+  const list = Array.isArray(children) ? children.flat(Infinity) : [children];
+  return list.filter((child) => child !== null && child !== undefined && child !== false);
+};
+
+const nameOf = (type: unknown, ctx: JsxContext): string => {
+  if (typeof type === "string") return type;
+  const found = Object.entries(ctx.names).find(([, component]) => component === type);
+  const guess =
+    typeof type === "function" && type.name ? ` (${type.name})` : "";
+  if (!found) {
+    throw new Error(
+      `playground: jsx() has no identifier for that component${guess} — add it to \`names\`, \`{ GroupAction: GroupAction }\`. Printing fn.name would print a mangled name in a built docs site.`,
+    );
+  }
+  return found[0];
+};
+
+/** `<Tag … />` or `<Tag …>`, stacked once the attributes no longer fit. */
+const tagOpen = (
+  tag: string,
+  attributes: string[],
+  level: number,
+  selfClosing: boolean,
+): string => {
+  const close = selfClosing ? " />" : ">";
+  if (attributes.length === 0) return selfClosing ? `<${tag} />` : `<${tag}>`;
+  const flat = `<${tag} ${attributes.join(" ")}${close}`;
+  if (!flat.includes("\n") && flat.length + level * 2 <= MAX_WIDTH) return flat;
+  return `<${tag}\n${attributes.map((attribute) => indentLines(attribute, 1)).join("\n")}\n${close.trim()}`;
+};
+
+/** One React element, walked. */
+const printElement = (
+  element: { type: unknown; props: Record<string, unknown> },
+  level: number,
+  ctx: JsxContext,
+): string => {
+  const tag = nameOf(element.type, ctx);
+  const attributes = attributesOf(element.props ?? {}, ctx);
+  const children = childrenOf(element.props?.children);
+
+  if (children.length === 0) return tagOpen(tag, attributes, level, true);
+
+  const printed = children.map((child) =>
+    typeof child === "string" || typeof child === "number"
+      ? String(child).trim()
+      : print(child, level + 1, ctx),
+  );
+  const open = tagOpen(tag, attributes, level, false);
+  const flat = `${open}${printed.join("")}</${tag}>`;
+  if (!flat.includes("\n") && flat.length + level * 2 <= MAX_WIDTH) return flat;
+  return `${open}\n${printed.map((line) => indentLines(line, 1)).join("\n")}\n</${tag}>`;
+};
+
+/** One element's props as attribute text, in declaration order. */
+const attributesOf = (
+  props: Record<string, unknown>,
+  ctx: JsxContext,
+): string[] => {
+  const attributes: string[] = [];
+  for (const [key, value] of Object.entries(props)) {
+    if (key === "children" || ctx.omit.has(key) || value === undefined) continue;
+    if (key in ctx.replace) {
+      attributes.push(ctx.replace[key]);
+      continue;
+    }
+    if (value === true) {
+      attributes.push(key);
+      continue;
+    }
+    if (typeof value === "string") {
+      attributes.push(`${key}=${JSON.stringify(value)}`);
+      continue;
+    }
+    if (typeof value === "function") {
+      throw new Error(
+        `playground: jsx() cannot print the ${key}={fn} prop on its own — say what to print with \`replace: { ${key}: "${key}={…}" }\`.`,
+      );
+    }
+    attributes.push(`${key}={${print(value, 1, ctx)}}`);
+  }
+  return attributes;
+};
+
+/**
+ * A value as source, JSX included. `format` with the one gap in it closed: a
+ * React element is not a literal, it is markup, and markup can be printed.
+ */
+const print = (value: unknown, level: number, ctx: JsxContext): string => {
+  if (isReactElement(value)) {
+    return printElement(value as never, level, ctx);
+  }
+  if (Array.isArray(value)) {
+    return block(value.map((item) => print(item, level + 1, ctx)), "[", "]", level);
+  }
+  if (value !== null && typeof value === "object") {
+    const entries = Object.entries(value as Record<string, unknown>).filter(
+      ([, item]) => item !== undefined,
+    );
+    return block(
+      entries.map(
+        ([key, item]) =>
+          `${IDENTIFIER.test(key) ? key : JSON.stringify(key)}: ${print(item, level + 1, ctx)}`,
+      ),
+      "{",
+      "}",
+      level,
+    );
+  }
+  return format(value, level);
+};
+
 /**
  * A printer bound to one render's state and config. `Playground` builds it per
  * render and hands it to the page's `code(state, h)` as `h`.
@@ -220,6 +356,13 @@ export const createEmitter = (
 
   const helpers: EmitHelpers = {
     lit: (value) => format(value, 0),
+
+    jsx: (value, options) =>
+      print(value, 0, {
+        names: options?.names ?? {},
+        replace: options?.replace ?? {},
+        omit: new Set(options?.omit ?? []),
+      }),
 
     props: (options) => {
       const attributes: string[] = [];
