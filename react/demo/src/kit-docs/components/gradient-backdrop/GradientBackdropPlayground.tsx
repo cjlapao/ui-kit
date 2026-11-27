@@ -1,196 +1,109 @@
-import React, { useMemo, useState } from "react";
+import React from "react";
 import {
-  GRADIENT_BACKDROP_TEMPLATES,
   GradientBackdrop,
   Panel,
-  resolveGradientBackdropTheme,
-  type GradientBackdropColors,
-  type GradientBackdropRole,
   type GradientBackdropScheme,
   type GradientBackdropTemplateId,
   type GradientBackdropTheme,
 } from "@cjlapao/ui-kit";
-import { ChoiceControl, Control, PlaygroundPanel, SelectControl, ToggleRow } from "../../shared/PlaygroundPanel";
-import { ControlAccordion } from "../../shared/ControlAccordion";
-import { gradientBackdropSchemeOptions, gradientBackdropTemplateOptions } from "../../shared/options";
+import { Playground } from "../../shared/playground/Playground";
+import { defaultDeclarations } from "../../shared/playground/emit";
+import { usePlayground } from "../../shared/playground/state";
+import type {
+  PlaygroundCodeContext,
+  PlaygroundPreviewProps,
+} from "../../shared/playground/schema";
+import { gradientBackdropConfig } from "./gradientBackdropPlayground";
+import { Readout, STAGE_CLASS, overlayFor } from "./gradientBackdropStage";
 
-const ROLES: GradientBackdropRole[] = ["glow", "from", "via", "to"];
-const ROLE_LABELS: Record<GradientBackdropRole, string> = {
-  glow: "Glow",
-  from: "From",
-  via: "Via",
-  to: "To",
-};
-const SIDE_OPTIONS = [
-  { label: "Light only", value: "light" },
-  { label: "Dark only", value: "dark" },
-  { label: "Both", value: "both" },
-];
-
-const ColorRow: React.FC<{
-  role: GradientBackdropRole;
-  value: string;
-  onChange: (hex: string) => void;
-}> = ({ role, value, onChange }) => (
-  <label className="flex items-center gap-2 text-xs text-neutral-600 dark:text-neutral-300">
-    <input
-      type="color"
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className="h-7 w-9 cursor-pointer rounded border border-neutral-200 bg-transparent dark:border-neutral-700"
-    />
-    <span className="w-10">{ROLE_LABELS[role]}</span>
-    <code className="font-mono text-[11px] text-neutral-500 dark:text-neutral-400">{value}</code>
-  </label>
-);
-
-/** The colours a scheme ended up with — given, or derived (marked). */
-const Swatches: React.FC<{ title: string; colors: GradientBackdropColors; derived: boolean }> = ({
-  title,
-  colors,
-  derived,
-}) => (
-  <div className="flex flex-col gap-1.5">
-    <span className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-      {title} {derived && <span className="normal-case tracking-normal text-sky-600 dark:text-sky-400">· derived</span>}
-    </span>
-    <div className="flex gap-1.5">
-      {ROLES.map((r) => (
-        <span key={r} className="flex flex-col items-center gap-0.5">
-          <span className="h-6 w-6 rounded border border-black/10 dark:border-white/10" style={{ background: colors[r] }} />
-          <code className="font-mono text-[10px] text-neutral-500 dark:text-neutral-400">{colors[r]}</code>
-        </span>
-      ))}
-    </div>
-  </div>
-);
-
+/**
+ * Gradient Backdrop's playground: the config in `gradientBackdropPlayground.ts`
+ * in, the controls column, the backdrop and the Code view out.
+ *
+ * The stage mounts the theme the emitter prints — `data.theme` is resolved from
+ * the same state, once — so a hex on a swatch and a hex in the snippet are one
+ * string. The colour readout under the stage is docs instrumentation, not
+ * component output, and says so on screen.
+ */
 export const GradientBackdropPlayground: React.FC = () => {
-  const [source, setSource] = useState<"template" | "custom">("template");
-  const [templateId, setTemplateId] = useState<GradientBackdropTemplateId>("mist");
-  const [scheme, setScheme] = useState<GradientBackdropScheme>("auto");
-  const [noise, setNoise] = useState(true);
-  const [noiseScale, setNoiseScale] = useState("auto");
-  const grainScale = noiseScale === "auto" ? undefined : Number(noiseScale);
-  const [sides, setSides] = useState<"light" | "dark" | "both">("light");
-  const [light, setLight] = useState<GradientBackdropColors>({
-    glow: "#fde68a",
-    from: "#fffbeb",
-    via: "#fef3c7",
-    to: "#fcd34d",
-  });
-  const [dark, setDark] = useState<GradientBackdropColors>(GRADIENT_BACKDROP_TEMPLATES.dune.dark);
-
-  const theme: GradientBackdropTemplateId | GradientBackdropTheme =
-    source === "template"
-      ? templateId
-      : {
-          light: sides === "dark" ? undefined : light,
-          dark: sides === "light" ? undefined : dark,
-        };
-  const resolved = useMemo(() => resolveGradientBackdropTheme(theme), [JSON.stringify(theme)]); // eslint-disable-line react-hooks/exhaustive-deps
+  const playground = usePlayground(gradientBackdropConfig);
 
   return (
-    <PlaygroundPanel
+    <Playground
+      playground={playground}
+      preview={Backdrop}
       hideBackgroundToggle
-      controls={
-        <ControlAccordion
-          groups={[
-            {
-              id: "theme",
-              title: "Theme",
-              controls: (
-                <>
-                  <ChoiceControl
-                    label="Source"
-                    options={[
-                      { label: "Template", value: "template" },
-                      { label: "Custom", value: "custom" },
-                    ]}
-                    value={source}
-                    onChange={(v) => setSource(v as "template" | "custom")}
-                  />
-                  {source === "template" ? (
-                    <SelectControl
-                      label="Template"
-                      options={gradientBackdropTemplateOptions}
-                      value={templateId}
-                      onChange={(v) => setTemplateId(v as GradientBackdropTemplateId)}
-                    />
-                  ) : (
-                    <>
-                      <ChoiceControl
-                        label="Colours given"
-                        options={SIDE_OPTIONS}
-                        value={sides}
-                        onChange={(v) => setSides(v as "light" | "dark" | "both")}
-                      />
-                      {sides !== "dark" && (
-                        <Control label="Light">
-                          <div className="space-y-1">
-                            {ROLES.map((r) => (
-                              <ColorRow key={r} role={r} value={light[r]} onChange={(hex) => setLight({ ...light, [r]: hex })} />
-                            ))}
-                          </div>
-                        </Control>
-                      )}
-                      {sides !== "light" && (
-                        <Control label="Dark">
-                          <div className="space-y-1">
-                            {ROLES.map((r) => (
-                              <ColorRow key={r} role={r} value={dark[r]} onChange={(hex) => setDark({ ...dark, [r]: hex })} />
-                            ))}
-                          </div>
-                        </Control>
-                      )}
-                    </>
-                  )}
-                </>
-              ),
-            },
-            {
-              id: "scheme",
-              title: "Scheme & texture",
-              controls: (
-                <>
-                  <ChoiceControl
-                    label="Scheme"
-                    options={gradientBackdropSchemeOptions}
-                    value={scheme}
-                    onChange={(v) => setScheme(v as GradientBackdropScheme)}
-                  />
-                  <ToggleRow label="Noise (film grain)" checked={noise} onChange={setNoise} />
-                  <ChoiceControl label="Grain scale" value={noiseScale} onChange={setNoiseScale}
-                    options={[
-                      { value: "auto", label: "Auto (original)" },
-                      { value: "0.25", label: "0.25 — very fine" },
-                      { value: "0.5", label: "0.5 — fine" },
-                      { value: "1", label: "1 — 200px tile" },
-                      { value: "2", label: "2 — coarse" },
-                    ]} />
-                </>
-              ),
-            },
-          ]}
-        />
-      }
-      preview={
-        <div className="flex w-full flex-col gap-4">
-          <GradientBackdrop theme={theme} scheme={scheme} noise={noise} noiseScale={grainScale} className="flex min-h-64 items-center justify-center rounded-xl p-8">
-            <Panel variant="glass" title="Glass over the backdrop" subtitle="The theme follows the page's light / dark mode">
-              <p className="text-sm">Switch the docs theme in the header — the backdrop swaps with no JavaScript.</p>
-            </Panel>
-          </GradientBackdrop>
-          <div className="grid grid-cols-2 gap-3">
-            <GradientBackdrop theme={theme} scheme="light" noise={noise} noiseScale={grainScale} className="h-24 rounded-lg" aria-label="Light scheme" />
-            <GradientBackdrop theme={theme} scheme="dark" noise={noise} noiseScale={grainScale} className="h-24 rounded-lg" aria-label="Dark scheme" />
-          </div>
-          <div className="flex flex-wrap gap-6">
-            <Swatches title="Light" colors={resolved.light} derived={source === "custom" && sides === "dark"} />
-            <Swatches title="Dark" colors={resolved.dark} derived={source === "custom" && sides === "light"} />
-          </div>
-        </div>
-      }
+      code={gradientBackdropCode}
+      filename="GradientBackdrop.tsx"
+      hint={(state) => (
+        <p className="text-xs text-neutral-500 dark:text-neutral-400">
+          Six templates ship with the kit; <code>slate</code> is the
+          component&apos;s own default, so the Code view opens without a{" "}
+          <code>theme</code> at all. Switch to a custom theme and the side you
+          hide is absent from the snippet too — the component derives it (
+          <code>deriveDarkColor</code> / <code>deriveLightColor</code>), which is
+          why the readout under the stage marks one side <em>derived</em>.{" "}
+          <code>Grain scale</code> appears only while noise is on: the component
+          reads <code>noiseScale</code> inside the <code>noise &amp;&amp;</code>{" "}
+          layer, so it can never print on its own (GradientBackdrop.tsx:87-101).
+          Currently <code>scheme={String(state.scheme ?? "auto")}</code>.
+        </p>
+      )}
     />
   );
+};
+
+/** The stage: the configured backdrop, then the docs' own readouts. */
+const Backdrop: React.FC<PlaygroundPreviewProps> = ({ state, data }) => {
+  const theme = data.theme as GradientBackdropTemplateId | GradientBackdropTheme;
+  return (
+    <div className="flex w-full flex-col gap-4">
+      <GradientBackdrop
+        theme={theme}
+        scheme={state.scheme as GradientBackdropScheme}
+        noise={Boolean(state.noise)}
+        noiseScale={
+          state.noiseScale === "auto" ? undefined : Number(state.noiseScale)
+        }
+        className={String(state.size ?? STAGE_CLASS)}
+      >
+        {(data.overlay as React.ReactElement | undefined) ?? overlayFor()}
+      </GradientBackdrop>
+
+      {/* Docs instrumentation: what the two schemes resolved to, derived side
+          included. Not part of the component, and not in the snippet. */}
+      <div className="flex flex-col gap-2">
+        <Readout state={state} />
+        <p className="text-[11px] text-neutral-400 dark:text-neutral-500">
+          The readout above is the docs&apos; own resolved theme (
+          <code>resolveGradientBackdropTheme</code>) — not part of the component,
+          and not in the Code view.
+        </p>
+      </div>
+    </div>
+  );
+};
+
+/**
+ * The snippet: one backdrop, the panel on it, and the attributes the reader
+ * actually chose — a prop still at the component's default is absent here
+ * exactly as it is inert on screen.
+ */
+export const gradientBackdropCode = ({
+  state,
+  data,
+  h,
+}: PlaygroundCodeContext): string => {
+  const backdrop = h.element(
+    "GradientBackdrop",
+    h.props(),
+    0,
+    h.jsx(data.overlay, { names: { Panel } }),
+  );
+
+  return h.snippet({
+    imports: ["GradientBackdrop", "Panel"],
+    decls: defaultDeclarations(gradientBackdropConfig, state, h),
+    body: h.demo(backdrop),
+  });
 };

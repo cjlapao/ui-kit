@@ -112,12 +112,12 @@ would print a page of plumbing; a static `ExampleCard` set is honest).
 ## Status
 
 <!-- BEGIN GENERATED TABLE — npm --prefix react/demo run audit -->
-- **143 pages** in the side menu, **5 fully done** — run `npm --prefix react/demo run audit` after every conversion to refresh this table.
-- Playground: 6 on the engine · 129 legacy `PlaygroundPanel` · 1 inline · 7 without one.
+- **143 pages** in the side menu, **7 fully done** — run `npm --prefix react/demo run audit` after every conversion to refresh this table.
+- Playground: 7 on the engine · 128 legacy `PlaygroundPanel` · 1 inline · 7 without one.
 - Standard sections: API 79 · Screen reader 66 · Keyboard 65 · i18n 63.
-- Tests: 6 pages have one · examples missing on 12 pages.
+- Tests: 7 pages have one · examples missing on 12 pages.
 
-### Layout — 3/24 done
+### Layout — 5/24 done
 
 |  | Page | Slug | Playground | Fields | API | SR | Kbd | i18n | Ex | Tests |
 |:--:|---|---|---|---|:--:|:--:|:--:|:--:|:--:|---|
@@ -125,7 +125,7 @@ would print a page of plumbing; a static `ExampleCard` set is honest).
 | ✅ | [Side Menu](side-menu/SideMenuPage.tsx) | `side-menu` | 🟢 engine | 37 fields · ⚠ 1 default | ✅ | ✅ | ⬜ | ✅ | 18 | `sideMenuSnippet.test.ts` |
 | ✅ | [Breadcrumb](breadcrumb/BreadcrumbPage.tsx) | `breadcrumb` | 🟢 engine | 6 fields | ✅ | ✅ | ✅ | ✅ | 6 | `breadcrumbSnippet.test.ts` |
 | ✅ | [Glass Background](glass-background/GlassBackgroundPage.tsx) | `glass-background` | 🟢 engine | 6 fields | ✅ | ✅ | ✅ | ✅ | 5 | `glassBackgroundSnippet.test.ts` |
-| ☐ | [Gradient Backdrop](gradient-backdrop/GradientBackdropPage.tsx) | `gradient-backdrop` | 🟡 panel | — | ✅ | ✅ | ✅ | ✅ | 4 | — |
+| ✅ | [Gradient Backdrop](gradient-backdrop/GradientBackdropPage.tsx) | `gradient-backdrop` | 🟢 engine | 8 fields | ✅ | ✅ | ✅ | ✅ | 4 | `gradientBackdropSnippet.test.ts` |
 | ☐ | [Grid Background](grid-background/GridBackgroundPage.tsx) | `grid-background` | 🟡 panel | — | ✅ | ✅ | ✅ | ✅ | 4 | — |
 | ☐ | [Panel](panel/PanelPage.tsx) | `panel` | 🟡 panel | — | ⬜ | ⬜ | ⬜ | ⬜ | 9 | — |
 | ☐ | [Collapsible Help Text](collapsible-help-text/CollapsibleHelpTextPage.tsx) | `collapsible-help-text` | 🟡 panel | — | ⬜ | ⬜ | ⬜ | ⬜ | 3 | — |
