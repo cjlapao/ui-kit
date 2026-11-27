@@ -29,8 +29,8 @@ import {
   VIBRANCY_DEFAULT,
   VARIANT_DEFAULT,
   choiceValue,
-  flag,
-  hasRemoveLabel,
+  isClickable,
+  canRemove,
   isDot,
   isGlass,
   isTranslated,
@@ -49,6 +49,17 @@ import {
  * The workbench fields (`locale`, `backdrop`) and the two report fields own no
  * prop and say nothing to the snippet.
  */
+
+/** The dot branch drops these on the floor, so the knobs for them go away too. */
+const notDot = (state: PlaygroundState): boolean => !isDot(state);
+
+/**
+ * The highlight belongs to the content, which the dot branch returns before
+ * building: a glass dot takes the fill, the blur and the rim but never gets an
+ * overlay (:224-240 vs :200-208), so asking for one would print a lie.
+ */
+const glassNotDot = (state: PlaygroundState): boolean =>
+  isGlass(state) && !isDot(state);
 
 const renderSwatches = (
   value: string,
@@ -134,9 +145,10 @@ export const pillConfig: PlaygroundConfig = {
       kind: "toggle",
       id: "uppercase",
       group: "label",
-      label: "uppercase (:85,:287)",
+      label: "uppercase (:85,:286)",
       prop: "uppercase",
       default: false,
+      when: notDot,
     },
     {
       kind: "choice",
@@ -146,6 +158,7 @@ export const pillConfig: PlaygroundConfig = {
       prop: "icon",
       options: ICON_OPTIONS,
       default: ICON_NONE,
+      when: notDot,
       // "None" is the absence of the prop, not a value of it.
       emit: (value) =>
         typeof value === "string" && value !== ICON_NONE ? `icon="${value}"` : null,
@@ -158,6 +171,7 @@ export const pillConfig: PlaygroundConfig = {
       prop: "trailingIcon",
       options: TRAILING_ICON_OPTIONS,
       default: ICON_NONE,
+      when: notDot,
       emit: (value) =>
         typeof value === "string" && value !== ICON_NONE
           ? `trailingIcon="${value}"`
@@ -167,9 +181,10 @@ export const pillConfig: PlaygroundConfig = {
       kind: "number",
       id: "maxWidth",
       group: "label",
-      label: "maxWidth (:118-119,:294-296)",
+      label: "maxWidth (:118-119,:293-295)",
       prop: "maxWidth",
       default: MAX_WIDTH_NONE,
+      when: notDot,
       min: 0,
       max: 400,
       step: 10,
@@ -206,7 +221,7 @@ export const pillConfig: PlaygroundConfig = {
       kind: "toggle",
       id: "pulse",
       group: "state",
-      label: "pulse (:104-110,:286)",
+      label: "pulse (:104-110,:285)",
       prop: "pulse",
       default: false,
     },
@@ -216,9 +231,10 @@ export const pillConfig: PlaygroundConfig = {
       kind: "toggle",
       id: "onClick",
       group: "interactive",
-      label: "onClick — makes it a button (:115-116,:300-316)",
+      label: "onClick — makes it a button (:115-116,:299-316)",
       prop: "onClick",
       default: false,
+      when: notDot,
       emit: (value) =>
         value === true ? "onClick={() => setPinned(true)}" : null,
     },
@@ -229,8 +245,13 @@ export const pillConfig: PlaygroundConfig = {
       label: "onRemove — adds the remove button (:111-112,:259-273)",
       prop: "onRemove",
       default: false,
-      emit: (value) =>
-        value === true ? "onRemove={() => setShown(false)}" : null,
+      // Visible whenever a dot could not swallow it; whether the *value* means
+      // anything is `canRemove`'s business, and the emitter answers for it.
+      when: notDot,
+      emit: (value, state) =>
+        value === true && canRemove(state)
+          ? "onRemove={() => setShown(false)}"
+          : null,
     },
     {
       kind: "text",
@@ -239,7 +260,9 @@ export const pillConfig: PlaygroundConfig = {
       label: "removeLabel (:113-114,:268)",
       prop: "removeLabel",
       default: "",
-      when: hasRemoveLabel,
+      // Visible whenever a remove button exists — not gated on its own value, or
+      // the reader could never type the first character.
+      when: canRemove,
       emit: (value) =>
         typeof value === "string" && value.trim() !== ""
           ? `removeLabel=${JSON.stringify(value.trim())}`
@@ -249,7 +272,7 @@ export const pillConfig: PlaygroundConfig = {
       kind: "toggle",
       id: "disabled",
       group: "interactive",
-      label: "disabled (:117,:288)",
+      label: "disabled (:117,:287)",
       prop: "disabled",
       default: false,
     },
@@ -285,11 +308,13 @@ export const pillConfig: PlaygroundConfig = {
       prop: "specularMode",
       options: SPECULAR_OPTIONS,
       default: SPECULAR_DEFAULT_CHOICE,
-      when: isGlass,
+      when: glassNotDot,
       // "Variant default" means the prop is not passed at all; the rest are
       // real values, including "none", which is *not* what glass defaults to.
-      emit: (value) =>
-        typeof value === "string" && value !== SPECULAR_DEFAULT_CHOICE
+      emit: (value, state) =>
+        typeof value === "string" &&
+        value !== SPECULAR_DEFAULT_CHOICE &&
+        glassNotDot(state)
           ? `specularMode="${value}"`
           : null,
     },
@@ -348,12 +373,12 @@ const jsxText = (label: string): string =>
 /** The `useState` calls the printed demo declares, in the order it declares them. */
 export const hostStateLines = (state: PlaygroundState): string[] => {
   const lines: string[] = [];
-  if (flag(state, "onClick")) {
+  if (isClickable(state) && !isDot(state)) {
     lines.push(
-      `// onClick is what turns a label into a control (:115-116,:300-316).\nconst [pinned, setPinned] = useState(false);`,
+      `// onClick is what turns a label into a control (:115-116,:299-316).\nconst [pinned, setPinned] = useState(false);`,
     );
   }
-  if (flag(state, "onRemove")) {
+  if (canRemove(state)) {
     lines.push(
       `// The remove button takes the pill out of the caller\'s list (:111-112,:259-273).\nconst [shown, setShown] = useState(true);`,
     );
@@ -377,7 +402,7 @@ export const pillCode = ({ state, h }: PlaygroundCodeContext): string => {
   const hostState = hostStateLines(state);
   const demo = [
     "export default function Demo() {",
-    ...hostState.map((line) => `  ${line}`),
+    ...hostState.flatMap((group) => group.split("\n").map((line) => `  ${line}`)),
     "  return (",
     h.indent(root, 2),
     "  );",

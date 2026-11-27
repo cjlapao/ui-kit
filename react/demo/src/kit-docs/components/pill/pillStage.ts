@@ -10,7 +10,7 @@ import type { PlaygroundState } from "../../shared/playground/schema";
 /** The stage's own layout — a test hook as much as a class list. */
 export const STAGE_CLASS = "flex w-full max-w-md flex-col items-start gap-4";
 
-/** The five variants (:20-26). The two see-through ones are the glass pair (:44-45). */
+/** The five variants (:19-25). The two see-through ones are the glass pair (:44-45). */
 export const VARIANTS = ["solid", "soft", "outline", "glass", "liquid-glass"] as const;
 export const VARIANT_DEFAULT = "soft"; // :79-80,:129
 export const SIZE_DEFAULT = "md"; // :81-82,:130
@@ -34,7 +34,7 @@ export const ICON_OPTIONS = [
 export const TRAILING_ICON_OPTIONS = [
   { label: "None", value: ICON_NONE },
   { label: "ArrowRight", value: "ArrowRight" },
-  { label: "ChevronDown", value: "ChevronDown" },
+  { label: "ChevronRight", value: "ChevronRight" },
 ];
 
 /**
@@ -57,8 +57,8 @@ export const LOCALES = [
   { label: "English (the kit default)", value: "en", word: "Remove", catalog: "builtIn/en.ts:376-378" },
   { label: "Français", value: "fr", word: "Supprimer", catalog: "builtIn/fr.ts:346-348" },
   { label: "Deutsch", value: "de", word: "Entfernen", catalog: "builtIn/de.ts:344-346" },
-  { label: "Español", value: "es", word: "Quitar", catalog: "builtIn/es.ts:344-346" },
-  { label: "Português", value: "pt", word: "Remover", catalog: "builtIn/pt.ts:344-346" },
+  { label: "Español", value: "es", word: "Quitar", catalog: "builtIn/es.ts:343-345" },
+  { label: "Português", value: "pt", word: "Remover", catalog: "builtIn/pt.ts:343-345" },
 ] as const;
 export const LOCALE_DEFAULT = "en";
 export const REMOVE_LABEL_EXAMPLE = "Remove filter";
@@ -127,13 +127,21 @@ export const isPulsing = (state: PlaygroundState): boolean =>
 /** Hover, focus ring and the button element all hang off this one boolean (:159). */
 export const isClickable = (state: PlaygroundState): boolean => flag(state, "onClick");
 
+/**
+ * Whether a remove button can exist at all. The dot branch returns before any of
+ * the content is built, so a dot has no remove button, no adornments, no
+ * maxWidth and no onClick however the knobs are set (:218-242).
+ */
+export const canRemove = (state: PlaygroundState): boolean =>
+  flag(state, "onRemove") && !isDot(state);
+
 export const isRemovable = (state: PlaygroundState): boolean => flag(state, "onRemove");
 
 export const removeLabelValue = (state: PlaygroundState): string =>
   textValue(state, "removeLabel").trim();
 
 export const hasRemoveLabel = (state: PlaygroundState): boolean =>
-  isRemovable(state) && !isDot(state) && removeLabelValue(state) !== "";
+  canRemove(state) && removeLabelValue(state) !== "";
 
 export const iconName = (state: PlaygroundState): string =>
   choiceValue(state, "icon", ICON_NONE);
@@ -198,23 +206,23 @@ export const elementCaption = (state: PlaygroundState): string => {
     } Neither form is focusable — a dot is a status mark, not a control (:223-241).`;
   }
   if (isClickable(state)) {
-    return `A real <button type="button"> (:300-316): Tab reaches it, Enter and Space activate it, and the focus ring is focus-visible:ring-2 ring-current (:308) — the tone's own colour, so it reads on solid, soft, outline and glass alike.`;
+    return `A real <button type="button"> (:299-316): Tab reaches it, Enter and Space activate it, and the focus ring is focus-visible:ring-2 ring-current (:302,:307) — the tone's own colour, so it reads on solid, soft, outline and glass alike.`;
   }
-  return `A <span> (:319-326): a label, not a control. It is absent from the tab order, no key does anything to it, and the tone hover classes are not applied either — hover only answers to onClick (:156-159,:283; Theme.ts:2912-2914).`;
+  return `A <span> (:318-325): a label, not a control. It is absent from the tab order, no key does anything to it, and the tone hover classes are not applied either — hover only answers to onClick (:156-159,:282; Theme.ts:2912-2914).`;
 };
 
 /** Why the pill is the colour it is, opaque or see-through. */
 export const toneCaption = (state: PlaygroundState): string => {
   const tone = toneName(state);
   if (isGlass(state)) {
-    return `"${tone}" paints a glass pill from a different set of helpers: the opaque tone map is dropped entirely because it would paint a solid fill (:174-183), and the tint, the copy colour and the rim come from the glass trio (:185-195). The fill is bg-${tone}-200/65 at frosted, the copy text-${tone}-900 (:191-193 ← glass.ts:98-130,:321-335). The rim stays white (:331-333) and, with no onClick, so does the hover — getGlassChromeClasses is asked for no interactive chrome at all (:193 ← glass.ts:311-319).`;
+    return `"${tone}" paints a glass pill from a different set of helpers: the opaque tone map is dropped entirely because it would paint a solid fill (:174-183), and the tint, the copy colour and the rim come from the glass trio (:185-195). The fill is bg-${tone}-200/65 at frosted, the copy text-${tone}-900 (:191-193 ← glass.ts:98-130,:321-335). The rim stays white (:333) and, with no onClick, so does the hover — getGlassChromeClasses is asked for no interactive chrome at all (:193 ← glass.ts:311-319).`;
   }
   const variant = variantName(state);
   const paint =
     variant === "solid"
       ? `bg-${tone}-500 text-white, answering a click with hover:bg-${tone}-400 dark:hover:bg-${tone}-300 (:2921-2922)`
       : variant === "outline"
-        ? `text-${tone}-600 plus a hairline border-${tone}-200, and outline is the only entry in the map carrying a border token — which is why it is the only variant that gets a rim (:229,:282 ← Theme.ts:2929-2931)`
+        ? `text-${tone}-600 plus a hairline border-${tone}-200, and outline is the only entry in the map carrying a border token — which is why it is the only variant that gets a rim (:229,:281 ← Theme.ts:2929-2931)`
         : `bg-${tone}-50 text-${tone}-700, its hover a translucent bg-${tone}-100 (:2925-2926)`;
   return `"${tone}" on ${variant}: ${paint}. The whole map is one theme-table lookup with a blue fallback, so a tone the theme does not know still paints something (:3715-3719).`;
 };
@@ -255,7 +263,7 @@ export const pulseCaption = (state: PlaygroundState): string => {
   if (isDisabled(state)) {
     return `pulse is set and the pulse class is not on the element: pulsing is pulse && !disabled (:166), and an attention call on a pill the app itself has dimmed is a contradiction (:161-166).`;
   }
-  return `The glow rides in as two custom properties — --pill-glow in the tone's -500, its dark-theme partner at -300 (:167-172) — so the keyframes stay colour-agnostic and a new tone needs no CSS of its own. It is an inset shadow, which is why a dense row needs no padding to survive it (:104-108), and reduced-motion readers get a static inner glow instead of the animation (:108).`;
+  return `The glow rides in as two custom properties — --pill-glow in the tone's -500, its dark-theme partner at -300 (:167-172) — so the keyframes stay colour-agnostic and a new tone needs no CSS of its own. It is an inset shadow, which is why a dense row needs no padding to survive it (:105-106), and reduced-motion readers get a static inner glow instead of the animation (:107-108).`;
 };
 
 export const removeCaption = (state: PlaygroundState): string => {
@@ -312,7 +320,7 @@ export const sizeCaption = (state: PlaygroundState): string => {
 export const truncateCaption = (state: PlaygroundState): string => {
   const width = maxWidthValue(state);
   if (width === undefined || isDot(state)) return "";
-  return `maxWidth={${width}} does two jobs: truncate on the label span (:251) and style.maxWidth on the element, a bare number becoming px (:292-298). The full text is now clipped, and Pill has no title prop of its own to hand it back with — title arrives through the spread (:77,:322), so ask for it.`;
+  return `maxWidth={${width}} does two jobs: truncate on the label span (:251) and style.maxWidth on the element, a bare number becoming px (:291-297). The full text is now clipped, and Pill has no title prop of its own to hand it back with — title arrives through the spread (:77,:321), so ask for it.`;
 };
 
 /** The one string the component owns, and whether the provider is translating it. */

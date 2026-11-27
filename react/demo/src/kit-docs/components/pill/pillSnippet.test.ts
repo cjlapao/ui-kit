@@ -116,6 +116,13 @@ const field = (id: string) => {
   return found;
 };
 
+/** The values a choice knob offers, in the order it offers them. */
+const optionsOf = (id: string): string[] => {
+  const entry = field(id);
+  if (entry.kind !== "choice") throw new Error(`${id} is not a choice`);
+  return entry.options.map((option) => option.value);
+};
+
 /** One decision per knob — the states a reader can actually arrive at. */
 const EVERY_STATE: Array<[string, Partial<PlaygroundState>]> = [
   ["solid", { variant: "solid" }],
@@ -130,7 +137,7 @@ const EVERY_STATE: Array<[string, Partial<PlaygroundState>]> = [
   ["xl uppercase", { size: "xl", uppercase: true }],
   ["square", { corner: "none" }],
   ["leading icon", { icon: "Check" }],
-  ["trailing icon", { trailingIcon: "ChevronDown" }],
+  ["trailing icon", { trailingIcon: "ChevronRight" }],
   ["truncated", { maxWidth: 200 }],
   ["dot", { dot: true }],
   ["named dot", { dot: true, dotLabel: "Degraded" }],
@@ -148,7 +155,7 @@ const EVERY_STATE: Array<[string, Partial<PlaygroundState>]> = [
     corner: "sm",
     uppercase: true,
     icon: "Search",
-    trailingIcon: "ChevronDown",
+    trailingIcon: "ChevronRight",
     maxWidth: 180,
     pulse: true,
     onClick: true,
@@ -168,14 +175,18 @@ describe("pill snippet", () => {
   });
 
   it("never prints a documented default onto the tag", () => {
-    for (const name of ["variant", "tone", "size", "corner", "glassOpacity", "vibrancy"]) {
-      expect(attributes(snippet({ variant: "glass" })), `${name} at its default`).not.toContain(
-        name,
-      );
+    // Everything at its documented default, with one non-default knob switched on
+    // per group so the tag is not empty and the suppression is a real test.
+    const plain = snippet({ labelText: "Deployed", uppercase: true, onRemove: true });
+    for (const name of ["variant", "tone", "size", "corner"]) {
+      expect(attributes(plain), `${name} at its default`).not.toContain(name);
     }
-    for (const name of ["dot", "pulse", "uppercase", "disabled", "onClick", "onRemove"]) {
-      expect(attributes(snippet()), `${name} off`).not.toContain(name);
+    for (const name of ["dot", "pulse", "disabled", "maxWidth", "icon", "trailingIcon"]) {
+      expect(attributes(plain), `${name} off`).not.toContain(name);
     }
+    // The glass pair at its documented default, on the variant that can show it.
+    const glass = snippet({ variant: "glass", labelText: "Deployed" });
+    expect(attributes(glass)).toEqual(["variant"]);
   });
 
   it("prints only attributes this page's table documents", () => {
@@ -195,10 +206,8 @@ describe("pill snippet", () => {
       corner: "md",
       uppercase: true,
       icon: "Check",
-      trailingIcon: "ChevronDown",
+      trailingIcon: "ChevronRight",
       maxWidth: 160,
-      dot: true,
-      dotLabel: "Degraded",
       pulse: true,
       onClick: true,
       onRemove: true,
@@ -214,8 +223,6 @@ describe("pill snippet", () => {
       "icon",
       "trailingIcon",
       "maxWidth",
-      "dot",
-      "label",
       "pulse",
       "onClick",
       "onRemove",
@@ -263,6 +270,52 @@ describe("pill snippet", () => {
     expect(field("dot").default).toBe(false);
   });
 
+  it("drops what the dot branch drops, instead of printing an attribute it ignores", () => {
+    // :218-242 returns before the content is built: no children, no adornments, no
+    // maxWidth, no uppercase, no onClick and no remove button — so none of them
+    // may ride onto the tag just because a knob was left switched on.
+    const code = snippet({
+      dot: true,
+      uppercase: true,
+      icon: "Check",
+      trailingIcon: "ArrowRight",
+      maxWidth: 200,
+      onClick: true,
+      onRemove: true,
+      removeLabel: "Drop",
+      pulse: true,
+    });
+    expect(attributes(code)).toEqual(["dot", "pulse"]);
+    expect(code).not.toContain("useState");
+    expect(code).not.toContain("setPinned");
+    expect(code).not.toContain("setShown");
+    // A dot still takes tone, size, glass, pulse and disabled (:226-235).
+    const glassDot = snippet({
+      dot: true,
+      variant: "glass",
+      tone: "amber",
+      size: "lg",
+      glassOpacity: "clear",
+      vibrancy: "high",
+      pulse: true,
+      disabled: true,
+      specularMode: "classic",
+    });
+    // The dot keeps the glass fill, blur and saturation (:230,:191-192) and drops
+    // the highlight, which the branch never builds (:224-240 vs :200-208).
+    expect(attributes(glassDot)).toEqual([
+      "variant",
+      "tone",
+      "size",
+      "dot",
+      "pulse",
+      "disabled",
+      "glassOpacity",
+      "vibrancy",
+    ]);
+    expect(glassDot).not.toContain("specularMode");
+  });
+
   it("asks for a dot name only while there is a dot", () => {
     const named = snippet({ dot: true, dotLabel: "Degraded" });
     expect(named).toContain('label="Degraded"');
@@ -275,9 +328,10 @@ describe("pill snippet", () => {
 
   it("asks for a remove name only while there is a remove button", () => {
     expect(field("removeLabel").when?.(seeds())).toBe(false);
-    expect(
-      field("removeLabel").when?.(Object.assign(seeds(), { onRemove: true })),
-    ).toBe(true);
+    const removable = Object.assign(seeds(), { onRemove: true });
+    expect(field("removeLabel").when?.(removable)).toBe(true);
+    // And it is there to type into before it has a value, not only after.
+    expect(snippet({ onRemove: true, removeLabel: "x" })).toContain('removeLabel="x"');
     expect(snippet({ onRemove: true, removeLabel: "" })).not.toContain("removeLabel=");
     expect(snippet({ onRemove: true, removeLabel: "Remove filter" })).toContain(
       'removeLabel="Remove filter"',
@@ -294,8 +348,8 @@ describe("pill snippet", () => {
 
   it("prints an adornment as the registry name it is, not as markup", () => {
     expect(snippet({ icon: "Check" })).toContain('icon="Check"');
-    expect(snippet({ trailingIcon: "ChevronDown" })).toContain('trailingIcon="ChevronDown"');
-    expect(snippet({ icon: "None" })).not.toContain("icon=");
+    expect(snippet({ trailingIcon: "ChevronRight" })).toContain('trailingIcon="ChevronRight"');
+    expect(snippet({ icon: "none" })).not.toContain("icon=");
     expect(snippet({ icon: "Check" })).not.toContain("icon={");
   });
 
@@ -320,7 +374,7 @@ describe("pill snippet", () => {
     expect(snippet({ locale: "en", onRemove: true })).not.toContain("I18nProvider");
     const french = snippet({ locale: "fr", onRemove: true });
     expect(french).toContain('<I18nProvider locale="fr">');
-    expect(french).toContain("import { Pill, I18nProvider } from");
+    expect(french).toContain("import { I18nProvider, Pill } from");
     // The locale is context, not a prop: it never rides onto the pill itself.
     expect(openingTag(french)).not.toContain("locale");
     expect(field("locale").prop).toBeNull();
@@ -398,8 +452,6 @@ describe("pill snippet", () => {
       "icon",
       "trailingIcon",
       "maxWidth",
-      "dot",
-      "label",
       "pulse",
       "onClick",
       "onRemove",
@@ -435,26 +487,17 @@ describe("pill snippet", () => {
   });
 
   it("offers one option per real value, from the kit's own lists", () => {
-    const variant = field("variant");
-    expect((variant.options ?? []).map((option) => option.value)).toEqual([
+    expect(optionsOf("variant")).toEqual([
       "solid",
       "soft",
       "outline",
       "glass",
       "liquid-glass",
     ]);
-    expect((field("corner").options ?? []).map((option) => option.value)).toEqual([
-      "none",
-      "sm",
-      "md",
-      "lg",
-      "full",
-    ]);
-    expect((field("specularMode").options ?? []).map((option) => option.value)).toEqual([
-      "default",
-      "none",
-      "classic",
-      "halo",
-    ]);
+    expect(optionsOf("corner")).toEqual(["none", "sm", "md", "lg", "full"]);
+    expect(optionsOf("specularMode")).toEqual(["default", "none", "classic", "halo"]);
+    expect(optionsOf("icon")).toEqual(["none", "Check", "Search"]);
+    expect(optionsOf("trailingIcon")).toEqual(["none", "ArrowRight", "ChevronRight"]);
+    expect(optionsOf("locale")).toEqual(["en", "fr", "de", "es", "pt"]);
   });
 });

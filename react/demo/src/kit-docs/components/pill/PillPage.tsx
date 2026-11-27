@@ -45,7 +45,7 @@ export const PILL_PROPS: PropDoc[] = [
     type: "PillVariant",
     default: '"soft"',
     description:
-      "solid, soft, outline, glass, liquid-glass (:20-26,:79-80). The last two are the see-through pair that accept the three glass props (:44-45,:154).",
+      "solid, soft, outline, glass, liquid-glass (:19-25,:79-80). The last two are the see-through pair that accept the three glass props (:44-45,:154).",
   },
   {
     name: "size",
@@ -65,7 +65,7 @@ export const PILL_PROPS: PropDoc[] = [
     name: "uppercase",
     type: "boolean",
     default: "false",
-    description: "uppercase plus tracking-wide on the label (:85,:287).",
+    description: "uppercase plus tracking-wide on the label (:85,:286).",
   },
   {
     name: "icon",
@@ -96,7 +96,7 @@ export const PILL_PROPS: PropDoc[] = [
     type: "boolean",
     default: "false",
     description:
-      "An inset glow in the pill's own tone, riding in as --pill-glow so the keyframes stay colour-agnostic (:104-110,:167-172,:286). Off while disabled (:166).",
+      "An inset glow in the pill's own tone, riding in as --pill-glow so the keyframes stay colour-agnostic (:104-110,:167-172,:285). Off while disabled (:166).",
   },
   {
     name: "onRemove",
@@ -115,20 +115,20 @@ export const PILL_PROPS: PropDoc[] = [
     name: "onClick",
     type: "(event: React.MouseEvent<HTMLElement>) => void",
     description:
-      "Makes the whole pill activatable — it renders as a real <button type=\"button\"> with a focus ring, and it is the only thing that turns the tone's hover classes on (:115-116,:156-159,:283,:300-316).",
+      "Makes the whole pill activatable — it renders as a real <button type=\"button\"> with a focus ring, and it is the only thing that turns the tone's hover classes on (:115-116,:156-159,:282,:299-316).",
   },
   {
     name: "disabled",
     type: "boolean",
     default: "false",
     description:
-      "opacity-50 on any pill (:288); a real disabled attribute on the button and on the remove button, which is what takes them out of the tab order (:262,:305). It also beats pulse (:166).",
+      "opacity-50 on any pill (:287); a real disabled attribute on the button and on the remove button, which is what takes them out of the tab order (:262,:304). It also beats pulse (:166).",
   },
   {
     name: "maxWidth",
     type: "number | string",
     description:
-      "Truncates the label span and sets style.maxWidth; a bare number becomes px (:118-119,:251,:292-298).",
+      "Truncates the label span and sets style.maxWidth; a bare number becomes px (:118-119,:251,:291-297).",
   },
   {
     name: "glassOpacity",
@@ -154,19 +154,19 @@ export const PILL_PROPS: PropDoc[] = [
   {
     name: "className",
     type: "string",
-    description: "Merged onto whichever element rendered (:146,:233,:289).",
+    description: "Merged onto whichever element rendered (:146,:233,:288).",
   },
   {
     name: "style",
     type: "CSSProperties",
     description:
-      "Merged last, over the glow custom properties and maxWidth (:148,:235,:292-298).",
+      "Merged last, over the glow custom properties and maxWidth (:148,:235,:291-297).",
   },
   {
     name: "…rest",
     type: "HTMLAttributes<HTMLSpanElement>",
     description:
-      "Everything else — title, id, data-*, a second aria attribute — is spread onto the span (:77,:239,:322) or onto the button when onClick is set (:311). Note there is no title prop of its own: a truncated label needs the spread to hand the full text back.",
+      "Everything else — title, id, data-*, a second aria attribute — is spread onto the span (:77,:239,:321) or onto the button when onClick is set (:310). Note there is no title prop of its own: a truncated label needs the spread to hand the full text back.",
   },
 ];
 
@@ -178,39 +178,51 @@ export const PILL_PROPS: PropDoc[] = [
 export const KEYBOARD: KeyboardBinding[] = [
   {
     keys: ["Tab"],
-    action:
-      "Reaches the pill itself only when onClick is set, because only then is it a real <button type=\"button\"> (:300-316). A label pill and a dot are <span>s: no tab stop, nothing to reach (:223-241,:319-326).",
+    action: (
+      <>
+        Two stops, and both are real elements rather than a click zone painted over a
+        label: the pill itself — only while <C>onClick</C> is set, because that is what
+        makes it a <C>&lt;button type=&quot;button&quot;&gt;</C> (:299-316) — and,
+        nested inside it, the remove button while <C>onRemove</C> is set and the pill is
+        not a dot (:259-273). With neither prop the pill is a <C>&lt;span&gt;</C>, a dot
+        is a <C>&lt;span&gt;</C>, and there is nothing to reach (:223-241,:318-325).{" "}
+        <C>disabled</C> takes both out of the order with a real <C>disabled</C>{" "}
+        attribute (:262,:304).
+      </>
+    ),
   },
   {
-    keys: ["Tab"],
+    keys: ["Shift", "Tab"],
     action:
-      "Reaches the remove button as a second, nested stop while onRemove is set and the pill is not a dot (:259-273). It is its own button, not a click zone painted over the label.",
+      "Backwards, in the order they were entered — the remove button is the inner stop, so it is left first (:259-273). Both are plain buttons in document order: Pill manages no focus and roves nothing between them.",
   },
   {
     keys: ["Enter", "Space"],
-    action:
-      "Activate whichever of the two has focus — native <button> behaviour, not a handler Pill writes (:300-316,:260-272).",
-  },
-  {
-    keys: ["Enter", "Space"],
-    action:
-      "On the remove button: removes, and only removes. Its onClick calls stopPropagation before onRemove, so the pill's own onClick never fires in the same press (:263-267).",
+    action: (
+      <>
+        Activate whichever of the two has focus, by native <C>&lt;button&gt;</C>{" "}
+        behaviour — Pill writes no key handler of its own (:299-316,:260-272). On the
+        remove button it removes and only removes: its onClick calls{" "}
+        <C>stopPropagation</C> before <C>onRemove</C>, so the pill&rsquo;s own onClick
+        never fires in the same press (:263-267).
+      </>
+    ),
   },
   {
     keys: ["Any key"],
     action:
-      "Nothing else. There is no onKeyDown, no Escape, no arrow-key roving: the only focus styling is CSS focus-visible rings — ring-2 ring-current on the pill, ring-1 ring-current on the remove button, both drawn in the tone (:269,:308).",
+      "Nothing else. There is no onKeyDown, no Escape, no arrow-key roving: the only focus styling is CSS focus-visible rings — ring-2 ring-current on the pill, ring-1 ring-current on the remove button, both drawn in the tone (:269,:307).",
   },
 ];
 
 const RENDERED_CODE = `// What the DOM actually gets, for three of the shapes above.
 
-// The label pill — a span, no tab stop, no aria of any kind (:319-326).
+// The label pill — a span, no tab stop, no aria of any kind (:318-325).
 <span class="inline-flex … rounded-full bg-blue-50 text-blue-700 …">
   Operational
 </span>
 
-// The same pill made activatable (:300-316).
+// The same pill made activatable (:299-316).
 <button type="button" class="… cursor-pointer … focus-visible:ring-2 focus-visible:ring-current">
   Operational
 </button>
@@ -281,7 +293,7 @@ export const PillPage: React.FC = () => (
       <A11yTopic title="Screen reader">
         <p>
           A label pill asks for nothing: it is a <C>&lt;span&gt;</C> whose text is
-          its name (:244-253,:319-326). The forms that carry no text name
+          its name (:244-253,:318-325). The forms that carry no text name
           themselves — the remove button is named by <C>removeLabel</C> falling
           back to the localized &ldquo;Remove&rdquo; (:268), and a <C>dot</C>{" "}
           without a <C>label</C> is <C>aria-hidden</C>, because a coloured
@@ -292,9 +304,9 @@ export const PillPage: React.FC = () => (
         <p>
           The honest gap is <C>disabled</C>. On the button branch and on the
           remove button it is a real <C>disabled</C> attribute, so it is
-          announced and taken out of the tab order (:262,:305). On a label pill —
+          announced and taken out of the tab order (:262,:304). On a label pill —
           a <C>&lt;span&gt;</C> — it is <C>opacity-50</C> and nothing else
-          (:288): a reader hears the label exactly as before. Say it in the text,
+          (:287): a reader hears the label exactly as before. Say it in the text,
           or give the pill <C>onClick</C> so it becomes a button.
         </p>
         <A11yCode code={RENDERED_CODE} filename="what-reaches-the-dom.tsx" />
@@ -314,7 +326,7 @@ export const PillPage: React.FC = () => (
           <C>t(&quot;kit.pill.remove&quot;)</C> through <C>useKitT</C> (:151,:268).
           It ships in the five built-in catalogs — <C>Remove</C>, <C>Supprimer</C>,{" "}
           <C>Entfernen</C>, <C>Quitar</C>, <C>Remover</C> (builtIn/en.ts:376-378,
-          fr.ts:346-348, de.ts:344-346, es.ts:344-346, pt.ts:344-346), and the
+          fr.ts:346-348, de.ts:344-346, es.ts:343-345, pt.ts:343-345), and the
           English values are the component&rsquo;s old hardcoded literals verbatim,
           which is why a page without a provider looks exactly as it did before
           i18n (builtIn/en.ts:1-6).
@@ -341,8 +353,8 @@ export const PillPage: React.FC = () => (
         <p>
           <C>onClick</C> is not a style decision. Without it the component returns
           a <C>&lt;span&gt;</C> with no tab stop and no hover response
-          (:156-159,:319-326); with it, a <C>&lt;button type=&quot;button&quot;&gt;</C>{" "}
-          with <C>focus-visible:ring-2 ring-current</C> (:300-316). The hover
+          (:156-159,:318-325); with it, a <C>&lt;button type=&quot;button&quot;&gt;</C>{" "}
+          with <C>focus-visible:ring-2 ring-current</C> (:302,:307). The hover
           classes come from the same tone table as the fill, and the theme note
           says why that pairing matters: the hover <em>is</em> the affordance,
           &ldquo;because a pill otherwise carries no button chrome at all&rdquo;
@@ -354,6 +366,14 @@ export const PillPage: React.FC = () => (
           <C>stopPropagation</C> before <C>onRemove</C> (:263-267), otherwise
           deleting a filter would also open whatever the pill points at.
         </p>
+        <p>
+          And the honest caveat the props do not say: with both set, the remove
+          button really is nested inside the pill&rsquo;s own <C>&lt;button&gt;</C>{" "}
+          (:313,:259-272). React says so out loud, browsers keep it working, and the
+          <C>stopPropagation</C> above is what keeps the pair from firing together —
+          but if the page has to validate, keep removal in the caller&rsquo;s hands and
+          render the two controls as siblings instead.
+        </p>
       </A11yTopic>
     </A11ySection>
 
@@ -361,7 +381,7 @@ export const PillPage: React.FC = () => (
 
     <p className="text-xs opacity-70">
       Other HTML attributes spread onto whichever element rendered — span or
-      button (:77,:239,:311,:322). <C>glass</C> and <C>liquid-glass</C> need
+      button (:77,:239,:310,:321). <C>glass</C> and <C>liquid-glass</C> need
       something behind them to see through: on a plain page background they read
       as a pale soft pill, so give them a <code>Panel</code>, a photo, or the
       workbench&rsquo;s own backdrop toggle above.

@@ -40,7 +40,7 @@ import {
   isClickable,
   isDot,
   isGlass,
-  isRemovable,
+  canRemove,
   isTranslated,
   labelText,
   localeCaption,
@@ -127,7 +127,7 @@ const Stage: React.FC<PlaygroundPreviewProps> = ({ state, set }) => {
           : undefined
       }
       specularMode={
-        glass && specular !== SPECULAR_DEFAULT_CHOICE
+        glass && !isDot(state) && specular !== SPECULAR_DEFAULT_CHOICE
           ? (specular as SpecularMode)
           : undefined
       }
@@ -137,7 +137,7 @@ const Stage: React.FC<PlaygroundPreviewProps> = ({ state, set }) => {
           : undefined
       }
       onRemove={
-        isRemovable(state)
+        canRemove(state)
           ? () =>
               set(
                 "removeReport",
@@ -190,7 +190,7 @@ const Stage: React.FC<PlaygroundPreviewProps> = ({ state, set }) => {
       )}
       {clickReport !== "" && (
         <p className="text-xs text-neutral-500 dark:text-neutral-400" data-report="click">
-          {clickReport} (:300-304)
+          {clickReport} (:299-303)
         </p>
       )}
       {removeReport !== "" && (
@@ -210,20 +210,20 @@ export const PillHint: React.FC<{ state: PlaygroundState }> = ({ state }) => (
     <p className="text-xs leading-relaxed text-neutral-600 dark:text-neutral-400">
       The two toggles that change what this element <em>is</em>, not how it looks:{" "}
       <C>onClick</C> swaps the <C>&lt;span&gt;</C> for a real{" "}
-      <C>&lt;button type=&quot;button&quot;&gt;</C> with a focus ring (:300-316), and{" "}
+      <C>&lt;button type=&quot;button&quot;&gt;</C> with a focus ring (:299-316), and{" "}
       <C>onRemove</C> nests a second focusable button inside it (:259-273). Everything
       else — <C>tone</C>, <C>variant</C>, <C>corner</C> — is paint.
     </p>
     <p className="text-xs leading-relaxed text-neutral-600 dark:text-neutral-400">
       Hover is not decoration here: the tone&rsquo;s hover classes are applied only when{" "}
-      <C>onClick</C> is set (:156-159,:283), because for a pill the hover{" "}
+      <C>onClick</C> is set (:156-159,:282), because for a pill the hover{" "}
       <em>is</em> the affordance (Theme.ts:2912-2914). And{" "}
       <C>specularMode</C> has no single default — <C>liquid-glass</C> resolves to{" "}
       <C>classic</C>, <C>glass</C> to <C>none</C> (:197-198), which is the only
       difference between the two variants. Leave it on &ldquo;Variant default&rdquo; to
       see who wins.
     </p>
-    {isRemovable(state) && !isDot(state) && (
+    {canRemove(state) && (
       <p className="text-xs leading-relaxed text-neutral-600 dark:text-neutral-400">
         {hasRemoveLabel(state) ? (
           <>
